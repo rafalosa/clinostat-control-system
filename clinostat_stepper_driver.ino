@@ -22,9 +22,17 @@
 
 #define SAFE_SPEED 500
 
+
+// Clinostat modes
+#define STANDBY 0
+#define RUNNING 1
+#define HOMING 2
+#define PAUSE 3
+
 AccelStepper outer_frame_stepper(1, OUTER_FRAME_STEP, OUTER_FRAME_DIR);
 AccelStepper chamber_stepper(1, CHAMBER_STEP, CHAMBER_DIR);
 MultiStepper clinostat;
+volatile unsigned int current_mode = 0;
 
 unsigned int currentTimeEncoder1 = 0;
 unsigned int lastTimeEncoder1 = 0;
@@ -34,111 +42,167 @@ unsigned int currentTimeEncode2 = 0;
 unsigned int lastTimeEncoder2 = 0;
 int encoder_ticks2 = 0;
 
+bool messageInSerial = false;
+
+union {
+
+  float float_vel;
+  byte bytes_vel[4];
+
+
+} RPM[2];
+
 void setup() {
+
   pinMode (encoder_A_pin, INPUT);
   pinMode (encoder_B_pin, INPUT);
-  attachInterrupt(digitalPinToInterrupt(encoder_A_pin),updateEncoder,RISING);
+  attachInterrupt(digitalPinToInterrupt(encoder_A_pin), updateEncoder, RISING);
+
+  //attachInterrupt(digitalPinToInterrupt(0),serialReceived,CHANGE); //Interrupt for serial received
+
   outer_frame_stepper.setMaxSpeed(gearedRPMtoSteps(4));
+  //outer_frame_stepper.setMaxSpeed(22000);
   outer_frame_stepper.setAcceleration(1200);
+
   chamber_stepper.setMaxSpeed(gearedRPMtoSteps(4));
+  //chamber_stepper.setMaxSpeed(22000);
   chamber_stepper.setAcceleration(1200);
   clinostat.addStepper(outer_frame_stepper);
   clinostat.addStepper(chamber_stepper);
 
 }
 
-void loop() {  
+void loop() {
 
-  chamber_stepper.moveTo(10000);
-  outer_frame_stepper.moveTo(5000);
-  
-  chamber_stepper.setSpeed(6000);
-  outer_frame_stepper.setSpeed(6000);
-  
-  while(chamber_stepper.currentPosition() != chamber_stepper.targetPosition() ){
+  delay(3000);
 
-    if(outer_frame_stepper.currentPosition() != outer_frame_stepper.targetPosition()){
+  if (Serial.available() > 0) { // first byte is the mode, depending which mode is requested expect additional bytes.
 
-      outer_frame_stepper.runSpeedToPosition();
+    int potential_mode = Serial.read();
+    if (potential_mode == 1) { // change to switch later
+      Serial.println("begin");
+
+      for(int j=0;j<2;j++){ // echo -e -n '\x01\x06\x51\x81\x43\xcd\x4c\x81\x43' >> /dev/ttyACM0 should return 1,258.63 and 258.60
+
+   
+      byte val[4];
+
+      for (int i = 0; i < 4; i++)
+      {
+        val[i] = Serial.read();
+        RPM[j].bytes_vel[i] = val[i];
+      }
       
+      Serial.println(RPM[j].float_vel);
+      
+      }
+
     }
-    chamber_stepper.runSpeedToPosition();
+
 
   }
-    while(outer_frame_stepper.currentPosition() != outer_frame_stepper.targetPosition()){
-
-      outer_frame_stepper.runSpeedToPosition();
-    }
-    
-    returnHome();
-    }
 
 
-void returnHome(){
+}
+
+void serialReceived() {
+
+  PCMSK0 |= 0; //turn of r
+  messageInSerial = true;
+
+}
+
+void returnHome() {
 
   //outer_frame_stepper.runToNewPosition(0);
   //chamber_stepper.runToNewPosition(0);
-  
+
   //additionally check encoder counters.
   //if they dont agree run the motors at low RPM till the reading is correct.
 
   //set motors speed very low
 
   //run motors till encoder_reading % STEPS_PER_ROTATION == 0
-  
+
   chamber_stepper.stop();
   outer_frame_stepper.stop();
 
-  long home_pos[2] = {0,0};
+  long home_pos[2] = {100, 200};
   clinostat.moveTo(home_pos);
 
-  while(clinostat.run());
+  while (clinostat.run());
 
-  if(encoder_ticks1 != 0){
+  while (chamber_stepper.currentPosition() != chamber_stepper.targetPosition() ) {
+
+    if (outer_frame_stepper.currentPosition() != outer_frame_stepper.targetPosition()) {
+
+      outer_frame_stepper.runSpeedToPosition();
+
+    }
+    chamber_stepper.runSpeedToPosition();
+
+  }
+
+  while (outer_frame_stepper.currentPosition() != outer_frame_stepper.targetPosition()) {
+
+    outer_frame_stepper.runSpeedToPosition();
+  }
+
+
+
+  if (encoder_ticks1 != 0) {
 
     outer_frame_stepper.setSpeed(SAFE_SPEED);
     chamber_stepper.setSpeed(SAFE_SPEED);
   }
 
-  while(encoder_ticks1 != 0){ // in final form has to check both encoders, and run them independently
-  
+  while (encoder_ticks1 != 0) {
+
+    //if(encoder_ticks2 != 0){
+
     outer_frame_stepper.runSpeed();
+
+    //}
     chamber_stepper.runSpeed();
-    
+
   }
-  outer_frame_stepper.stop();
-  chamber_stepper.stop();
-  
+
+  //    while(encoder_ticks2 != 0){
+  //
+  //      outer_frame_stepper.runSpeed();
+  //    }
+
   outer_frame_stepper.setCurrentPosition(0);
   chamber_stepper.setCurrentPosition(0);
-  
+  current_mode = STANDBY;
+
 
 }
 
-void updateEncoder(){
+void updateEncoder() {
 
-   currentTimeEncoder1 = millis();
-   bool bState = digitalRead(encoder_B_pin);
-   
-  if(currentTimeEncoder1 - lastTimeEncoder1 > 10){
-  if(bState == HIGH){
+  currentTimeEncoder1 = millis();
+  bool bState = digitalRead(encoder_B_pin);
 
-    encoder_ticks1 = --encoder_ticks1 % ENCODER_PPR;
-    
-  }
-  else{
+  if (currentTimeEncoder1 - lastTimeEncoder1 > 10) {
+    if (bState == HIGH) {
 
-  encoder_ticks1 = ++encoder_ticks1 % ENCODER_PPR;
+      encoder_ticks1 = --encoder_ticks1 % ENCODER_PPR;
 
-    
-  }
+    }
+    else {
+
+      encoder_ticks1 = ++encoder_ticks1 % ENCODER_PPR;
+
+
+    }
 
   }
   lastTimeEncoder1 = currentTimeEncoder1;
 }
 
-int gearedRPMtoSteps(float RPM){ //RPM to steps per second conversion, with gearbox consideration.
-  
-  return RPM / 60 * STEPS_PER_REVOLUTION * DRIVE_WHEEL_TEETH/STEPPER_WHEEL_TEETH * MICROSTEP_DIVISION;
+int gearedRPMtoSteps(float RPM) { //RPM to steps per second conversion, with gearbox consideration.
+
+  return RPM / 60 * STEPS_PER_REVOLUTION * DRIVE_WHEEL_TEETH / STEPPER_WHEEL_TEETH * MICROSTEP_DIVISION;
 
 }
