@@ -33,6 +33,7 @@ AccelStepper outer_frame_stepper(1, OUTER_FRAME_STEP, OUTER_FRAME_DIR);
 AccelStepper chamber_stepper(1, CHAMBER_STEP, CHAMBER_DIR);
 MultiStepper clinostat;
 unsigned int current_mode = 0;
+unsigned int previous_mode = 1;
 
 unsigned int currentTimeEncoder1 = 0;
 unsigned int lastTimeEncoder1 = 0;
@@ -74,11 +75,13 @@ void setup() {
 
 void loop() {
 
+  Serial.print("NOW: ");
+    Serial.println(current_mode);
+
   if (Serial.available() > 0) { // first byte is the mode, depending which mode is requested expect additional bytes.
 
     int potential_mode = Serial.read();
     if (potential_mode == 1) { // change to switch later
-      Serial.println("begin");
 
       for(int j=0;j<2;j++){ // echo -e -n '\x01\x06\x51\x81\x43\xcd\x4c\x81\x43' >> /dev/ttyACM0 should return 1,258.63 and 258.60
 
@@ -91,15 +94,17 @@ void loop() {
         RPM[j].bytes_vel[i] = val[i];
       }
       
-      Serial.println(RPM[j].float_vel);
-      
       }
 
     } //If everything went fine (received 8 bytes after the mode byte) set current mode to potential mode
-    current_mode = potential_mode;
+    
+      previous_mode = current_mode;
+      current_mode = potential_mode;
+      
     chamber_stepper.setSpeed(gearedRPMtoSteps(RPM[0].float_vel));
     outer_frame_stepper.setSpeed(gearedRPMtoSteps(RPM[1].float_vel));
-    if(current_mode == HOMING){
+    
+    if(current_mode == HOMING && previous_mode != STANDBY){
 
       returnHome(); // Homing here,because only 1 excution of this function is needed,avoiding calling it continously in the loop
       
