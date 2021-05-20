@@ -29,6 +29,9 @@
 #define HOMING 2
 #define PAUSE 3
 
+// This approach doesn not allow for the steppers to accelerate simultaneously, consider switching to pure C++ and writing
+// a library tailored for simultaneous control of 2 steppers.
+
 AccelStepper outer_frame_stepper(1, OUTER_FRAME_STEP, OUTER_FRAME_DIR);
 AccelStepper chamber_stepper(1, CHAMBER_STEP, CHAMBER_DIR);
 MultiStepper clinostat;
