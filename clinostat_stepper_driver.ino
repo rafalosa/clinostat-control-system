@@ -32,7 +32,7 @@
 AccelStepper outer_frame_stepper(1, OUTER_FRAME_STEP, OUTER_FRAME_DIR);
 AccelStepper chamber_stepper(1, CHAMBER_STEP, CHAMBER_DIR);
 MultiStepper clinostat;
-volatile unsigned int current_mode = 0;
+unsigned int current_mode = 0;
 
 unsigned int currentTimeEncoder1 = 0;
 unsigned int lastTimeEncoder1 = 0;
@@ -60,11 +60,11 @@ void setup() {
 
   //attachInterrupt(digitalPinToInterrupt(0),serialReceived,CHANGE); //Interrupt for serial received
 
-  outer_frame_stepper.setMaxSpeed(gearedRPMtoSteps(4));
+  outer_frame_stepper.setMaxSpeed(gearedRPMtoSteps(10));
   //outer_frame_stepper.setMaxSpeed(22000);
   outer_frame_stepper.setAcceleration(1200);
 
-  chamber_stepper.setMaxSpeed(gearedRPMtoSteps(4));
+  chamber_stepper.setMaxSpeed(gearedRPMtoSteps(10));
   //chamber_stepper.setMaxSpeed(22000);
   chamber_stepper.setAcceleration(1200);
   clinostat.addStepper(outer_frame_stepper);
@@ -73,8 +73,6 @@ void setup() {
 }
 
 void loop() {
-
-  delay(3000);
 
   if (Serial.available() > 0) { // first byte is the mode, depending which mode is requested expect additional bytes.
 
@@ -97,12 +95,29 @@ void loop() {
       
       }
 
-    }
+    } //If everything went fine (received 8 bytes after the mode byte) set current mode to potential mode
+    current_mode = potential_mode;
+    chamber_stepper.setSpeed(gearedRPMtoSteps(RPM[0].float_vel));
+    outer_frame_stepper.setSpeed(gearedRPMtoSteps(RPM[1].float_vel));
+    if(current_mode == HOMING){
 
+      returnHome(); // Homing here,because only 1 excution of this function is needed,avoiding calling it continously in the loop
+      
+    }
+    
 
   }
 
+  if(current_mode == RUNNING){
 
+      outer_frame_stepper.runSpeed();
+      chamber_stepper.runSpeed();
+    
+  }
+  else if(current_mode == HOMING){
+
+  }
+  
 }
 
 void serialReceived() {
@@ -127,7 +142,7 @@ void returnHome() {
   chamber_stepper.stop();
   outer_frame_stepper.stop();
 
-  long home_pos[2] = {100, 200};
+  long home_pos[2] = {0, 0};
   clinostat.moveTo(home_pos);
 
   while (clinostat.run());
