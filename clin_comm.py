@@ -36,29 +36,30 @@ class Clinostat:
         # Check if device is responding. Maybe return current mode.
         pass
 
-    def run(self,RPMs:tuple) -> None:  # time:float): # Mode byte: b'\x01'.
+    def run(self,RPMs:tuple) -> bool:  # time:float): # Mode byte: b'\x01'.
         # Send mode + RPM1 + RPM2, maybe run for some amount of time?
+        # listen for response, return true if controller responded correctly
         pass
 
-    def home(self) -> None:  # Mode byte: b'\x02'.
+    def home(self) -> bytes:  # Mode byte: b'\x02'.
         # Home clinostat, and set new 0 if necessary.
+        # listen for response, return true if controller responded correctly
         pass
 
-    def abort(self) -> None:  # Mode byte: b'\x03'.
-        self._port.write(b'\x03')
+    def abort(self) -> bytes:  # Mode byte: b'\x03'.
+        # self._port.write(b'\x03')
+        # listen for response, return true if controller responded correctly
         pass
 
-    def pause(self) -> None:  # Mode byte: b'\x04'.
+    def pause(self) -> bytes:  # Mode byte: b'\x04'.
         # Send mode and stop steppers, check for flags if the clinostat is homed or aborted.
+        # listen for response, return true if controller responded correctly
         pass
 
-    def resume(self) -> None:  # Mode byte: b'\x05'.
+    def resume(self) -> bytes:  # Mode byte: b'\x05'.
         # resume run with previously set speeds, check for flag if paused first.
+        # listen for response, return true if controller responded correctly
         pass
 
-    def setHome(self):
-        # Maybe allow user to set a new home position (?)
-        pass
-
-    def close_serial(self):
+    def close_serial(self) -> None:
         self._port.close()

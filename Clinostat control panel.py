@@ -10,6 +10,7 @@ def getPorts() -> list:
 
     return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]
 
+
 def makeHeadline(direction:str):
     pass
 
@@ -37,7 +38,7 @@ class serialConsole(tk.scrolledtext.ScrolledText):
         self.insert("end",string + '\n',"TEXT")
         self.configure(state="disabled")
         self.see("end")
-        #todo: Add logging to textfile
+        # todo: Add logging to textfile
 
 
 class SerialConfig(tk.Frame):
@@ -128,10 +129,8 @@ class ModeOptions(tk.Frame):
         tk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
 
-        # self.refresh_button = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh")
-        # self.refresh_button.config(width=17, height=1)
-
         self.button_frame = tk.Frame(self)
+
         self.abort_button = tk.Button(self.button_frame,command=self.handleAbort,text="Abort")
         self.abort_button.config(width=17,background="#bf4032",activebackground="#eb7063",
                                  foreground="white",disabledforeground="#d1d1d1")
@@ -153,7 +152,6 @@ class ModeOptions(tk.Frame):
         self.home_button.config(width=17)
         self.home_button.config(state="disabled")
 
-
         self.abort_button.grid(row=0,column=0,pady=2)
         self.run_button.grid(row=1, column=0,pady=2)
         self.pause_button.grid(row=2, column=0,pady=2)
@@ -170,7 +168,7 @@ class ModeOptions(tk.Frame):
         self.pause_button.configure(state="disabled")
         self.abort_button.configure(state="disabled")
         self.resume_button.configure(state="disabled")
-        # self.parent.parent.device.abort()
+        self.parent.parent.device.abort()
         pass
 
     def handleRun(self):
@@ -179,24 +177,24 @@ class ModeOptions(tk.Frame):
         self.resume_button.configure(state="disabled")
         self.home_button.configure(state="disabled")
         self.run_button.configure(state="disabled")
-        # self.parent.parent.device.run(self.gatherRPM)
+        self.parent.parent.device.run(self.gatherRPM)
         pass
 
     def handlePause(self):
         self.resume_button.configure(state="normal")
         self.pause_button.configure(state="disabled")
-        # self.parent.parent.device.pause()
+        self.parent.parent.device.pause()
         pass
 
     def handleResume(self):
         self.resume_button.configure(state="disabled")
         self.pause_button.configure(state="normal")
         self.abort_button.configure(state="normal")
-        # self.parent.parent.device.resume()
+        self.parent.parent.device.resume()
         pass
 
     def handleHome(self):
-        # self.parent.parent.device.home()
+        self.parent.parent.device.home()
         pass
 
     def disableButtons(self):
@@ -235,7 +233,6 @@ class ClinostatControlSystem(tk.Frame):
 
     def enableStart(self):
         self.mode_options.enable()
-
 
 
 class App(tk.Tk):
