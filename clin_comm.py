@@ -1,29 +1,33 @@
 import serial
+import time
+
 
 def tryConnection(port):
 
-    test = serial.Serial(port,baudrate=115200,timeout=2)
-    test.write(b'\x08')
-    #received =  test.read()
-    #test.close()
-    # if received == b'\x01':
-        #return True
-    # else:
-        # return False
+    test_serial = serial.Serial(port,baudrate=115200,timeout=2)
+    test_serial.write(b'\x08')
+    time.sleep(0.001)
+    received = test_serial.read(1)
+    test_serial.close()
+    if received == b'\x01':
+        return True
+    else:
+        return False
 
 
 class Clinostat:
 
     def __init__(self,port_name):
 
-        self.__baud = 115200
-        self.__port = serial.Serial(port_name,self.__baud,timeout=2)
-        self.__RUN = b'\x01'
-        self.__HOME = b'\x02'
-        self.__ABORT = b'\x03'
-        self.__PAUSE = b'\x04'
-        self.__RESUME = b'\x05'
-        self.__ECHO = b'\x09'
+        self._baud = 115200
+        self._port = serial.Serial(port_name,self._baud,timeout=2)
+        self._port_name = port_name
+        self._RUN = b'\x01'
+        self._HOME = b'\x02'
+        self._ABORT = b'\x03'
+        self._PAUSE = b'\x04'
+        self._RESUME = b'\x05'
+        self._ECHO = b'\x09'
 
     def echo(self) -> None:  # Mode byte: b'\x09'.
         # Check if device is responding. Maybe return current mode.
@@ -52,3 +56,6 @@ class Clinostat:
     def setHome(self):
         # Maybe allow user to set a new home position (?)
         pass
+
+    def close_serial(self):
+        self._port.close()
