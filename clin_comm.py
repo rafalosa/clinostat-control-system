@@ -1,5 +1,16 @@
 import serial
 
+def tryConnection(port):
+
+    test = serial.Serial(port,baudrate=115200,timeout=2)
+    test.write(b'\x08')
+    #received =  test.read()
+    #test.close()
+    # if received == b'\x01':
+        #return True
+    # else:
+        # return False
+
 
 class Clinostat:
 

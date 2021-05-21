@@ -1,12 +1,33 @@
 import tkinter as tk
+import tkinter.scrolledtext
 import serial.tools
 from serial.tools import list_ports
 import clin_comm
 
-def getPorts()->list:
+
+def getPorts() -> list:
 
     return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]
 
+def makeHeadline(direction:str):
+    pass
+
+
+class serialConsole(tk.scrolledtext.ScrolledText):
+
+    def __init__(self,parent,**kwargs):
+        tk.scrolledtext.ScrolledText.__init__(self,parent,**kwargs)
+        self.tag_config("headline",foreground="green")
+        self.tag_config("error",foreground="red")
+        self.configure(state="disabled",width=70)
+
+
+    def writeRow(self,headline,string):
+        self.configure(state="normal")
+        self.insert("end",headline,"headline")
+        self.insert("end",string + '\n',"message")
+        self.configure(state="disabled")
+        #todo: Add logging to textfile
 
 class SerialConfig(tk.Frame):
 
@@ -29,15 +50,18 @@ class SerialConfig(tk.Frame):
         self.port_menu.config(width= 15)
 
         self.refresh_button = tk.Button(self, command=self.refreshPorts,text="Refresh")
-        self.refresh_button.config(width=15)
+        self.refresh_button.config(width=17)
 
         self.connect_button = tk.Button(self, command=self.connectToPort, text="Connect")
-        self.connect_button.config(width=15)
+        self.connect_button.config(width=17)
 
-        self.serial_label.grid(row=0, column=0)
-        self.port_menu.grid(row=1, column=0)
-        self.refresh_button.grid(row=2, column=0)
-        self.connect_button.grid(row=3, column=0)
+        self.console = serialConsole(self)
+
+        self.serial_label.grid(row=0, column=0,pady=10)
+        self.port_menu.grid(row=1, column=0,padx=5)
+        self.refresh_button.grid(row=2, column=0,padx=5)
+        self.connect_button.grid(row=3, column=0,padx=5)
+        self.console.grid(row=1,column=1,rowspan=3)
 
     def refreshPorts(self) -> None:
 
@@ -53,19 +77,21 @@ class SerialConfig(tk.Frame):
 
         potential_port = self.port_option_var.get()
 
-        # clin_comm.connect(potential_port)
-        # if connection succesfull:
+        # if clin_comm.tryConnection(potential_port):
         #     parent.device = clin_comm.Clinostat(port)
+        # else:
+        #     console.print("Connection")
 
-        pass
 
 class ModeOptions(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
+
 class DataEmbed(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
+
 
 class ClinostatControlSystem(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
