@@ -1,10 +1,13 @@
 import serial
 import time
+import serial.serialutil
 
 
 def tryConnection(port):
-
-    test_serial = serial.Serial(port,baudrate=115200,timeout=2)
+    try:
+        test_serial = serial.Serial(port,baudrate=115200,timeout=2)
+    except serial.serialutil.SerialException:
+        return False
     test_serial.write(b'\x08')
     time.sleep(0.001)
     received = test_serial.read(1)
@@ -21,7 +24,7 @@ class Clinostat:
 
         self._baud = 115200
         self._port = serial.Serial(port_name,self._baud,timeout=2)
-        self._port_name = port_name
+        self.port_name = port_name
         self._RUN = b'\x01'
         self._HOME = b'\x02'
         self._ABORT = b'\x03'
@@ -33,7 +36,7 @@ class Clinostat:
         # Check if device is responding. Maybe return current mode.
         pass
 
-    def run(self,RPM1:float,RPM2:float) -> None:  # time:float): # Mode byte: b'\x01'.
+    def run(self,RPMs:tuple) -> None:  # time:float): # Mode byte: b'\x01'.
         # Send mode + RPM1 + RPM2, maybe run for some amount of time?
         pass
 
@@ -42,7 +45,7 @@ class Clinostat:
         pass
 
     def abort(self) -> None:  # Mode byte: b'\x03'.
-        # Stop clinostat.
+        self._port.write(b'\x03')
         pass
 
     def pause(self) -> None:  # Mode byte: b'\x04'.
