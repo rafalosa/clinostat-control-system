@@ -3,9 +3,9 @@ import serial
 
 class Clinostat:
 
-    def __init__(self,port_name,baud_rate):
+    def __init__(self,port_name):
 
-        self.__baud = baud_rate
+        self.__baud = 115200
         self.__port = serial.Serial(port_name,self.__baud,timeout=2)
         self.__RUN = b'\x01'
         self.__HOME = b'\x02'
@@ -36,4 +36,8 @@ class Clinostat:
 
     def resume(self) -> None:  # Mode byte: b'\x05'.
         # resume run with previously set speeds, check for flag if paused first.
+        pass
+
+    def setHome(self):
+        # Maybe allow user to set a new home position (?)
         pass
