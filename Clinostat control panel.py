@@ -6,6 +6,9 @@ import clin_comm
 from datetime import datetime
 import threading
 import chamber_data_socket
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
+NavigationToolbar2Tk)
+import matplotlib.pyplot as plt
 
 
 def getPorts() -> list:
@@ -83,6 +86,7 @@ class SerialConsole(tk.scrolledtext.ScrolledText):
         self.tag_config("CCS", foreground="red")
         self.tag_config("DIRECTION", foreground="red")
         self.tag_config("CONTROLLER", foreground="red")
+        self.tag_config("TCP",foreground="magenta")
         self.configure(state="disabled")
 
     def println(self,string,headline=None,msg_type="MESSAGE"):
@@ -307,8 +311,49 @@ class ModeOptions(tk.Frame):
 
 
 class DataEmbed(tk.Frame):
+
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
+        self.parent = parent
+
+        self.server_buttons_frame = tk.Frame(self)
+
+        self.start_server_button = tk.Button(self.server_buttons_frame,
+                                             text="Start server", command=self.handleRunServer)
+        self.start_server_button.grid(row=0,column=0,pady=2)
+        self.start_server_button.configure(width=17)
+
+        self.close_server_button = tk.Button(self.server_buttons_frame,
+                                             text="Close server", command=self.handleCloseServer)
+        self.close_server_button.grid(row=0, column=1, pady=2)
+        self.close_server_button.configure(width=17)
+        self.close_server_button.configure(state="disabled")
+
+        self.globe_frame = tk.Frame(self)
+        plt.rcParams['savefig.facecolor'] = "0.8"
+        globe_fig = plt.figure(figsize=(3,3))
+        globe_fig.add_subplot().plot([1,2],[1,2])
+        self.globe_canvas = FigureCanvasTkAgg(globe_fig, master=self.globe_frame)
+        self.globe_canvas.draw()
+        self.globe_canvas.get_tk_widget().pack()
+
+        self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10)
+        self.globe_frame.grid(row=1,column=0,padx=10,pady=10)
+
+    def handleRunServer(self):
+        self.start_server_button.configure(state="disabled")
+        self.close_server_button.configure(state="normal")
+        self.parent.parent.server.runServer()
+        #todo: Enable all plots.
+
+    def handleCloseServer(self):
+        self.parent.parent.server.close()
+        self.start_server_button.configure(state="normal")
+        self.close_server_button.configure(state="disabled")
+        #todo: Disable all plots.
+
+    def updatePlots(self):
+        pass
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -322,7 +367,7 @@ class ClinostatControlSystem(tk.Frame):
 
         self.serial_config.grid(row=0,column=0,padx=10,pady=10)
         self.mode_options.grid(row=1,column=0,padx=10,pady=10,sticky="w")
-        self.data_embed.grid(row=0, column=1, padx=10, pady=10)
+        self.data_embed.grid(row=0, column=1, padx=10, pady=10,rowspan=2)
 
     def disableAllModes(self):
         self.mode_options.disableButtons()
@@ -340,15 +385,14 @@ class App(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
         self.device = None
-
+        self.server = chamber_data_socket.DataServer()  # This declaration is necessary in order to assign button commands in DataEmbed object.
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
-
-        self.server = chamber_data_socket.DataServer(self.control_system)
-        self.server.runServer()
+        self.server.linkConsole(self.control_system.serial_config.console)
 
     def destroy(self):
-        self.server.close()
+        if self.server.running:
+            self.server.close()
         tk.Tk.destroy(self)
 
 if __name__ == "__main__":
