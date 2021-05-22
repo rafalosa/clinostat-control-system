@@ -4,6 +4,7 @@ import serial.tools
 from serial.tools import list_ports
 import clin_comm
 from datetime import datetime
+import threading
 
 
 def getPorts() -> list:
@@ -15,7 +16,25 @@ def makeHeadline(direction:str):
     pass
 
 
-class serialConsole(tk.scrolledtext.ScrolledText):
+class EmbedThread(threading.Thread):
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.running = False
+        self.refresh_rate = 10
+
+    def start(self) -> None:
+        threading.Thread.start(self)
+        self.running = True
+
+
+class SpeedIndicator(tk.Frame):
+
+    def __init__(self,parent,*args,**kwargs):
+        tk.Frame.__init__(self,parent,*args,**kwargs)
+        self.parent = parent
+
+class SerialConsole(tk.scrolledtext.ScrolledText):
 
     def __init__(self,parent,**kwargs):
         tk.scrolledtext.ScrolledText.__init__(self,parent,**kwargs)
@@ -68,7 +87,8 @@ class SerialConfig(tk.Frame):
         self.refresh_button.grid(row=2, column=0,pady=2)
 
         self.connections_frame = tk.Frame(self)
-        self.connect_button = tk.Button(self.connections_frame, command=self.connectToPort, text="Connect")
+        self.connect_button = tk.Button(self.connections_frame, command=lambda: threading.Thread(
+            target=self.connectToPort).start(), text="Connect")
         self.connect_button.config(width=17)
         self.disconnect_button = tk.Button(self.connections_frame, command=self.disconnectPort, text="Disconnect")
         self.disconnect_button.config(width=17)
@@ -76,7 +96,7 @@ class SerialConfig(tk.Frame):
         self.connect_button.grid(row=0, column=0,pady=2)
         self.disconnect_button.grid(row=1, column=0,pady=2)
 
-        self.console = serialConsole(self,font=("normal",8))
+        self.console = SerialConsole(self, font=("normal", 8))
         self.console.configure(width=65,height=20)
 
         self.port_menu_frame.grid(row=0,column=0,padx=10,sticky="n")
@@ -93,8 +113,9 @@ class SerialConfig(tk.Frame):
         for port in self.available_ports:
             self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
 
-    def connectToPort(self):
+    def connectToPort(self) -> None:
 
+        self.connect_button.configure(state="disabled")
         if self.parent.parent.device is not None:
             self.parent.parent.device.close_serial()
 
@@ -102,6 +123,7 @@ class SerialConfig(tk.Frame):
 
         if potential_port == "Select serial port" or potential_port == "Empty":
             self.console.println("No ports to connect to.",headline="ERROR: ", msg_type="ERROR")
+            self.connect_button.configure(state="normal")
         else:
             if clin_comm.tryConnection(potential_port):
                 self.parent.parent.device = clin_comm.Clinostat(potential_port)
@@ -113,8 +135,9 @@ class SerialConfig(tk.Frame):
 
             else:
                 self.console.println("Connection failed.",headline="ERROR: ",msg_type="ERROR")
+                self.connect_button.configure(state="normal")
 
-    def disconnectPort(self):
+    def disconnectPort(self) -> None:
 
         self.parent.parent.device.close_serial()
         self.console.println("Succesfully disconnected from {}.".format(self.parent.parent.device.port_name),
