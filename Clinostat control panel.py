@@ -30,9 +30,48 @@ class EmbedThread(threading.Thread):
 
 class SpeedIndicator(tk.Frame):
 
-    def __init__(self,parent,*args,**kwargs):
+    def __init__(self,parent, label="Speed", *args,**kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
+        self.var = tk.StringVar()
+        self.var.set(label)
+        self.label = tk.Label(self,textvariable=self.var)
+        self.slider = tk.Scale(self,from_=5,to=0,orient="vertical",
+                               resolution=0.1,length=100,command=self.updateEntry,showvalue=0,width=30)
+        self.slider.configure(cursor="dot",troughcolor="green")
+
+        self.entry_frame = tk.Frame(self)
+        self.var = tk.DoubleVar()
+        self.entry = tk.Entry(self.entry_frame,textvariable=self.var)
+        self.entry.config(width=3,state="disabled")
+        self.entry.configure(disabledbackground="white",disabledforeground="black")
+        self.unit_var = tk.StringVar()
+        self.unit_var.set("RPM")
+        self.entry_label = tk.Label(self.entry_frame,textvariable=self.unit_var)
+        self.entry.grid(row=0,column=0)
+        self.entry_label.grid(row=0, column=1)
+
+        self.label.grid(row=0,column=0)
+        self.slider.grid(row=1,column=0)
+        self.entry_frame.grid(row=2, column=0)
+
+    def updateEntry(self,*args):
+        self.var.set(args[0])
+
+    def getSpeed(self):
+        return self.var.get()
+
+    def configureState(self,state):
+        if state == "disabled":
+            self.slider.configure(troughcolor="#f3f3f3")
+        else:
+            self.slider.configure(troughcolor="#c2ebc0")
+        self.slider.configure(state=state)
+
+    def reset(self):
+        self.slider.set(0)
+        self.var.set(0.0)
+
 
 class SerialConsole(tk.scrolledtext.ScrolledText):
 
@@ -154,6 +193,12 @@ class ModeOptions(tk.Frame):
 
         self.button_frame = tk.Frame(self)
 
+        self.indicators_frame = tk.Frame(self)
+        self.RPMindicator1 = SpeedIndicator(self.indicators_frame,label="Outer frame")
+        self.RPMindicator2 = SpeedIndicator(self.indicators_frame,label="Chamber")
+        self.RPMindicator1.grid(row=0,column=0,padx=10)
+        self.RPMindicator2.grid(row=0, column=1, padx=10)
+
         self.abort_button = tk.Button(self.button_frame,command=self.handleAbort,text="Abort")
         self.abort_button.config(width=17,background="#bf4032",activebackground="#eb7063",
                                  foreground="white",disabledforeground="#d1d1d1")
@@ -181,16 +226,19 @@ class ModeOptions(tk.Frame):
         self.resume_button.grid(row=3, column=0,pady=2)
         self.home_button.grid(row=4, column=0,pady=2)
         self.button_frame.grid(row=0,column=0,padx=10)
+        self.indicators_frame.grid(row=0,column=1,padx=10,rowspan=5)
 
-    def gatherRPM(self):
-        pass
+        self.RPMindicator1.configureState(state="disabled")
+        self.RPMindicator2.configureState(state="disabled")
+
+    def gatherSpeed(self):
+        return self.RPMindicator1.getSpeed(),self.RPMindicator2.getSpeed()
 
     def handleAbort(self):
-        self.run_button.configure(state="normal")
-        self.home_button.configure(state="normal")
         self.pause_button.configure(state="disabled")
         self.abort_button.configure(state="disabled")
         self.resume_button.configure(state="disabled")
+        self.enable()
         self.parent.parent.device.abort()
         pass
 
@@ -200,7 +248,8 @@ class ModeOptions(tk.Frame):
         self.resume_button.configure(state="disabled")
         self.home_button.configure(state="disabled")
         self.run_button.configure(state="disabled")
-        self.parent.parent.device.run(self.gatherRPM)
+        self.parent.parent.device.run(self.gatherSpeed)
+        self.parent.blockIndicators()
         pass
 
     def handlePause(self):
@@ -213,6 +262,7 @@ class ModeOptions(tk.Frame):
         self.resume_button.configure(state="disabled")
         self.pause_button.configure(state="normal")
         self.abort_button.configure(state="normal")
+        self.disableIndicators()
         self.parent.parent.device.resume()
         pass
 
@@ -231,6 +281,21 @@ class ModeOptions(tk.Frame):
     def enable(self):
         self.run_button.config(state="normal")
         self.home_button.config(state="normal")
+        self.RPMindicator1.configureState(state="normal")
+        self.RPMindicator2.configureState(state="normal")
+
+
+    def disableIndicators(self):
+        self.RPMindicator1.configureState(state="disabled")
+        self.RPMindicator2.configureState(state="disabled")
+
+    def resetIndicators(self):
+        self.RPMindicator1.configureState(state="normal")
+        self.RPMindicator2.configureState(state="normal")
+        self.RPMindicator1.reset()
+        self.RPMindicator2.reset()
+        self.RPMindicator1.configureState(state="disabled")
+        self.RPMindicator2.configureState(state="disabled")
 
 
 class DataEmbed(tk.Frame):
@@ -253,6 +318,11 @@ class ClinostatControlSystem(tk.Frame):
 
     def disableAllModes(self):
         self.mode_options.disableButtons()
+        self.mode_options.resetIndicators()
+        self.mode_options.disableIndicators()
+
+    def blockIndicators(self):
+        self.mode_options.disableIndicators()
 
     def enableStart(self):
         self.mode_options.enable()
@@ -260,8 +330,8 @@ class ClinostatControlSystem(tk.Frame):
 
 class App(tk.Tk):
     def __init__(self):
-        self.device = None
         tk.Tk.__init__(self)
+        self.device = None
 
 
 if __name__ == "__main__":
