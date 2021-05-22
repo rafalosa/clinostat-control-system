@@ -5,6 +5,7 @@ from serial.tools import list_ports
 import clin_comm
 from datetime import datetime
 import threading
+import chamber_data_socket
 
 
 def getPorts() -> list:
@@ -18,8 +19,20 @@ def makeHeadline(direction:str):
 
 class EmbedThread(threading.Thread):
 
-    def __init__(self):
-        threading.Thread.__init__(self)
+    def __init__(self,*args,**kwargs):
+        threading.Thread.__init__(self,*args,**kwargs)
+        self.running = False
+        self.refresh_rate = 10
+
+    def start(self) -> None:
+        threading.Thread.start(self)
+        self.running = True
+
+
+class ServerThread(threading.Thread):
+
+    def __init__(self,*args,**kwargs):
+        threading.Thread.__init__(self,*args,**kwargs)
         self.running = False
         self.refresh_rate = 10
 
@@ -151,6 +164,13 @@ class SerialConfig(tk.Frame):
         self.port_menu['menu'].delete(0, "end")
         for port in self.available_ports:
             self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
+
+        # Testing closing and running new server on button click
+        # self.parent.parent.server.close()
+        # self.parent.parent.server_thread.join()
+        #
+        # self.parent.parent.server_thread = ServerThread(target=self.parent.parent.server.runServer)
+        # self.parent.parent.server_thread.start()
 
     def connectToPort(self) -> None:
 
@@ -333,10 +353,22 @@ class App(tk.Tk):
         tk.Tk.__init__(self)
         self.device = None
 
+        self.control_system = ClinostatControlSystem(self)
+        self.control_system.pack(side="top", fill="both", expand=True)
+
+        self.server = chamber_data_socket.DataServer(self.control_system)
+
+        self.server_thread = ServerThread(target=self.server.runServer)
+        self.server_thread.start()
+
+    def destroy(self):
+        self.server.close()
+        self.server_thread.join()
+        tk.Tk.destroy(self)
+
 
 if __name__ == "__main__":
     root = App()
     root.title("Clinostat control system")
     root.iconbitmap("icon/favicon.ico")
-    ClinostatControlSystem(root).pack(side="top", fill="both", expand=True)
     root.mainloop()
