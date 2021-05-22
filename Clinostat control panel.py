@@ -29,18 +29,6 @@ class EmbedThread(threading.Thread):
         self.running = True
 
 
-class ServerThread(threading.Thread):
-
-    def __init__(self,*args,**kwargs):
-        threading.Thread.__init__(self,*args,**kwargs)
-        self.running = False
-        self.refresh_rate = 10
-
-    def start(self) -> None:
-        threading.Thread.start(self)
-        self.running = True
-
-
 class SpeedIndicator(tk.Frame):
 
     def __init__(self,parent, label="Speed", *args,**kwargs):
@@ -357,15 +345,11 @@ class App(tk.Tk):
         self.control_system.pack(side="top", fill="both", expand=True)
 
         self.server = chamber_data_socket.DataServer(self.control_system)
-
-        self.server_thread = ServerThread(target=self.server.runServer)
-        self.server_thread.start()
+        self.server.runServer()
 
     def destroy(self):
         self.server.close()
-        self.server_thread.join()
         tk.Tk.destroy(self)
-
 
 if __name__ == "__main__":
     root = App()
