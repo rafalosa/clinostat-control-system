@@ -6,18 +6,8 @@ import clin_comm
 from datetime import datetime
 import threading
 import chamber_data_socket
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
-NavigationToolbar2Tk)
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-
-
-def getPorts() -> list:
-
-    return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]
-
-
-def makeHeadline(direction:str):
-    pass
 
 
 class EmbedThread(threading.Thread):
@@ -157,13 +147,6 @@ class SerialConfig(tk.Frame):
         for port in self.available_ports:
             self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
 
-        # Testing closing and running new server on button click
-        # self.parent.parent.server.close()
-        # self.parent.parent.server_thread.join()
-        #
-        # self.parent.parent.server_thread = ServerThread(target=self.parent.parent.server.runServer)
-        # self.parent.parent.server_thread.start()
-
     def connectToPort(self) -> None:
 
         self.connect_button.configure(state="disabled")
@@ -296,7 +279,6 @@ class ModeOptions(tk.Frame):
         self.RPMindicator1.configureState(state="normal")
         self.RPMindicator2.configureState(state="normal")
 
-
     def disableIndicators(self):
         self.RPMindicator1.configureState(state="disabled")
         self.RPMindicator2.configureState(state="disabled")
@@ -341,16 +323,21 @@ class DataEmbed(tk.Frame):
         self.globe_frame.grid(row=1,column=0,padx=10,pady=10)
 
     def handleRunServer(self):
+        self.parent.parent.server.runServer()
+
+    def enableInterface(self):  # Had to define different method for changing the button states. Since runServer()
+        # is running on a different thread, a server.running flag cannot be checked, because it's state has not
+        # been updated yet. Changing button states has to be done from within the runServer method.
         self.start_server_button.configure(state="disabled")
         self.close_server_button.configure(state="normal")
-        self.parent.parent.server.runServer()
         #todo: Enable all plots.
+
 
     def handleCloseServer(self):
         self.parent.parent.server.close()
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
-        #todo: Disable all plots.
+        # todo: Disable all plots.
 
     def updatePlots(self):
         pass
@@ -385,7 +372,8 @@ class App(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
         self.device = None
-        self.server = chamber_data_socket.DataServer()  # This declaration is necessary in order to assign button commands in DataEmbed object.
+        self.server = chamber_data_socket.DataServer(parent=self)  # This declaration is necessary in order to assign
+        # button commands in DataEmbed object.
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
         self.server.linkConsole(self.control_system.serial_config.console)
@@ -394,6 +382,16 @@ class App(tk.Tk):
         if self.server.running:
             self.server.close()
         tk.Tk.destroy(self)
+
+
+def getPorts() -> list:
+
+    return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]
+
+
+def makeHeadline(direction:str):
+    pass
+
 
 if __name__ == "__main__":
     root = App()

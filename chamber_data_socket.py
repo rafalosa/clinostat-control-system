@@ -17,18 +17,17 @@ class ServerThread(threading.Thread):
 
 class DataServer:
 
-    def __init__(self,console_link=None,plot_link=None,address="127.0.0.1",port=8888):
+    def __init__(self,parent,console_link=None,plot_link=None,address="127.0.0.1",port=8888):
         self.server = None
         self.server_thread = None
         self.address = address
         self.port = port
         self.running = False
+        self.parent = parent
         self.console = console_link
         self.fig = plot_link
 
     def runServer(self):
-        self.running = True
-        self.console.println("Data server running on {}:{}.".format(self.address,self.port),headline="TCP: ",msg_type="TCP")
         self.server_thread = ServerThread(target=lambda: asyncio.run(self.mainServer(self.address,self.port)))
         self.server_thread.start()
 
@@ -47,7 +46,19 @@ class DataServer:
 
     async def mainServer(self,address_,port_):
         # todo: Handle exceptions if server cannot be started. Print exception in console
-        self.server = await asyncio.start_server(self.clientConnected,address_,port_)
+        try:
+            self.server = await asyncio.start_server(self.clientConnected,address_,port_)
+            # "192.123.123.123"
+        except OSError as err:
+            self.console.println(err.args[1], headline="TCP ERROR: ",
+                                 msg_type="ERROR")
+            return
+
+        self.running = True
+        self.console.println("Data server running on {}:{}.".format(address_, port_), headline="TCP: ",
+                             msg_type="TCP")
+        self.parent.control_system.data_embed.enableInterface()  # I dont like calling this from here, but I can't find
+        # another solution as of now. It enables the whole embedded data interface if server setup was successful.
 
         async with self.server:
             try:
