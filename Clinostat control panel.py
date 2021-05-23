@@ -298,7 +298,7 @@ class DataEmbed(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
-        self.data_buffer_globe = []
+        # self.data_buffer_globe = []
         self.data_buffer_grav = []
         self.plotting = False
         self.new_data_available = False
@@ -337,21 +337,21 @@ class DataEmbed(tk.Frame):
 
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
-        self.globe_fig = plt.figure(figsize=(2,2))
-        self.globe_canvas = FigureCanvasTkAgg(self.globe_fig, master=self.plots_frame)
-        self.globe_ax = self.globe_fig.add_subplot()
-        self.globe_ax.set_xlim([0,100])
-        self.globe_lines = self.globe_ax.plot([], [])[0]
-        self.globe_canvas.draw()
-        self.globe_canvas.get_tk_widget().grid(row=0,column=0)
+        # self.globe_fig = plt.figure(figsize=(2,2))
+        # self.globe_canvas = FigureCanvasTkAgg(self.globe_fig, master=self.plots_frame)
+        # self.globe_ax = self.globe_fig.add_subplot()
+        # self.globe_ax.set_xlim([0,100])
+        # self.globe_lines = self.globe_ax.plot([], [])[0]
+        # self.globe_canvas.draw()
+        # self.globe_canvas.get_tk_widget().grid(row=0,column=0)
 
         self.grav_fig = plt.figure(figsize=(3, 2))
         self.grav_canvas = FigureCanvasTkAgg(self.grav_fig, master=self.plots_frame)
         self.grav_ax = self.grav_fig.add_subplot()
         self.grav_ax.set_xlim([0, 100])
         self.grav_lines = self.grav_ax.plot([], [])[0]
+        self.grav_canvas.get_tk_widget().grid(row=0,column=0)
         self.grav_canvas.draw()
-        self.grav_canvas.get_tk_widget().grid(row=1,column=0)
 
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
         self.plots_frame.grid(row=1,column=0,padx=10)
@@ -369,10 +369,10 @@ class DataEmbed(tk.Frame):
         self.address_var.set(server_object.address + ":" + str(server_object.port))
         self.plotting = True
 
-        # todo: Enable all plots.
-
     def handleCloseServer(self):
         self.plotting = False
+        self.resetDataBuffers()
+        self.updatePlots()
         server_object = self.parent.parent.server
         server_object.close()
         self.start_server_button.configure(state="normal")
@@ -381,18 +381,28 @@ class DataEmbed(tk.Frame):
         # todo: Disable all plots.
         # todo: Reset plot data buffers.
 
+    def resetDataBuffers(self):
+        # self.data_buffer_globe = []
+        self.data_buffer_grav = []
+
     def updatePlots(self):
 
-        self.globe_lines.set_xdata(np.arange(0,len(self.data_buffer_globe)))
-        self.globe_lines.set_ydata(self.data_buffer_globe)
-        self.globe_ax.set_ylim([min(self.data_buffer_globe),max(self.data_buffer_globe)])
-        self.globe_canvas.draw()
+        if self.data_buffer_grav:
+            self.grav_lines.set_xdata(np.arange(0,len(self.data_buffer_grav)))
+            self.grav_lines.set_ydata(self.data_buffer_grav)
+            self.grav_ax.set_ylim([min(self.data_buffer_grav),max(self.data_buffer_grav)])
+            self.new_data_available = False
+            self.grav_canvas.draw()
 
-        # self.grav_lines.set_xdata(np.arange(0, len(self.data_buffer_globe)))
-        # self.grav_lines.set_ydata(self.data_buffer_globe)
-        # self.grav_canvas.draw()
+            # self.grav_lines.set_xdata(np.arange(0, len(self.data_buffer_globe)))
+            # self.grav_lines.set_ydata(self.data_buffer_globe)
+            # self.grav_canvas.draw()
 
-        self.new_data_available = False
+        else:
+            #self.grav_ax.cla()
+            self.grav_lines.set_xdata([])
+            self.grav_lines.set_ydata([])
+            self.grav_canvas.draw()
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -424,12 +434,10 @@ class App(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
         self.device = None
-        self.server = chamber_data_socket.DataServer(parent=self)  # This declaration is necessary in order to assign
-        # button commands in DataEmbed object.
+        self.server = chamber_data_socket.DataServer(parent=self)
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
         self.server.linkConsole(self.control_system.serial_config.console)
-        self.server.linkDataBuffers(self.control_system.data_embed.data_buffer_globe,None)
 
     def destroy(self):
         if self.server.running:
@@ -443,11 +451,10 @@ class App(tk.Tk):
         if self.control_system.data_embed.plotting and self.control_system.data_embed.new_data_available:
             self.control_system.data_embed.updatePlots()
 
-        for thread in threading.enumerate():
-            print(thread.name)
+        # for thread in threading.enumerate():
+        #     print(thread.name)
 
         self.after(200,self.programLoop)
-
 
 def getPorts() -> list:
 

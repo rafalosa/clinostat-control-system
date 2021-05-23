@@ -22,7 +22,6 @@ class DataServer:
         self.server = None
         self.server_thread = None
         self.console = None
-        self.data_buffer_globe = None
         self.data_buffer_grav = None
         self.running = False
         self.address = address
@@ -41,10 +40,6 @@ class DataServer:
 
     def linkConsole(self,link):
         self.console = link
-
-    def linkDataBuffers(self,globe_link,grav_link):
-        self.data_buffer_globe = globe_link
-        self.data_buffer_grav = grav_link
 
     async def mainServer(self,address_,port_):
 
@@ -79,20 +74,22 @@ class DataServer:
 
         data = await reader.read(2)
         message = data.decode()
-        print(message)
         message = int(message)
-        #self.console.println(f"{message!r}",headline="TCP: ",msg_type="TCP")
-        self.data_buffer_globe.append(message)  # todo: Also save new data to file.
+        data_buff = self.parent.control_system.data_embed.data_buffer_grav
+        if len(data_buff) >= 100:
+            data_buff = list(np.roll(data_buff,-1))
+            data_buff[-1] = message
+            # self.parent.control_system.data_embed.data_buffer_globe = data_buff
+            self.parent.control_system.data_embed.data_buffer_grav = data_buff
+        else:
+            # self.parent.control_system.data_embed.data_buffer_globe.append(message)
+            self.parent.control_system.data_embed.data_buffer_grav.append(message)  # todo: Also save new data to file.
+
         self.parent.control_system.data_embed.new_data_available = True  # Ideally I would update the plots from here
-        # but cross threaded calls to FigureCanvasTkAgg.draw() caused silent crashes and have to be handled by MainThread
+        # but cross thread calls to FigureCanvasTkAgg.draw() cause silent crashes and have to be handled by MainThread.
 
         # todo: Scroll records, so they match the data buffer size.
 
-        #print(np.arange(0, len(self.data_buffer)),self.data_buffer)
-        #self.lines.plot(np.arange(0, len(self.data_buffer)),self.data_buffer)
-        #self.lines.set_xdata(np.arange(0, len(self.data_buffer)))
-        #self.lines.set_ydata(self.data_buffer)
-        #self.canv.draw()
         # print(f"Send: {message!r}")
         # writer.write(data)
         # await writer.drain()
@@ -100,4 +97,5 @@ class DataServer:
         writer.close()
 
 
-
+def decodePacket(packet):
+    pass
