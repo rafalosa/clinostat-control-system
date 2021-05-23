@@ -323,9 +323,15 @@ class DataEmbed(tk.Frame):
 
         self.address_var = tk.StringVar()
         self.entry = tk.Entry(self.server_buttons_frame, textvariable=self.address_var)
-        self.entry.config(width=10, state="disabled")
+        self.entry.config(width=20, state="disabled")
         self.entry.configure(disabledbackground="white", disabledforeground="black")
-        self.entry.grid(row=2,column=0,columnspan=2)
+
+        self.address_label_var = tk.StringVar()
+        self.address_label_var.set("Current server address:")
+
+        self.address_label = tk.Label(self.server_buttons_frame,textvariable=self.address_label_var)
+        self.address_label.grid(row=2,column=0)
+        self.entry.grid(row=2,column=1)
 
         self.plots_frame = tk.Frame(self)
 
@@ -334,7 +340,7 @@ class DataEmbed(tk.Frame):
         self.globe_fig = plt.figure(figsize=(2,2))
         self.globe_canvas = FigureCanvasTkAgg(self.globe_fig, master=self.plots_frame)
         self.globe_ax = self.globe_fig.add_subplot()
-        self.globe_ax.set_xlim([0,10])
+        self.globe_ax.set_xlim([0,100])
         self.globe_lines = self.globe_ax.plot([], [])[0]
         self.globe_canvas.draw()
         self.globe_canvas.get_tk_widget().grid(row=0,column=0)
@@ -342,6 +348,8 @@ class DataEmbed(tk.Frame):
         self.grav_fig = plt.figure(figsize=(3, 2))
         self.grav_canvas = FigureCanvasTkAgg(self.grav_fig, master=self.plots_frame)
         self.grav_ax = self.grav_fig.add_subplot()
+        self.grav_ax.set_xlim([0, 100])
+        self.grav_lines = self.grav_ax.plot([], [])[0]
         self.grav_canvas.draw()
         self.grav_canvas.get_tk_widget().grid(row=1,column=0)
 
@@ -371,20 +379,20 @@ class DataEmbed(tk.Frame):
         self.close_server_button.configure(state="disabled")
         self.address_var.set("")
         # todo: Disable all plots.
+        # todo: Reset plot data buffers.
 
     def updatePlots(self):
 
-        if self.plotting and self.new_data_available:
-            self.globe_lines.set_xdata(np.arange(0,len(self.data_buffer_globe)))
-            self.globe_lines.set_ydata(self.data_buffer_globe)
-            self.globe_ax.set_ylim([-10,10])
-            self.globe_canvas.draw()
-            self.new_data_available = False
+        self.globe_lines.set_xdata(np.arange(0,len(self.data_buffer_globe)))
+        self.globe_lines.set_ydata(self.data_buffer_globe)
+        self.globe_ax.set_ylim([min(self.data_buffer_globe),max(self.data_buffer_globe)])
+        self.globe_canvas.draw()
 
-        # for thread in threading.enumerate():
-        #     print(thread.name)
-        self.parent.parent.after(200, self.updatePlots)
+        # self.grav_lines.set_xdata(np.arange(0, len(self.data_buffer_globe)))
+        # self.grav_lines.set_ydata(self.data_buffer_globe)
+        # self.grav_canvas.draw()
 
+        self.new_data_available = False
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -427,7 +435,18 @@ class App(tk.Tk):
         if self.server.running:
             self.server.close()
         # todo: Close any other running threads
+        # todo: Close communication with serial port if it exists.
         tk.Tk.destroy(self)
+
+    def programLoop(self):
+
+        if self.control_system.data_embed.plotting and self.control_system.data_embed.new_data_available:
+            self.control_system.data_embed.updatePlots()
+
+        for thread in threading.enumerate():
+            print(thread.name)
+
+        self.after(200,self.programLoop)
 
 
 def getPorts() -> list:
@@ -443,5 +462,5 @@ if __name__ == "__main__":
     root = App()
     root.title("Clinostat control system")
     root.iconbitmap("icon/favicon.ico")
-    root.after(1, root.control_system.data_embed.updatePlots)
+    root.after(1, root.programLoop)
     root.mainloop()

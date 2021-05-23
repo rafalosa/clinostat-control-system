@@ -77,8 +77,10 @@ class DataServer:
         # b'\x01' - handshake confirmation, b'\x02' - data received, continue
         # streaming data, b'\x03' - data received, stop sending data
 
-        data = await reader.read(1)
-        message = int(data)
+        data = await reader.read(2)
+        message = data.decode()
+        print(message)
+        message = int(message)
         #self.console.println(f"{message!r}",headline="TCP: ",msg_type="TCP")
         self.data_buffer_globe.append(message)  # todo: Also save new data to file.
         self.parent.control_system.data_embed.new_data_available = True  # Ideally I would update the plots from here
