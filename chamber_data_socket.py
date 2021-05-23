@@ -2,7 +2,6 @@ import asyncio
 import threading
 import numpy as np
 
-
 class ServerThread(threading.Thread):
 
     def __init__(self,*args,**kwargs):

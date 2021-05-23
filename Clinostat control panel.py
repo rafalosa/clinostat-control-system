@@ -9,6 +9,7 @@ import chamber_data_socket
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
+import yaml
 
 
 class EmbedThread(threading.Thread):
@@ -378,8 +379,6 @@ class DataEmbed(tk.Frame):
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
         self.address_var.set("")
-        # todo: Disable all plots.
-        # todo: Reset plot data buffers.
 
     def resetDataBuffers(self):
         # self.data_buffer_globe = []
@@ -434,7 +433,9 @@ class App(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
         self.device = None
-        self.server = chamber_data_socket.DataServer(parent=self)
+        with open("config.yaml","r") as file:
+            config = yaml.load(file,Loader=yaml.FullLoader)
+        self.server = chamber_data_socket.DataServer(parent=self,address=config["IP"],port=config["PORT"])
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
         self.server.linkConsole(self.control_system.serial_config.console)
