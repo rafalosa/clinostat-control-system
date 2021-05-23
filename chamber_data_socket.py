@@ -1,6 +1,6 @@
 import asyncio
 import threading
-from typing import Optional
+import numpy as np
 
 
 class ServerThread(threading.Thread):
@@ -17,38 +17,40 @@ class ServerThread(threading.Thread):
 
 class DataServer:
 
-    def __init__(self,parent,console_link=None,plot_link=None,address="127.0.0.1",port=8888):
+    def __init__(self,parent,address="127.0.0.1",port=8888):
+        self.parent = parent
         self.server = None
         self.server_thread = None
+        self.console = None
+        self.data_buffer_globe = None
+        self.data_buffer_grav = None
+        self.running = False
         self.address = address
         self.port = port
-        self.running = False
-        self.parent = parent
-        self.console = console_link
-        self.fig = plot_link
 
     def runServer(self):
         self.server_thread = ServerThread(target=lambda: asyncio.run(self.mainServer(self.address,self.port)))
         self.server_thread.start()
 
     def close(self):
-        self.console.println("Data server closed.".format(self.address, self.port), headline="TCP: ",
-                             msg_type="TCP")
         self.running = False
         self.server.close()
         self.server_thread.join()
+        self.console.println("Data server closed.".format(self.address, self.port), headline="TCP: ",
+                             msg_type="TCP")
 
     def linkConsole(self,link):
         self.console = link
 
-    def linkPlots(self,link):
-        self.fig = link
+    def linkDataBuffers(self,globe_link,grav_link):
+        self.data_buffer_globe = globe_link
+        self.data_buffer_grav = grav_link
 
     async def mainServer(self,address_,port_):
-        # todo: Handle exceptions if server cannot be started. Print exception in console
+
         try:
             self.server = await asyncio.start_server(self.clientConnected,address_,port_)
-            # "192.123.123.123"
+
         except OSError as err:
             self.console.println(err.args[1], headline="TCP ERROR: ",
                                  msg_type="ERROR")
@@ -75,11 +77,20 @@ class DataServer:
         # b'\x01' - handshake confirmation, b'\x02' - data received, continue
         # streaming data, b'\x03' - data received, stop sending data
 
-        data = await reader.read(100)
-        message = data.decode()
+        data = await reader.read(1)
+        message = int(data)
+        #self.console.println(f"{message!r}",headline="TCP: ",msg_type="TCP")
+        self.data_buffer_globe.append(message)  # todo: Also save new data to file.
+        self.parent.control_system.data_embed.new_data_available = True  # Ideally I would update the plots from here
+        # but cross threaded calls to FigureCanvasTkAgg.draw() caused silent crashes and have to be handled by MainThread
 
-        self.console.println(f"{message!r}",headline="TCP: ",msg_type="TCP")
+        # todo: Scroll records, so they match the data buffer size.
 
+        #print(np.arange(0, len(self.data_buffer)),self.data_buffer)
+        #self.lines.plot(np.arange(0, len(self.data_buffer)),self.data_buffer)
+        #self.lines.set_xdata(np.arange(0, len(self.data_buffer)))
+        #self.lines.set_ydata(self.data_buffer)
+        #self.canv.draw()
         # print(f"Send: {message!r}")
         # writer.write(data)
         # await writer.drain()

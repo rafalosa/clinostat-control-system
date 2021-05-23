@@ -8,6 +8,7 @@ import threading
 import chamber_data_socket
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class EmbedThread(threading.Thread):
@@ -297,50 +298,93 @@ class DataEmbed(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
+        self.data_buffer_globe = []
+        self.data_buffer_grav = []
+        self.plotting = False
+        self.new_data_available = False
 
         self.server_buttons_frame = tk.Frame(self)
 
+        self.desc_var = tk.StringVar()
+        self.desc_var.set("TCP data server:")
+        self.server_label = tk.Label(self.server_buttons_frame,textvariable=self.desc_var)
+        self.server_label.grid(row=0,column=0,columnspan=2)
+
         self.start_server_button = tk.Button(self.server_buttons_frame,
                                              text="Start server", command=self.handleRunServer)
-        self.start_server_button.grid(row=0,column=0,pady=2)
+        self.start_server_button.grid(row=1,column=0,pady=2,padx=5)
         self.start_server_button.configure(width=17)
 
         self.close_server_button = tk.Button(self.server_buttons_frame,
                                              text="Close server", command=self.handleCloseServer)
-        self.close_server_button.grid(row=0, column=1, pady=2)
+        self.close_server_button.grid(row=1, column=1, pady=2,padx=5)
         self.close_server_button.configure(width=17)
         self.close_server_button.configure(state="disabled")
 
-        self.globe_frame = tk.Frame(self)
-        plt.rcParams['savefig.facecolor'] = "0.8"
-        globe_fig = plt.figure(figsize=(3,3))
-        globe_fig.add_subplot().plot([1,2],[1,2])
-        self.globe_canvas = FigureCanvasTkAgg(globe_fig, master=self.globe_frame)
-        self.globe_canvas.draw()
-        self.globe_canvas.get_tk_widget().pack()
+        self.address_var = tk.StringVar()
+        self.entry = tk.Entry(self.server_buttons_frame, textvariable=self.address_var)
+        self.entry.config(width=10, state="disabled")
+        self.entry.configure(disabledbackground="white", disabledforeground="black")
+        self.entry.grid(row=2,column=0,columnspan=2)
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10)
-        self.globe_frame.grid(row=1,column=0,padx=10,pady=10)
+        self.plots_frame = tk.Frame(self)
+
+        plt.rcParams['figure.facecolor'] = "#f0f0f0"
+        plt.rcParams['font.size'] = 7
+        self.globe_fig = plt.figure(figsize=(2,2))
+        self.globe_canvas = FigureCanvasTkAgg(self.globe_fig, master=self.plots_frame)
+        self.globe_ax = self.globe_fig.add_subplot()
+        self.globe_ax.set_xlim([0,10])
+        self.globe_lines = self.globe_ax.plot([], [])[0]
+        self.globe_canvas.draw()
+        self.globe_canvas.get_tk_widget().grid(row=0,column=0)
+
+        self.grav_fig = plt.figure(figsize=(3, 2))
+        self.grav_canvas = FigureCanvasTkAgg(self.grav_fig, master=self.plots_frame)
+        self.grav_ax = self.grav_fig.add_subplot()
+        self.grav_canvas.draw()
+        self.grav_canvas.get_tk_widget().grid(row=1,column=0)
+
+        self.server_buttons_frame.grid(row=0, column=0, padx=10)
+        self.plots_frame.grid(row=1,column=0,padx=10)
 
     def handleRunServer(self):
-        self.parent.parent.server.runServer()
+        server_object = self.parent.parent.server
+        server_object.runServer()
 
     def enableInterface(self):  # Had to define different method for changing the button states. Since runServer()
         # is running on a different thread, a server.running flag cannot be checked, because it's state has not
         # been updated yet. Changing button states has to be done from within the runServer method.
         self.start_server_button.configure(state="disabled")
         self.close_server_button.configure(state="normal")
-        #todo: Enable all plots.
+        server_object = self.parent.parent.server
+        self.address_var.set(server_object.address + ":" + str(server_object.port))
+        self.plotting = True
 
+        # todo: Enable all plots.
 
     def handleCloseServer(self):
-        self.parent.parent.server.close()
+        self.plotting = False
+        server_object = self.parent.parent.server
+        server_object.close()
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
+        self.address_var.set("")
         # todo: Disable all plots.
 
     def updatePlots(self):
-        pass
+
+        if self.plotting and self.new_data_available:
+            self.globe_lines.set_xdata(np.arange(0,len(self.data_buffer_globe)))
+            self.globe_lines.set_ydata(self.data_buffer_globe)
+            self.globe_ax.set_ylim([-10,10])
+            self.globe_canvas.draw()
+            self.new_data_available = False
+
+        # for thread in threading.enumerate():
+        #     print(thread.name)
+        self.parent.parent.after(200, self.updatePlots)
+
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -352,9 +396,9 @@ class ClinostatControlSystem(tk.Frame):
         self.mode_options = ModeOptions(self)
         self.data_embed = DataEmbed(self)
 
-        self.serial_config.grid(row=0,column=0,padx=10,pady=10)
+        self.serial_config.grid(row=0,column=0,padx=10,pady=10,sticky="n")
         self.mode_options.grid(row=1,column=0,padx=10,pady=10,sticky="w")
-        self.data_embed.grid(row=0, column=1, padx=10, pady=10,rowspan=2)
+        self.data_embed.grid(row=0, column=1, padx=10, pady=10,rowspan=2,sticky="n")
 
     def disableAllModes(self):
         self.mode_options.disableButtons()
@@ -377,10 +421,12 @@ class App(tk.Tk):
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
         self.server.linkConsole(self.control_system.serial_config.console)
+        self.server.linkDataBuffers(self.control_system.data_embed.data_buffer_globe,None)
 
     def destroy(self):
         if self.server.running:
             self.server.close()
+        # todo: Close any other running threads
         tk.Tk.destroy(self)
 
 
@@ -397,4 +443,5 @@ if __name__ == "__main__":
     root = App()
     root.title("Clinostat control system")
     root.iconbitmap("icon/favicon.ico")
+    root.after(1, root.control_system.data_embed.updatePlots)
     root.mainloop()
