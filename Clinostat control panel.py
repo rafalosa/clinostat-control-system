@@ -23,12 +23,11 @@ class EmbeddedFigure(tk.Frame):
         self.ax.set_xlim([0, maxrecords])
         self.ax.grid("minor")
         self.lines = [self.ax.plot([], [])[0]]
-        #self.lines2 = self.ax.plot([], [])[0]
-        #self.lines3 = self.ax.plot([], [])[0]
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.canvas.draw()
         self.y_max = 1
         self.y_min = -1
+        self.ax.set_ylim([self.y_min, self.y_max])
 
     def draw(self):
         self.canvas.draw()
@@ -104,7 +103,7 @@ class SpeedIndicator(tk.Frame):
         self.var.set(0.0)
 
 
-class SerialConsole(tk.scrolledtext.ScrolledText):
+class Console(tk.scrolledtext.ScrolledText):
 
     def __init__(self,parent,**kwargs):
         tk.scrolledtext.ScrolledText.__init__(self,parent,**kwargs)
@@ -167,7 +166,7 @@ class SerialConfig(tk.Frame):
         self.connect_button.grid(row=0, column=0,pady=2)
         self.disconnect_button.grid(row=1, column=0,pady=2)
 
-        self.console = SerialConsole(self, font=("normal", 8))
+        self.console = Console(self, font=("normal", 8))
         self.console.configure(width=65,height=20)
 
         self.port_menu_frame.grid(row=0,column=0,padx=10,sticky="n")
@@ -226,8 +225,8 @@ class ModeMenu(tk.Frame):
         self.button_frame = tk.Frame(self)
 
         self.indicators_frame = tk.Frame(self)
-        self.RPMindicator1 = SpeedIndicator(self.indicators_frame,label="Outer frame")
-        self.RPMindicator2 = SpeedIndicator(self.indicators_frame,label="Chamber")
+        self.RPMindicator1 = SpeedIndicator(self.indicators_frame,label="1DOF\nspeed")
+        self.RPMindicator2 = SpeedIndicator(self.indicators_frame,label="2DOF\nspeed")
         self.RPMindicator1.grid(row=0,column=0,padx=10)
         self.RPMindicator2.grid(row=0, column=1, padx=10)
 
@@ -481,13 +480,10 @@ class App(tk.Tk):
 
         self.after(1,self.programLoop)
 
+
 def getPorts() -> list:
 
     return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]
-
-
-def makeHeadline(direction:str):
-    pass
 
 
 if __name__ == "__main__":

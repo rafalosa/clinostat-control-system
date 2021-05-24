@@ -3,18 +3,6 @@ import threading
 import numpy as np
 
 
-class ServerThread(threading.Thread):
-
-    def __init__(self,*args,**kwargs):
-        threading.Thread.__init__(self,*args,**kwargs)
-        self.running = False
-        self.refresh_rate = 10
-
-    def start(self) -> None:
-        threading.Thread.start(self)
-        self.running = True
-
-
 class DataServer:  # todo: This class could probably inherit from threading.Thread
 
     def __init__(self,parent,thread_lock,address="127.0.0.1",port=8888):
@@ -30,7 +18,7 @@ class DataServer:  # todo: This class could probably inherit from threading.Thre
         self.lock = thread_lock
 
     def runServer(self):
-        self.server_thread = ServerThread(target=lambda: asyncio.run(self.mainServer(self.address,self.port)))
+        self.server_thread = threading.Thread(target=lambda: asyncio.run(self.mainServer(self.address,self.port)))
         self.server_thread.start()
 
     def close(self):
@@ -103,13 +91,13 @@ class DataServer:  # todo: This class could probably inherit from threading.Thre
                 buffer = list(np.roll(buffer,-1))
                 buffer[-1] = values[index]
                 self.parent.control_system.data_embed.data_buffers[index] = buffer
+                # todo: Consider using Queue to send new data.
             else:
                 buffer.append(values[index])
 
             # todo: Also save new data to file.
 
-        self.parent.control_system.data_embed.new_data_available = True  # Ideally I would update the plots from here
-        # but cross thread calls to FigureCanvasTkAgg.draw() cause silent crashes and have to be handled by MainThread.
+        self.parent.control_system.data_embed.new_data_available = True
 
         self.lock.release()
 
