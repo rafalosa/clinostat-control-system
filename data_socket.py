@@ -85,3 +85,5 @@ class DataServer:
         self.data_queue.put(values)
 
         writer.close()
+
+# todo: Add data client as a different class, no point in making a separate file for this.

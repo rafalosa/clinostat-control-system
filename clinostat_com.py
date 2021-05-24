@@ -1,6 +1,7 @@
 import serial
 import time
 import serial.serialutil
+from serial.tools import list_ports
 
 
 def tryConnection(port):
@@ -63,3 +64,8 @@ class Clinostat:
 
     def close_serial(self) -> None:
         self._port.close()
+
+
+def getPorts() -> list:
+
+    return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]

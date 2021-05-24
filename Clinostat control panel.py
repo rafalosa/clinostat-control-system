@@ -1,11 +1,9 @@
 import tkinter as tk
 import tkinter.scrolledtext
-import serial.tools
-from serial.tools import list_ports
-import clin_comm
+import clinostat_com
 from datetime import datetime
 import threading
-import chamber_data_socket
+import data_socket
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
@@ -59,7 +57,7 @@ class EmbeddedFigure(tk.Frame):
         self.lines.append(self.ax.plot([], [])[0])
 
 
-class SpeedIndicator(tk.Frame):
+class SlidingIndicator(tk.Frame):
 
     def __init__(self,parent, label="Speed",unit="RPM", *args,**kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
@@ -89,7 +87,7 @@ class SpeedIndicator(tk.Frame):
     def updateEntry(self,*args):
         self.var.set(args[0])
 
-    def getSpeed(self):
+    def getValue(self):
         return self.var.get()
 
     def configureState(self,state):
@@ -136,7 +134,7 @@ class SerialConfig(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
-        self.available_ports = getPorts()
+        self.available_ports = clinostat_com.getPorts()
 
         if not self.available_ports:
             self.available_ports = ["Empty"]
@@ -176,7 +174,7 @@ class SerialConfig(tk.Frame):
 
     def refreshPorts(self) -> None:
 
-        self.available_ports = getPorts()
+        self.available_ports = clinostat_com.getPorts()
         if not self.available_ports:
             self.available_ports = ["Empty"]
 
@@ -196,8 +194,8 @@ class SerialConfig(tk.Frame):
             self.console.println("No ports to connect to.",headline="ERROR: ", msg_type="ERROR")
             self.connect_button.configure(state="normal")
         else:
-            if clin_comm.tryConnection(potential_port):
-                self.parent.parent.device = clin_comm.Clinostat(potential_port)
+            if clinostat_com.tryConnection(potential_port):
+                self.parent.parent.device = clinostat_com.Clinostat(potential_port)
                 self.parent.parent.device.port_name = potential_port
                 self.console.println("Succesfully connected to {}.".format(potential_port), headline="STATUS: ")
                 self.disconnect_button.configure(state="normal")
@@ -213,6 +211,7 @@ class SerialConfig(tk.Frame):
         self.parent.parent.device.close_serial()
         self.console.println("Succesfully disconnected from {}.".format(self.parent.parent.device.port_name),
                              headline="STATUS: ")
+        self.parent.parent.device = None
         self.connect_button.configure(state="normal")
         self.disconnect_button.configure(state="disabled")
         self.parent.disableAllModes()
@@ -226,10 +225,15 @@ class ModeMenu(tk.Frame):
         self.button_frame = tk.Frame(self)
 
         self.indicators_frame = tk.Frame(self)
-        self.RPMindicator1 = SpeedIndicator(self.indicators_frame,label="1st DOF\nspeed")
-        self.RPMindicator2 = SpeedIndicator(self.indicators_frame,label="2nd DOF\nspeed")
-        self.RPMindicator1.grid(row=0,column=0,padx=10)
-        self.RPMindicator2.grid(row=0, column=1, padx=10)
+        self.RPMindicator1 = SlidingIndicator(self.indicators_frame, label="1st DOF\nspeed")
+        self.RPMindicator2 = SlidingIndicator(self.indicators_frame, label="2nd DOF\nspeed")
+        self.ACCELindicator1 = SlidingIndicator(self.indicators_frame, label="1st DOF\nacceleration", unit="RPM/s")
+        self.ACCELindicator2 = SlidingIndicator(self.indicators_frame, label="2nd DOF\nacceleration", unit="RPM/s")
+        self.RPMindicator1.grid(row=0,column=0,padx=15)
+        self.RPMindicator2.grid(row=0, column=1, padx=15)
+        self.ACCELindicator1.grid(row=0, column=2, padx=15)
+        self.ACCELindicator2.grid(row=0, column=3, padx=15)
+        self.indicators = [self.RPMindicator1,self.RPMindicator2,self.ACCELindicator1,self.ACCELindicator2]
 
         self.abort_button = tk.Button(self.button_frame,command=self.handleAbort,text="Abort")
         self.abort_button.config(width=17,background="#bf4032",activebackground="#eb7063",
@@ -258,13 +262,13 @@ class ModeMenu(tk.Frame):
         self.resume_button.grid(row=3, column=0,pady=2)
         self.home_button.grid(row=4, column=0,pady=2)
         self.button_frame.grid(row=0,column=0,padx=10)
-        self.indicators_frame.grid(row=0,column=1,padx=10,rowspan=5)
+        self.indicators_frame.grid(row=0,column=1,padx=10,rowspan=5,sticky="N")
 
-        self.RPMindicator1.configureState(state="disabled")
-        self.RPMindicator2.configureState(state="disabled")
+        for indicator in self.indicators:
+            indicator.configureState(state="disabled")
 
-    def gatherSpeed(self):
-        return self.RPMindicator1.getSpeed(),self.RPMindicator2.getSpeed()
+    def gatherIndicatorValues(self):
+        return (indicator.getValue() for indicator in self.indicators)
 
     def handleAbort(self):
         self.pause_button.configure(state="disabled")
@@ -280,7 +284,7 @@ class ModeMenu(tk.Frame):
         self.resume_button.configure(state="disabled")
         self.home_button.configure(state="disabled")
         self.run_button.configure(state="disabled")
-        self.parent.parent.device.run(self.gatherSpeed)
+        self.parent.parent.device.run(self.gatherIndicatorValues)
         self.parent.blockIndicators()
         pass
 
@@ -313,20 +317,18 @@ class ModeMenu(tk.Frame):
     def enable(self):
         self.run_button.config(state="normal")
         self.home_button.config(state="normal")
-        self.RPMindicator1.configureState(state="normal")
-        self.RPMindicator2.configureState(state="normal")
+        for indicator in self.indicators:
+            indicator.configureState(state="normal")
 
     def disableIndicators(self):
-        self.RPMindicator1.configureState(state="disabled")
-        self.RPMindicator2.configureState(state="disabled")
+        for indicator in self.indicators:
+            indicator.configureState(state="disabled")
 
     def resetIndicators(self):
-        self.RPMindicator1.configureState(state="normal")
-        self.RPMindicator2.configureState(state="normal")
-        self.RPMindicator1.reset()
-        self.RPMindicator2.reset()
-        self.RPMindicator1.configureState(state="disabled")
-        self.RPMindicator2.configureState(state="disabled")
+        for indicator in self.indicators:
+            indicator.configureState(state="normal")
+            indicator.reset()
+            indicator.configureState(state="disabled")
 
 
 class DataEmbed(tk.Frame):
@@ -375,13 +377,14 @@ class DataEmbed(tk.Frame):
         self.grav_plot.addLinesObject()
         self.grav_plot.addLinesObject()
 
-        self.data_buffers.append([])
-        self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
-        self.data_buffers.append([])
+        self.text_area = tk.Text(self,height=8,width=34)
 
-        self.grav_plot.grid(row=1,column=0,padx=10)
+        for i in range(3):
+            self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
+        self.grav_plot.grid(row=1,column=0,padx=10,pady=10)
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
+        self.text_area.grid(row=2,column=0,pady=10,padx=10,sticky="W")
 
     def handleRunServer(self):
         server_object = self.parent.parent.server
@@ -468,12 +471,14 @@ class App(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
         self.device = None
+
         with open("config.yaml","r") as file:
             config = yaml.load(file,Loader=yaml.FullLoader)
+
         self.lock = threading.Lock()
         self.data_queue = queue.Queue()
-        self.server = chamber_data_socket.DataServer(parent=self,queue_=self.data_queue,
-                                                     address=config["IP"],port=config["PORT"],thread_lock=self.lock)
+        self.server = data_socket.DataServer(parent=self, queue_=self.data_queue,
+                                             address=config["IP"], port=config["PORT"], thread_lock=self.lock)
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
         self.server.linkConsole(self.control_system.serial_config.console)
@@ -481,8 +486,10 @@ class App(tk.Tk):
     def destroy(self):
         if self.server.running:
             self.server.close()
-        # todo: Close any other running threads
-        # todo: Close communication with serial port if it exists.
+
+        if self.device:
+            self.device.close_serial()
+
         tk.Tk.destroy(self)
 
     def programLoop(self):
@@ -490,15 +497,7 @@ class App(tk.Tk):
         if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
             self.control_system.data_embed.updateData()
 
-        # for thread in threading.enumerate():
-        #     print(thread.name)
-
         self.after(100,self.programLoop)
-
-
-def getPorts() -> list:
-
-    return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]
 
 
 if __name__ == "__main__":
