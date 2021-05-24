@@ -1,11 +1,10 @@
 import asyncio
 import threading
-import numpy as np
 
 
-class DataServer:  # todo: This class could probably inherit from threading.Thread
+class DataServer:
 
-    def __init__(self,parent,thread_lock,address="127.0.0.1",port=8888):
+    def __init__(self,parent,thread_lock,queue_,address="127.0.0.1",port=8888):
         self.parent = parent
         self.server = None
         self.server_thread = None
@@ -16,6 +15,7 @@ class DataServer:  # todo: This class could probably inherit from threading.Thre
         self.port = port
         self.HEADER_SIZE = 10
         self.lock = thread_lock
+        self.data_queue = queue_
 
     def runServer(self):
         self.server_thread = threading.Thread(target=lambda: asyncio.run(self.mainServer(self.address,self.port)))
@@ -74,7 +74,7 @@ class DataServer:  # todo: This class could probably inherit from threading.Thre
             data = data.decode('utf-8')
 
             if fresh:
-                message_len = int(data[:self.HEADER_SIZE])
+                # message_len = int(data[:self.HEADER_SIZE])
                 fresh = False
                 message += data[self.HEADER_SIZE:]
 
@@ -82,28 +82,6 @@ class DataServer:  # todo: This class could probably inherit from threading.Thre
                 message += data
 
         values = [float(val) for val in message.split(";")]
-
-        self.lock.acquire()
-
-        for index,buffer in enumerate(self.parent.control_system.data_embed.data_buffers):
-
-            if len(buffer) >= 100:
-                buffer = list(np.roll(buffer,-1))
-                buffer[-1] = values[index]
-                self.parent.control_system.data_embed.data_buffers[index] = buffer
-                # todo: Consider using Queue to send new data.
-            else:
-                buffer.append(values[index])
-
-            # todo: Also save new data to file.
-
-        self.parent.control_system.data_embed.new_data_available = True
-
-        self.lock.release()
+        self.data_queue.put(values)
 
         writer.close()
-
-
-def rollData(buffer):
-    pass
-

@@ -10,6 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
+import queue
 
 
 class EmbeddedFigure(tk.Frame):
@@ -225,8 +226,8 @@ class ModeMenu(tk.Frame):
         self.button_frame = tk.Frame(self)
 
         self.indicators_frame = tk.Frame(self)
-        self.RPMindicator1 = SpeedIndicator(self.indicators_frame,label="1DOF\nspeed")
-        self.RPMindicator2 = SpeedIndicator(self.indicators_frame,label="2DOF\nspeed")
+        self.RPMindicator1 = SpeedIndicator(self.indicators_frame,label="1st DOF\nspeed")
+        self.RPMindicator2 = SpeedIndicator(self.indicators_frame,label="2nd DOF\nspeed")
         self.RPMindicator1.grid(row=0,column=0,padx=10)
         self.RPMindicator2.grid(row=0, column=1, padx=10)
 
@@ -413,13 +414,26 @@ class DataEmbed(tk.Frame):
 
     def updateData(self):
 
+        data_queue = self.parent.parent.data_queue
+
+        if not data_queue.empty():
+            values = data_queue.get()
+
+            for index, buffer in enumerate(self.data_buffers):
+
+                if len(buffer) >= 100:
+                    temp = list(np.roll(buffer,-1))
+                    temp[-1] = values[index]
+                    self.data_buffers[index] = temp
+                else:
+                    buffer.append(values[index])
+
+                # todo: Also save new data to file.
+
         if all([bool(buffer) for buffer in self.data_buffers]):
-            self.parent.parent.lock.acquire()
+
             for line,buffer in zip(self.grav_plot.lines,self.data_buffers):
                 self.grav_plot.plot(line,np.arange(0,len(buffer)),buffer)
-
-            self.new_data_available = False
-            self.parent.parent.lock.release()
 
         else:
             self.grav_plot.resetPlot()
@@ -457,7 +471,8 @@ class App(tk.Tk):
         with open("config.yaml","r") as file:
             config = yaml.load(file,Loader=yaml.FullLoader)
         self.lock = threading.Lock()
-        self.server = chamber_data_socket.DataServer(parent=self,
+        self.data_queue = queue.Queue()
+        self.server = chamber_data_socket.DataServer(parent=self,queue_=self.data_queue,
                                                      address=config["IP"],port=config["PORT"],thread_lock=self.lock)
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
@@ -472,13 +487,13 @@ class App(tk.Tk):
 
     def programLoop(self):
 
-        if self.control_system.data_embed.plotting_flag and self.control_system.data_embed.new_data_available:
+        if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
             self.control_system.data_embed.updateData()
 
         # for thread in threading.enumerate():
         #     print(thread.name)
 
-        self.after(1,self.programLoop)
+        self.after(100,self.programLoop)
 
 
 def getPorts() -> list:
