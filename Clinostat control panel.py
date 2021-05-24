@@ -11,36 +11,57 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 
-class EmbeddedFigure:
 
-    def __init__(self,parent,**kwargs):
+class EmbeddedFigure(tk.Frame):
 
+    def __init__(self,parent, figsize=(1,1), maxrecords=100,*args,**kwargs):
+        tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
-        self.fig = plt.figure(figsize=kwargs["figsize"])
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)
+        self.fig = plt.figure(figsize=figsize)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.ax = self.fig.add_subplot()
-        self.ax.set_xlim([0, kwargs["maxrecords"]])
-        self.lines = self.ax.plot([], [])[0]
+        self.ax.set_xlim([0, maxrecords])
+        self.ax.grid("minor")
+        self.lines = [self.ax.plot([], [])[0]]
+        #self.lines2 = self.ax.plot([], [])[0]
+        #self.lines3 = self.ax.plot([], [])[0]
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.canvas.draw()
+        self.y_max = 1
+        self.y_min = -1
 
     def draw(self):
         self.canvas.draw()
 
-    def plot(self,xdata,ydata):
-        self.lines.set_xdata(xdata)
-        self.lines.set_ydata(ydata)
-        self.ax.set_ylim([min(ydata), max(ydata)])
+    def plot(self,lines, x_data, y_data):
+
+        if self.y_max < max(y_data):
+            self.y_max = max(y_data)
+
+        if self.y_min > min(y_data):
+            self.y_min = min(y_data)
+
+        lines.set_xdata(x_data)
+        lines.set_ydata(y_data)
+        self.ax.set_ylim([self.y_min, self.y_max])
         self.canvas.draw()
 
     def resetPlot(self):
-        self.lines.set_xdata([])
-        self.lines.set_ydata([])
+        self.y_max = 1
+        self.y_min = -1
+        self.ax.set_ylim([self.y_min, self.y_max])
+        for line in self.lines:
+            line.set_xdata([])
+            line.set_ydata([])
         self.canvas.draw()
+
+    def addLinesObject(self):
+        self.lines.append(self.ax.plot([], [])[0])
+
 
 class SpeedIndicator(tk.Frame):
 
-    def __init__(self,parent, label="Speed", *args,**kwargs):
+    def __init__(self,parent, label="Speed",unit="RPM", *args,**kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
         self.var = tk.StringVar()
@@ -56,7 +77,7 @@ class SpeedIndicator(tk.Frame):
         self.entry.config(width=3,state="disabled")
         self.entry.configure(disabledbackground="white",disabledforeground="black")
         self.unit_var = tk.StringVar()
-        self.unit_var.set("RPM")
+        self.unit_var.set(unit)
         self.entry_label = tk.Label(self.entry_frame,textvariable=self.unit_var)
         self.entry.grid(row=0,column=0)
         self.entry_label.grid(row=0, column=1)
@@ -313,10 +334,8 @@ class DataEmbed(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
-
-        self.data_buffer_grav = []
-
-        self.plotting = False
+        self.data_buffers = []
+        self.plotting_flag = False
         self.new_data_available = False
 
         self.server_buttons_frame = tk.Frame(self)
@@ -349,15 +368,20 @@ class DataEmbed(tk.Frame):
         self.address_label.grid(row=2,column=0)
         self.entry.grid(row=2,column=1)
 
-        self.plots_frame = tk.Frame(self)
-
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
 
-        self.grav_plot = EmbeddedFigure(self.plots_frame,figsize=(3,2),maxrecords=100)
+        self.grav_plot = EmbeddedFigure(self,figsize=(3,2),maxrecords=100)
+        self.grav_plot.addLinesObject()
+        self.grav_plot.addLinesObject()
+
+        self.data_buffers.append([])
+        self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
+        self.data_buffers.append([])
+
+        self.grav_plot.grid(row=1,column=0,padx=10)
 
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
-        self.plots_frame.grid(row=1,column=0,padx=10)
 
     def handleRunServer(self):
         server_object = self.parent.parent.server
@@ -370,10 +394,10 @@ class DataEmbed(tk.Frame):
         self.close_server_button.configure(state="normal")
         server_object = self.parent.parent.server
         self.address_var.set(server_object.address + ":" + str(server_object.port))
-        self.plotting = True
+        self.plotting_flag = True
 
     def handleCloseServer(self):
-        self.plotting = False
+        self.plotting_flag = False
         self.resetDataBuffers()
         self.updateData()
         server_object = self.parent.parent.server
@@ -383,15 +407,20 @@ class DataEmbed(tk.Frame):
         self.address_var.set("")
 
     def resetDataBuffers(self):
-
-        self.data_buffer_grav = []
+        size_ = len(self.data_buffers)
+        self.data_buffers = []
+        for i in range(size_):
+            self.data_buffers.append([])
 
     def updateData(self):
 
-        if self.data_buffer_grav:
+        if all([bool(buffer) for buffer in self.data_buffers]):
+            self.parent.parent.lock.acquire()
+            for line,buffer in zip(self.grav_plot.lines,self.data_buffers):
+                self.grav_plot.plot(line,np.arange(0,len(buffer)),buffer)
 
-            self.grav_plot.plot(np.arange(0,len(self.data_buffer_grav)),self.data_buffer_grav)
             self.new_data_available = False
+            self.parent.parent.lock.release()
 
         else:
             self.grav_plot.resetPlot()
@@ -428,7 +457,9 @@ class App(tk.Tk):
         self.device = None
         with open("config.yaml","r") as file:
             config = yaml.load(file,Loader=yaml.FullLoader)
-        self.server = chamber_data_socket.DataServer(parent=self,address=config["IP"],port=config["PORT"])
+        self.lock = threading.Lock()
+        self.server = chamber_data_socket.DataServer(parent=self,
+                                                     address=config["IP"],port=config["PORT"],thread_lock=self.lock)
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
         self.server.linkConsole(self.control_system.serial_config.console)
@@ -442,13 +473,13 @@ class App(tk.Tk):
 
     def programLoop(self):
 
-        if self.control_system.data_embed.plotting and self.control_system.data_embed.new_data_available:
+        if self.control_system.data_embed.plotting_flag and self.control_system.data_embed.new_data_available:
             self.control_system.data_embed.updateData()
 
         # for thread in threading.enumerate():
         #     print(thread.name)
 
-        self.after(200,self.programLoop)
+        self.after(1,self.programLoop)
 
 def getPorts() -> list:
 

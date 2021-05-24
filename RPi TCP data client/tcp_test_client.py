@@ -1,7 +1,5 @@
 import asyncio
 import time
-import random
-
 
 async def client(message, address_, port_):
 
@@ -12,13 +10,17 @@ async def client(message, address_, port_):
 
     writer.close()
     await writer.wait_closed()
-    print("Sending data packet '{}' to: {}".format(msg, address + ":" + str(port)))
+
 
 address = '127.0.0.1'
 port = 8000
 
-for i in range(200):
-    msg = str(random.randint(-10,10))
+HEADER_SIZE = 10
 
-    asyncio.run(client(msg,address,port))
-    time.sleep(0.2)
+with open("grav_data.csv","r") as file:
+
+    for line in file:
+        msg = f'{len(line):<{HEADER_SIZE}}' + line
+        asyncio.run(client(msg,address,port))
+        time.sleep(0.002)
+
