@@ -11,18 +11,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 
+class EmbeddedFigure:
 
-class EmbedThread(threading.Thread):
+    def __init__(self,parent,**kwargs):
 
-    def __init__(self,*args,**kwargs):
-        threading.Thread.__init__(self,*args,**kwargs)
-        self.running = False
-        self.refresh_rate = 10
+        self.parent = parent
+        self.fig = plt.figure(figsize=kwargs["figsize"])
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)
+        self.ax = self.fig.add_subplot()
+        self.ax.set_xlim([0, kwargs["maxrecords"]])
+        self.lines = self.ax.plot([], [])[0]
+        self.canvas.get_tk_widget().grid(row=0, column=0)
+        self.canvas.draw()
 
-    def start(self) -> None:
-        threading.Thread.start(self)
-        self.running = True
+    def draw(self):
+        self.canvas.draw()
 
+    def plot(self,xdata,ydata):
+        self.lines.set_xdata(xdata)
+        self.lines.set_ydata(ydata)
+        self.ax.set_ylim([min(ydata), max(ydata)])
+        self.canvas.draw()
+
+    def resetPlot(self):
+        self.lines.set_xdata([])
+        self.lines.set_ydata([])
+        self.canvas.draw()
 
 class SpeedIndicator(tk.Frame):
 
@@ -183,7 +197,7 @@ class SerialConfig(tk.Frame):
         self.parent.disableAllModes()
 
 
-class ModeOptions(tk.Frame):
+class ModeMenu(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
@@ -299,8 +313,9 @@ class DataEmbed(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
-        # self.data_buffer_globe = []
+
         self.data_buffer_grav = []
+
         self.plotting = False
         self.new_data_available = False
 
@@ -338,21 +353,8 @@ class DataEmbed(tk.Frame):
 
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
-        # self.globe_fig = plt.figure(figsize=(2,2))
-        # self.globe_canvas = FigureCanvasTkAgg(self.globe_fig, master=self.plots_frame)
-        # self.globe_ax = self.globe_fig.add_subplot()
-        # self.globe_ax.set_xlim([0,100])
-        # self.globe_lines = self.globe_ax.plot([], [])[0]
-        # self.globe_canvas.draw()
-        # self.globe_canvas.get_tk_widget().grid(row=0,column=0)
 
-        self.grav_fig = plt.figure(figsize=(3, 2))
-        self.grav_canvas = FigureCanvasTkAgg(self.grav_fig, master=self.plots_frame)
-        self.grav_ax = self.grav_fig.add_subplot()
-        self.grav_ax.set_xlim([0, 100])
-        self.grav_lines = self.grav_ax.plot([], [])[0]
-        self.grav_canvas.get_tk_widget().grid(row=0,column=0)
-        self.grav_canvas.draw()
+        self.grav_plot = EmbeddedFigure(self.plots_frame,figsize=(3,2),maxrecords=100)
 
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
         self.plots_frame.grid(row=1,column=0,padx=10)
@@ -373,7 +375,7 @@ class DataEmbed(tk.Frame):
     def handleCloseServer(self):
         self.plotting = False
         self.resetDataBuffers()
-        self.updatePlots()
+        self.updateData()
         server_object = self.parent.parent.server
         server_object.close()
         self.start_server_button.configure(state="normal")
@@ -381,27 +383,18 @@ class DataEmbed(tk.Frame):
         self.address_var.set("")
 
     def resetDataBuffers(self):
-        # self.data_buffer_globe = []
+
         self.data_buffer_grav = []
 
-    def updatePlots(self):
+    def updateData(self):
 
         if self.data_buffer_grav:
-            self.grav_lines.set_xdata(np.arange(0,len(self.data_buffer_grav)))
-            self.grav_lines.set_ydata(self.data_buffer_grav)
-            self.grav_ax.set_ylim([min(self.data_buffer_grav),max(self.data_buffer_grav)])
-            self.new_data_available = False
-            self.grav_canvas.draw()
 
-            # self.grav_lines.set_xdata(np.arange(0, len(self.data_buffer_globe)))
-            # self.grav_lines.set_ydata(self.data_buffer_globe)
-            # self.grav_canvas.draw()
+            self.grav_plot.plot(np.arange(0,len(self.data_buffer_grav)),self.data_buffer_grav)
+            self.new_data_available = False
 
         else:
-            #self.grav_ax.cla()
-            self.grav_lines.set_xdata([])
-            self.grav_lines.set_ydata([])
-            self.grav_canvas.draw()
+            self.grav_plot.resetPlot()
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -410,7 +403,7 @@ class ClinostatControlSystem(tk.Frame):
         self.parent = parent
 
         self.serial_config = SerialConfig(self)
-        self.mode_options = ModeOptions(self)
+        self.mode_options = ModeMenu(self)
         self.data_embed = DataEmbed(self)
 
         self.serial_config.grid(row=0,column=0,padx=10,pady=10,sticky="n")
@@ -450,7 +443,7 @@ class App(tk.Tk):
     def programLoop(self):
 
         if self.control_system.data_embed.plotting and self.control_system.data_embed.new_data_available:
-            self.control_system.data_embed.updatePlots()
+            self.control_system.data_embed.updateData()
 
         # for thread in threading.enumerate():
         #     print(thread.name)
