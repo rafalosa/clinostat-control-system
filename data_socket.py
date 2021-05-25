@@ -21,22 +21,21 @@ class DataServer:
         self.server_thread = threading.Thread(target=lambda: asyncio.run(self.mainServer(self.address,self.port)))
         self.server_thread.start()
 
-    async def closefr(self,fut):
+    async def closeFlag(self,fut):
 
         self.server.close()
         await self.server.wait_closed()
         fut.set_result(True)
 
-    async def lol(self):
+    async def closeSetup(self):
         loop = asyncio.get_running_loop()
         fut = loop.create_future()
-        loop.create_task(self.closefr(fut))
+        loop.create_task(self.closeFlag(fut))
         if await fut:
             self.running = False
 
     def close(self):
-
-        asyncio.run(self.lol())
+        asyncio.run(self.closeSetup())
 
     def linkConsole(self,link):
         self.console = link
