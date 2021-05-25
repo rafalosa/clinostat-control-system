@@ -12,7 +12,6 @@ import yaml
 import queue
 import os
 from shutil import copyfile
-import asyncio
 
 
 class EmbeddedFigure(tk.Frame):
@@ -401,6 +400,8 @@ class DataEmbed(tk.Frame):
     def handleRunServer(self):
         server_object = self.parent.parent.server
         server_object.runServer()
+        self.parent.serial_config.console.println(f"Successfully connected to: {server_object.address}",
+                                                  headline="TCP: ", msg_type="TCP")
 
     def enableInterface(self):  # Had to define different method for changing the button states. Since runServer()
         # is running on a different thread, a server.running flag cannot be checked, because it's state has not
@@ -414,10 +415,12 @@ class DataEmbed(tk.Frame):
     def handleCloseServer(self):
         self.plotting_flag = False
         server_object = self.parent.parent.server
-        server_object.close()
+        server_object.closeServer()
+        server_object.server_thread.join()
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
         self.address_var.set("")
+        self.parent.serial_config.console.println("Connection to server closed.",headline="TCP: ",msg_type="TCP")
 
     def resetDataBuffers(self):
         self.parent.parent.data_queue = queue.Queue()
@@ -527,15 +530,17 @@ class App(tk.Tk):
 
         self.lock = threading.Lock()
         self.data_queue = queue.Queue()
+        self.kill_server = threading.Event()
         self.server = data_socket.DataServer(parent=self, queue_=self.data_queue,
-                                             address=config["IP"], port=config["PORT"], thread_lock=self.lock)
+                                             address=config["IP"], port=config["PORT"],
+                                             thread_lock=self.lock)
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
         self.server.linkConsole(self.control_system.serial_config.console)
 
     def destroy(self):
         if self.server.running:
-            self.server.close()
+            self.server.closeServer()
 
         if self.device:
             self.device.close_serial()
@@ -546,9 +551,6 @@ class App(tk.Tk):
 
         if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
             self.control_system.data_embed.updateData()
-
-        for thread in threading.enumerate():
-            print(thread.name)
 
         self.after(100,self.programLoop)
 
