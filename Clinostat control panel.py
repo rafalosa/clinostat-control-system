@@ -12,6 +12,7 @@ import yaml
 import queue
 import os
 from shutil import copyfile
+import asyncio
 
 
 class EmbeddedFigure(tk.Frame):
@@ -546,12 +547,15 @@ class App(tk.Tk):
         if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
             self.control_system.data_embed.updateData()
 
+        for thread in threading.enumerate():
+            print(thread.name)
+
         self.after(100,self.programLoop)
 
 
 if __name__ == "__main__":
     root = App()
     root.title("Clinostat control system")
-    #root.iconbitmap("icon/favicon.ico")
+    root.iconbitmap("icon/favicon.ico")
     root.after(1, root.programLoop)
     root.mainloop()

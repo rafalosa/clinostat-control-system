@@ -21,12 +21,22 @@ class DataServer:
         self.server_thread = threading.Thread(target=lambda: asyncio.run(self.mainServer(self.address,self.port)))
         self.server_thread.start()
 
-    def close(self):
-        self.running = False
+    async def closefr(self,fut):
+
         self.server.close()
-        self.server_thread.join()
-        self.console.println("Data server closed.".format(self.address, self.port), headline="TCP: ",
-                             msg_type="TCP")
+        await self.server.wait_closed()
+        fut.set_result(True)
+
+    async def lol(self):
+        loop = asyncio.get_running_loop()
+        fut = loop.create_future()
+        loop.create_task(self.closefr(fut))
+        if await fut:
+            self.running = False
+
+    def close(self):
+
+        asyncio.run(self.lol())
 
     def linkConsole(self,link):
         self.console = link
@@ -48,11 +58,17 @@ class DataServer:
         self.parent.control_system.data_embed.enableInterface()  # I dont like calling this from here, but I can't find
         # another solution as of now. It enables the whole embedded data interface if server setup was successful.
         self.lock.release()
-        async with self.server:
-            try:
-                await self.server.serve_forever()
-            except asyncio.exceptions.CancelledError:
-                pass
+
+        try:
+            await self.server.serve_forever()
+        except asyncio.exceptions.CancelledError:
+            pass
+
+        while self.running:
+            pass
+
+        self.console.println("Data server closed.".format(self.address, self.port), headline="TCP: ",
+                             msg_type="TCP")
 
     async def clientConnected(self,reader,writer):
         # Incoming message format:
