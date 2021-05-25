@@ -81,8 +81,8 @@ class DataServer:
             else:
                 message += data
 
-        values = [float(val) for val in message.split(";")]
-        self.data_queue.put(values)
+        #values = [float(val) for val in message.split(";")]
+        self.data_queue.put(message)
 
         writer.close()
 

@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.scrolledtext
+from tkinter import filedialog,messagebox
 import clinostat_com
 from datetime import datetime
 import threading
@@ -9,6 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 import queue
+import os
+from shutil import copyfile
 
 
 class EmbeddedFigure(tk.Frame):
@@ -126,7 +129,7 @@ class Console(tk.scrolledtext.ScrolledText):
         self.insert("end",string + '\n',"TEXT")
         self.configure(state="disabled")
         self.see("end")
-        # todo: Add logging to textfile
+        # todo: Add logging to text file.
 
 
 class SerialConfig(tk.Frame):
@@ -379,12 +382,20 @@ class DataEmbed(tk.Frame):
 
         self.text_area = tk.Text(self,height=8,width=34)
 
+        self.data_buttons_frame = tk.Frame(self)
+
+        self.save_button = tk.Button(self.data_buttons_frame,text="Save to file",command=self.saveFile)
+        self.clear_button = tk.Button(self.data_buttons_frame, text="Clear data",command=self.clearData)
+        self.save_button.grid(row=0, column=0, padx=10)
+        self.clear_button.grid(row=0, column=1, padx=10)
+
         for i in range(3):
             self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
         self.grav_plot.grid(row=1,column=0,padx=10,pady=10)
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
         self.text_area.grid(row=2,column=0,pady=10,padx=10,sticky="W")
+        self.data_buttons_frame.grid(row=3,column=0,pady=10,padx=10)
 
     def handleRunServer(self):
         server_object = self.parent.parent.server
@@ -401,8 +412,6 @@ class DataEmbed(tk.Frame):
 
     def handleCloseServer(self):
         self.plotting_flag = False
-        self.resetDataBuffers()
-        self.updateData()
         server_object = self.parent.parent.server
         server_object.close()
         self.start_server_button.configure(state="normal")
@@ -410,6 +419,8 @@ class DataEmbed(tk.Frame):
         self.address_var.set("")
 
     def resetDataBuffers(self):
+        self.parent.parent.data_queue = queue.Queue()
+        self.parent.parent.server.data_queue = self.parent.parent.data_queue
         size_ = len(self.data_buffers)
         self.data_buffers = []
         for i in range(size_):
@@ -420,7 +431,8 @@ class DataEmbed(tk.Frame):
         data_queue = self.parent.parent.data_queue
 
         if not data_queue.empty():
-            values = data_queue.get()
+            message_string = data_queue.get()
+            values = [float(val) for val in message_string.split(";")]
 
             for index, buffer in enumerate(self.data_buffers):
 
@@ -430,16 +442,42 @@ class DataEmbed(tk.Frame):
                     self.data_buffers[index] = temp
                 else:
                     buffer.append(values[index])
+            with open("temp/data.temp","a") as file:
+                file.write(message_string)
+            data_queue.task_done()
 
-                # todo: Also save new data to file.
-
-        if all([bool(buffer) for buffer in self.data_buffers]):
+        if all(self.data_buffers):  # If data buffers are not empty, plot.
 
             for line,buffer in zip(self.grav_plot.lines,self.data_buffers):
                 self.grav_plot.plot(line,np.arange(0,len(buffer)),buffer)
 
         else:
             self.grav_plot.resetPlot()
+
+    def clearData(self):
+        if messagebox.askyesno(title="Clinostat control system",message="Are you sure you want to clear all data?"):
+            if "data.temp" in os.listdir("temp"):
+                os.remove("temp/data.temp")
+                with open("temp/data.temp","a"):
+                    pass
+            self.resetDataBuffers()
+            self.updateData()
+        else:
+            pass
+
+    def saveFile(self):
+        if all(self.data_buffers):
+            date = datetime.now()
+            date = str(date).replace(".","-").replace(" ","-").replace(":","-")
+            filename = filedialog.asksaveasfilename(initialdir="/", title="Save file",defaultextension='.csv',
+                                                    initialfile=f"{date}",
+                                                    filetypes=(("csv files", "*.csv"), ("all files", "*.*")))
+            try:
+                copyfile("temp/data.temp",filename)
+            except FileNotFoundError:
+                pass
+        else:
+            self.parent.serial_config.console.println("No data to save.",headline="ERROR: ",msg_type="ERROR")
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -472,6 +510,17 @@ class App(tk.Tk):
         tk.Tk.__init__(self)
         self.device = None
 
+        if "saved data" not in os.listdir("."):
+            os.mkdir("saved data")
+
+        if "temp" not in os.listdir("."):
+            os.mkdir("temp")
+        else:
+            if "data.temp" in os.listdir("temp"):
+                os.remove("temp/data.temp")
+                with open("data.temp","a"):
+                    pass
+
         with open("config.yaml","r") as file:
             config = yaml.load(file,Loader=yaml.FullLoader)
 
@@ -503,6 +552,6 @@ class App(tk.Tk):
 if __name__ == "__main__":
     root = App()
     root.title("Clinostat control system")
-    root.iconbitmap("icon/favicon.ico")
+    #root.iconbitmap("icon/favicon.ico")
     root.after(1, root.programLoop)
     root.mainloop()
