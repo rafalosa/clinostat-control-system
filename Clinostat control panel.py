@@ -10,14 +10,13 @@ import yaml
 import queue
 import os
 from shutil import copyfile
-from ttkthemes import themed_tk
 import custom_tk_widgets as cw
 
 
 class SerialConfig(tk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
+        super().__init__(parent, *args, **kwargs)
         self.parent = parent
         self.available_ports = clinostat_com.getPorts()
 
@@ -104,7 +103,7 @@ class SerialConfig(tk.Frame):
 
 class ModeMenu(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
+        super().__init__(parent, *args, **kwargs)
         self.parent = parent
 
         self.button_frame = tk.Frame(self)
@@ -219,7 +218,7 @@ class ModeMenu(tk.Frame):
 class DataEmbed(tk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self,parent,*args,**kwargs)
+        super().__init__(parent, *args, **kwargs)
         self.parent = parent
         self.data_buffers = []
         self.plotting_flag = False
@@ -368,7 +367,7 @@ class DataEmbed(tk.Frame):
 
 class ClinostatControlSystem(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
+        super().__init__(parent, *args, **kwargs)
         self.parent = parent
 
         self.serial_config = SerialConfig(self)
@@ -391,9 +390,9 @@ class ClinostatControlSystem(tk.Frame):
         self.mode_options.enable()
 
 
-class App(themed_tk.ThemedTk):
+class App(tk.Tk):
     def __init__(self):
-        themed_tk.ThemedTk.__init__(self)
+        super().__init__()
         self.device = None
 
         if "saved data" not in os.listdir("."):
