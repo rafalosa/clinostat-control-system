@@ -62,8 +62,13 @@ class DataServer:
 
     def closeServer(self):
         self.running = False
-        self.socket.shutdown(socket.SHUT_RDWR)
-        self.socket.close()
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+        finally:
+            self.socket.close()
+
         self.socket = None
 
     def linkConsole(self,link):
