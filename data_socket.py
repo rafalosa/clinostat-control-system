@@ -1,5 +1,6 @@
 import socket
 import threading
+import os
 
 
 class DataServer:
@@ -17,9 +18,12 @@ class DataServer:
         self.data_queue = queue_
 
     def runServer(self):
+        self.lock.acquire()
         self.parent.control_system.data_embed.enableInterface()
         self.running = True
+        self.lock.release()
         self.server_thread = threading.Thread(target=self._serverLoop)
+        self.server_thread.setDaemon(True)
         self.server_thread.start()
 
     def _serverLoop(self):
@@ -27,10 +31,14 @@ class DataServer:
         self.socket.listen()
 
         while self.running:
+
             try:
                 client, address = self.socket.accept()
-            except OSError:
+            except(socket.timeout,OSError):
                 return
+            finally:
+                if not self.running:
+                    return
 
             with client:
                 fresh = True
@@ -53,10 +61,10 @@ class DataServer:
             self.data_queue.put(message)
 
     def closeServer(self):
-        self.lock.acquire()
         self.running = False
+        self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
-        self.lock.release()
+        self.socket = None
 
     def linkConsole(self,link):
         self.console = link

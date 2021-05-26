@@ -416,7 +416,7 @@ class DataEmbed(tk.Frame):
         self.plotting_flag = False
         server_object = self.parent.parent.server
         server_object.closeServer()
-        server_object.server_thread.join()
+        #server_object.server_thread.join()
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
         self.address_var.set("")
@@ -558,6 +558,6 @@ class App(tk.Tk):
 if __name__ == "__main__":
     root = App()
     root.title("Clinostat control system")
-    root.iconbitmap("icon/favicon.ico")
+    #root.iconbitmap("icon/favicon.ico")
     root.after(1, root.programLoop)
     root.mainloop()
