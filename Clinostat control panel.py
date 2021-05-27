@@ -11,6 +11,7 @@ import queue
 import os
 from shutil import copyfile
 import custom_tk_widgets as cw
+import tkinter.ttk as ttk
 
 
 class SerialConfig(tk.Frame):
@@ -87,7 +88,7 @@ class SerialConfig(tk.Frame):
                 self.parent.enableStart()
 
             else:
-                self.console.println("Connection failed.",headline="ERROR: ",msg_type="ERROR")
+                self.console.println("Connection to serial port failed.",headline="ERROR: ",msg_type="ERROR")
                 self.connect_button.configure(state="normal")
 
     def disconnectPort(self) -> None:
@@ -254,12 +255,19 @@ class DataEmbed(tk.Frame):
         self.address_label.grid(row=2,column=0)
         self.entry.grid(row=2,column=1)
 
-        plt.rcParams['figure.facecolor'] = "#f0f0f0"
+        plt.rcParams['figure.facecolor'] =  "#f0f0f0"
         plt.rcParams['font.size'] = 7
 
-        self.grav_plot = cw.EmbeddedFigure(self,figsize=(3,2),maxrecords=100)
+        self.tabs = ttk.Notebook(self)
+
+        self.grav_plot = cw.EmbeddedFigure(self.tabs,figsize=(3,2),maxrecords=100)
         self.grav_plot.addLinesObject()
         self.grav_plot.addLinesObject()
+        self.mean_grav_plot = cw.EmbeddedFigure(self.tabs,figsize=(3,2),maxrecords=100)
+        self.mean_grav_plot.addLinesObject()
+        self.mean_grav_plot.addLinesObject()
+        self.tabs.add(self.grav_plot,text="Gravity vector")
+        self.tabs.add(self.mean_grav_plot,text="Mean gravity")
 
         self.text_area = tk.Text(self,height=8,width=34)
 
@@ -270,10 +278,10 @@ class DataEmbed(tk.Frame):
         self.save_button.grid(row=0, column=0, padx=10)
         self.clear_button.grid(row=0, column=1, padx=10)
 
-        for i in range(3):
+        for i in range(6):
             self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
-        self.grav_plot.grid(row=1,column=0,padx=10,pady=10)
+        self.tabs.grid(row=1,column=0,padx=10,pady=10)
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
         self.text_area.grid(row=2,column=0,pady=10,padx=10,sticky="W")
         self.data_buttons_frame.grid(row=3,column=0,pady=10,padx=10)
@@ -297,7 +305,6 @@ class DataEmbed(tk.Frame):
         self.plotting_flag = False
         server_object = self.parent.parent.server
         server_object.closeServer()
-        # server_object.server_thread.join()
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
         self.address_var.set("")
@@ -333,11 +340,14 @@ class DataEmbed(tk.Frame):
 
         if all(self.data_buffers):  # If data buffers are not empty, plot.
 
-            for line,buffer in zip(self.grav_plot.lines,self.data_buffers):
-                self.grav_plot.plot(line,np.arange(0,len(buffer)),buffer)
+            for line,buffer in zip(self.grav_plot.lines,self.data_buffers[:3]):
+                self.grav_plot.plot(line,np.arange(0,len(buffer)),buffer)  # todo: Make a loop to deal with plots.
+            for line,buffer in zip(self.mean_grav_plot.lines,self.data_buffers[3:]):
+                self.mean_grav_plot.plot(line,np.arange(0,len(buffer)),buffer)
 
         else:
             self.grav_plot.resetPlot()
+            self.mean_grav_plot.resetPlot()
 
     def clearData(self):
         if messagebox.askyesno(title="Clinostat control system",message="Are you sure you want to clear all data?"):

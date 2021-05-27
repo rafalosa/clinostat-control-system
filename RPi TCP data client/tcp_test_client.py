@@ -18,10 +18,18 @@ port = 8000
 
 HEADER_SIZE = 10
 
+means = [0,0,0]
+
 with open("grav_data.csv","r") as file:
 
-    for line in file:
-        msg = f'{len(line):<{HEADER_SIZE}}' + line
+    for index,line in enumerate(file):
+
+        values = [float(val) for val in line.split(";")]
+        temp = [means[ind] * index / (index + 1) + values[ind] / (index + 1) for ind in range(3)]
+        means = temp
+        vals = values + means
+        msg = ";".join([str(val) for val in vals])
+        msg = f'{len(msg):<{HEADER_SIZE}}' + msg
         asyncio.run(client(msg,address,port))
         time.sleep(0.01)
 
