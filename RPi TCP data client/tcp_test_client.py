@@ -29,7 +29,7 @@ with open("grav_data.csv","r") as file:
         means = temp
         vals = values + means
         msg = ";".join([str(val) for val in vals])
-        msg = f'{len(msg):<{HEADER_SIZE}}' + msg
+        msg = f'{len(msg):<{HEADER_SIZE}}' + msg + '\n'
         asyncio.run(client(msg,address,port))
         time.sleep(0.01)
 

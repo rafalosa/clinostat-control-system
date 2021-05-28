@@ -260,14 +260,17 @@ class DataEmbed(tk.Frame):
 
         self.tabs = ttk.Notebook(self)
 
-        self.grav_plot = cw.EmbeddedFigure(self.tabs,figsize=(3,2),maxrecords=100)
-        self.grav_plot.addLinesObject()
-        self.grav_plot.addLinesObject()
-        self.mean_grav_plot = cw.EmbeddedFigure(self.tabs,figsize=(3,2),maxrecords=100)
-        self.mean_grav_plot.addLinesObject()
-        self.mean_grav_plot.addLinesObject()
-        self.tabs.add(self.grav_plot,text="Gravity vector")
-        self.tabs.add(self.mean_grav_plot,text="Mean gravity")
+        self.all_plots = []
+        plot_descriptions = ["Gravity vector","Mean gravity","Temperature","Humidity"]
+
+        for i in range(2):
+            plot = cw.EmbeddedFigure(self.tabs,figsize=(3,2),maxrecords=100)
+            plot.addLinesObject()
+            plot.addLinesObject()
+            self.all_plots.append(plot)
+            self.tabs.add(plot,text=plot_descriptions[i])
+            for _ in range(3):
+                self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
         self.text_area = tk.Text(self,height=8,width=34)
 
@@ -277,9 +280,6 @@ class DataEmbed(tk.Frame):
         self.clear_button = tk.Button(self.data_buttons_frame, text="Clear data",command=self.clearData)
         self.save_button.grid(row=0, column=0, padx=10)
         self.clear_button.grid(row=0, column=1, padx=10)
-
-        for i in range(6):
-            self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
         self.tabs.grid(row=1,column=0,padx=10,pady=10)
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
@@ -340,14 +340,13 @@ class DataEmbed(tk.Frame):
 
         if all(self.data_buffers):  # If data buffers are not empty, plot.
 
-            for line,buffer in zip(self.grav_plot.lines,self.data_buffers[:3]):
-                self.grav_plot.plot(line,np.arange(0,len(buffer)),buffer)  # todo: Make a loop to deal with plots.
-            for line,buffer in zip(self.mean_grav_plot.lines,self.data_buffers[3:]):
-                self.mean_grav_plot.plot(line,np.arange(0,len(buffer)),buffer)
+            for plot_ind,plot in enumerate(self.all_plots):
+                for line,buffer in zip(plot.lines,self.data_buffers[3*plot_ind:3*plot_ind+3]):
+                    plot.plot(line,np.arange(0,len(buffer)),buffer)  # todo: Make a loop to deal with plots.
 
         else:
-            self.grav_plot.resetPlot()
-            self.mean_grav_plot.resetPlot()
+            for plot in self.all_plots:
+                plot.resetPlot()
 
     def clearData(self):
         if messagebox.askyesno(title="Clinostat control system",message="Are you sure you want to clear all data?"):
