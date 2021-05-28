@@ -289,8 +289,6 @@ class DataEmbed(tk.Frame):
     def handleRunServer(self):
         server_object = self.parent.parent.server
         server_object.runServer()
-        self.parent.serial_config.console.println(f"Successfully connected to: {server_object.address}",
-                                                  headline="TCP: ", msg_type="TCP")
 
     def enableInterface(self):  # Had to define different method for changing the button states. Since runServer()
         # is running on a different thread, a server.running flag cannot be checked, because it's state has not

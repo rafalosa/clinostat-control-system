@@ -3,7 +3,6 @@ import time
 
 
 async def client(message, address_, port_):
-
     reader, writer = await asyncio.open_connection(address_, port_)
 
     writer.write(message.encode())
@@ -28,8 +27,9 @@ with open("grav_data.csv","r") as file:
         temp = [means[ind] * index / (index + 1) + values[ind] / (index + 1) for ind in range(3)]
         means = temp
         vals = values + means
-        msg = ";".join([str(val) for val in vals])
-        msg = f'{len(msg):<{HEADER_SIZE}}' + msg + '\n'
+        msg = ";".join([str(val) for val in vals]) + '\n'
+        msg = f'{len(msg):<{HEADER_SIZE}}' + msg
+        print(msg)
         asyncio.run(client(msg,address,port))
         time.sleep(0.01)
 

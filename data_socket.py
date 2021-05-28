@@ -17,16 +17,23 @@ class DataServer:
         self.data_queue = queue_
 
     def runServer(self):
-        self.lock.acquire()
-        self.parent.control_system.data_embed.enableInterface()
-        self.running = True
-        self.lock.release()
         self.server_thread = threading.Thread(target=self._serverLoop)
         self.server_thread.setDaemon(True)
         self.server_thread.start()
 
     def _serverLoop(self):
-        self.socket = socket.create_server((self.address,self.port), family=socket.AF_INET)
+
+        try:
+            self.socket = socket.create_server((self.address,self.port), family=socket.AF_INET)
+        except OSError as err:
+            self.console.println(err.args[1],headline="TCP ERROR: ",msg_type="ERROR")
+            return
+
+        self.lock.acquire()
+        self.console.println(f"Successfully connected to: {self.address}", headline="TCP: ", msg_type="TCP")
+        self.parent.control_system.data_embed.enableInterface()
+        self.running = True
+        self.lock.release()
         self.socket.listen()
 
         while self.running:
