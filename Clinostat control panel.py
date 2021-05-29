@@ -255,7 +255,7 @@ class DataEmbed(tk.Frame):
         self.address_label.grid(row=2,column=0)
         self.entry.grid(row=2,column=1)
 
-        plt.rcParams['figure.facecolor'] =  "#f0f0f0"
+        plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
 
         self.tabs = ttk.Notebook(self)
