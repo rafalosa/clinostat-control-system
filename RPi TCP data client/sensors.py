@@ -45,4 +45,19 @@ class LIS3DHAccelerometer:
         return results
 
 
+class MCP9808Thermometer:
+
+    __AMBIENT_TEMP_REG = 0x05
+
+    def __init__(self,address,bus):
+        self.address = address
+        self.bus = bus
+
+    def read(self):
+
+        data = self.bus.read_i2c_block_data(self.address,MCP9808Thermometer.__AMBIENT_TEMP_REG,2)
+        print((((data[0] << 8) + data[1]) & 0x0FFF)/16.0)
+
+
+
 
