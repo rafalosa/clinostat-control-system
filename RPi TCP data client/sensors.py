@@ -59,5 +59,48 @@ class MCP9808Thermometer:
         print((((data[0] << 8) + data[1]) & 0x0FFF)/16.0)
 
 
+class ADS1115ADC:
+
+    __CONVERSION_REG = 0x00
+    __CONFIG_REG = 0x01
+    __LO_THRESH_REG = 0x02
+    __HU_THRESH_REG = 0x03
+
+    def __init__(self,address,bus):
+        self.address = address
+        self.bus = bus
+
+    def readChannel(self,channel):
+        # Read channel voltage in reference to ground. ADS1115 also has a differential measuring mode, which
+        # has been omitted, but would be trivial to implement.
+
+        LSbyte = 0b11100011  # Comparators disabled, 860SPS data rate
+        MSbyte = 0b0011 + ((channel+4) << 4) + 128  # Amplifier gain set to 1, start single conversion, pick channel.
+        self.bus.write_i2c_block_data(self.address, ADS1115ADC.__CONFIG_REG,[MSbyte,LSbyte])
+        while self.convertingStatus():
+            pass
+        data = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONVERSION_REG,2)
+        reading = (data[0] << 8) + data[1]
+        # res = vals.to_bytes(2,byteorder="big",signed=False) Dont need 2 complement conversion because of single ended
+        # measurements
+        # res = int.from_bytes(res,byteorder="big",signed=True)
+        return reading
+
+    def convertingStatus(self):
+
+        config = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONFIG_REG,2)
+        
+        if config[1] >= 128:
+            return False
+        else:
+            return True
+
+
+class HumiditySensorCircuit:
+
+    def __init__(self):
+        pass
+
+
 
 
