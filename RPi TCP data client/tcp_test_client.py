@@ -12,7 +12,7 @@ async def client(message, address_, port_):
     await writer.wait_closed()
 
 
-address = '127.0.0.1'
+address = '192.168.1.35'
 port = 8000
 
 HEADER_SIZE = 10
@@ -29,7 +29,7 @@ with open("grav_data.csv","r") as file:
         vals = values + means
         msg = ";".join([str(val) for val in vals]) + '\n'
         msg = f'{len(msg):<{HEADER_SIZE}}' + msg
-        print(msg)
+        #print(msg)
         asyncio.run(client(msg,address,port))
-        time.sleep(0.01)
+        time.sleep(0.001)
 

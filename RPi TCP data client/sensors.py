@@ -81,9 +81,8 @@ class ADS1115ADC:
             pass
         data = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONVERSION_REG,2)
         reading = (data[0] << 8) + data[1]
-        # res = vals.to_bytes(2,byteorder="big",signed=False) Dont need 2 complement conversion because of single ended
-        # measurements
-        # res = int.from_bytes(res,byteorder="big",signed=True)
+        # res = vals.to_bytes(2,byteorder="big",signed=False) Two's complement conversion not needed because of
+        # measurements in respect to GND.
         return reading
 
     def convertingStatus(self):
@@ -97,6 +96,18 @@ class ADS1115ADC:
 
 
 class HumiditySensorCircuit:
+
+    def __init__(self):
+        pass
+
+
+class Camera:
+
+    def __init__(self):
+        pass
+
+
+class ImageFlash:
 
     def __init__(self):
         pass

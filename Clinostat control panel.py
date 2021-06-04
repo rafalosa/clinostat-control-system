@@ -12,6 +12,7 @@ import os
 from shutil import copyfile
 import custom_tk_widgets as cw
 import tkinter.ttk as ttk
+from scipy import fft
 
 
 class SerialConfig(tk.Frame):
@@ -51,7 +52,7 @@ class SerialConfig(tk.Frame):
         self.disconnect_button.grid(row=1, column=0,pady=2)
 
         self.console = cw.Console(self, font=("normal", 8))
-        self.console.configure(width=65,height=20)
+        self.console.configure(width=65,height=30)
 
         self.port_menu_frame.grid(row=0,column=0,padx=10,sticky="n")
         self.connections_frame.grid(row=1, column=0,padx=10,sticky="s")
@@ -141,18 +142,18 @@ class ModeMenu(tk.Frame):
         self.home_button.config(width=17)
         self.home_button.config(state="disabled")
 
-        self.abort_button.grid(row=0,column=0,pady=2)
-        self.run_button.grid(row=1, column=0,pady=2)
-        self.pause_button.grid(row=2, column=0,pady=2)
-        self.resume_button.grid(row=3, column=0,pady=2)
-        self.home_button.grid(row=4, column=0,pady=2)
+        self.abort_button.grid(row=0,column=0,pady=6)
+        self.run_button.grid(row=1, column=0,pady=6)
+        self.pause_button.grid(row=2, column=0,pady=6)
+        self.resume_button.grid(row=3, column=0,pady=6)
+        self.home_button.grid(row=4, column=0,pady=6)
         self.button_frame.grid(row=0,column=0,padx=10)
         self.indicators_frame.grid(row=0,column=1,padx=10,rowspan=5,sticky="N")
 
         for indicator in self.indicators:
             indicator.configureState(state="disabled")
 
-    def gatherIndicatorValues(self):
+    def readIndicatorValues(self):
         return (indicator.getValue() for indicator in self.indicators)
 
     def handleAbort(self):
@@ -169,7 +170,7 @@ class ModeMenu(tk.Frame):
         self.resume_button.configure(state="disabled")
         self.home_button.configure(state="disabled")
         self.run_button.configure(state="disabled")
-        self.parent.parent.device.run(self.gatherIndicatorValues)
+        self.parent.parent.device.run(self.readIndicatorValues)
         self.parent.blockIndicators()
         pass
 
@@ -258,33 +259,38 @@ class DataEmbed(tk.Frame):
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
 
-        self.tabs = ttk.Notebook(self)
+        self.tabs1 = ttk.Notebook(self)
+        self.tabs2 = ttk.Notebook(self)
 
         self.all_plots = []
         plot_descriptions = ["Gravity vector","Mean gravity","Temperature","Humidity"]
 
         for i in range(2):
-            plot = cw.EmbeddedFigure(self.tabs,figsize=(3,2),maxrecords=100)
+            plot = cw.EmbeddedFigure(self.tabs1,figsize=(3,2),maxrecords=600)
             plot.addLinesObject()
             plot.addLinesObject()
             self.all_plots.append(plot)
-            self.tabs.add(plot,text=plot_descriptions[i])
+            self.tabs1.add(plot,text=plot_descriptions[i])
             for _ in range(3):
                 self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
-        self.text_area = tk.Text(self,height=8,width=34)
+        self.text_area = tk.Text(self,height=4,width=37)
 
         self.data_buttons_frame = tk.Frame(self)
+
+        self.fourier_plot = cw.EmbeddedFigure(self.tabs2, figsize=(3, 2), maxrecords=600)
+        self.tabs2.add(self.fourier_plot,text="FFT of gravity vector")
 
         self.save_button = tk.Button(self.data_buttons_frame,text="Save to file",command=self.saveFile)
         self.clear_button = tk.Button(self.data_buttons_frame, text="Clear data",command=self.clearData)
         self.save_button.grid(row=0, column=0, padx=10)
         self.clear_button.grid(row=0, column=1, padx=10)
 
-        self.tabs.grid(row=1,column=0,padx=10,pady=10)
         self.server_buttons_frame.grid(row=0, column=0, padx=10)
-        self.text_area.grid(row=2,column=0,pady=10,padx=10,sticky="W")
-        self.data_buttons_frame.grid(row=3,column=0,pady=10,padx=10)
+        self.tabs1.grid(row=1,column=0,padx=10,pady=10)
+        self.tabs2.grid(row=2,column=0,padx=10,pady=10)
+        self.text_area.grid(row=3,column=0,pady=10,padx=10,sticky="W")
+        self.data_buttons_frame.grid(row=4,column=0,pady=10,padx=10)
 
     def handleRunServer(self):
         server_object = self.parent.parent.server
@@ -326,10 +332,15 @@ class DataEmbed(tk.Frame):
 
             for index, buffer in enumerate(self.data_buffers):
 
-                if len(buffer) >= 100:
+                if len(buffer) >= 600:
                     temp = list(np.roll(buffer,-1))
                     temp[-1] = values[index]
                     self.data_buffers[index] = temp
+                    if index == 0:
+                        frt = fft.fftshift(fft.fft(self.data_buffers[index]))
+                        fr_domain = fft.fftshift(fft.fftfreq(len(self.data_buffers[index])))
+                        self.fourier_plot.plot(self.fourier_plot.lines[0], fr_domain,
+                                               np.abs(frt),tracking=False)
                 else:
                     buffer.append(values[index])
             with open("temp/data.temp","a") as file:
@@ -340,9 +351,10 @@ class DataEmbed(tk.Frame):
 
             for plot_ind,plot in enumerate(self.all_plots):
                 for line,buffer in zip(plot.lines,self.data_buffers[3*plot_ind:3*plot_ind+3]):
-                    plot.plot(line,np.arange(0,len(buffer)),buffer)  # todo: Make a loop to deal with plots.
+                    plot.plot(line,np.arange(0,len(buffer)),buffer)
 
         else:
+            self.fourier_plot.resetPlot()
             for plot in self.all_plots:
                 plot.resetPlot()
 
@@ -440,7 +452,7 @@ class App(tk.Tk):
         if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
             self.control_system.data_embed.updateData()
 
-        self.after(100,self.programLoop)
+        self.after(1,self.programLoop)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter.scrolledtext
 import matplotlib.pyplot as plt
 from datetime import datetime
+import numpy as np
 
 
 class EmbeddedFigure(tk.Frame):
@@ -13,7 +14,6 @@ class EmbeddedFigure(tk.Frame):
         self.fig = plt.figure(figsize=figsize)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.ax = self.fig.add_subplot()
-        self.ax.set_xlim([0, maxrecords])
         self.ax.grid("minor")
         self.lines = [self.ax.plot([], [])[0]]
         self.canvas.get_tk_widget().grid(row=0, column=0)
@@ -25,7 +25,7 @@ class EmbeddedFigure(tk.Frame):
     def draw(self):
         self.canvas.draw()
 
-    def plot(self,lines, x_data, y_data):
+    def plot(self,lines, x_data, y_data,tracking=True):
 
         if self.y_max < max(y_data):
             self.y_max = max(y_data)
@@ -36,6 +36,13 @@ class EmbeddedFigure(tk.Frame):
         lines.set_xdata(x_data)
         lines.set_ydata(y_data)
         self.ax.set_ylim([self.y_min, self.y_max])
+        if tracking:
+            self.ax.set_xlim([0,len(x_data)])
+        else:
+            self.ax.set_xlim([min(x_data),max(x_data)])
+        locs = self.ax.get_xticks()
+        self.ax.set_xticklabels(np.array(np.flip(locs) / 10, dtype=int))
+
         self.canvas.draw()
 
     def resetPlot(self):
@@ -60,7 +67,7 @@ class SlidingIndicator(tk.Frame):
         self.var.set(label)
         self.label = tk.Label(self,textvariable=self.var)
         self.slider = tk.Scale(self,from_=5,to=0,orient="vertical",
-                               resolution=0.1,length=100,command=self.updateEntry,showvalue=0,width=30)
+                               resolution=0.1,length=150,command=self.updateEntry,showvalue=0,width=30)
         self.slider.configure(cursor="dot",troughcolor="green")
 
         self.entry_frame = tk.Frame(self)
