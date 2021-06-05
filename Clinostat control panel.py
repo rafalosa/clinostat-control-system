@@ -423,7 +423,7 @@ class App(tk.Tk):
         else:
             if "data.temp" in os.listdir("temp"):
                 os.remove("temp/data.temp")
-                with open("data.temp","a"):
+                with open("temp/data.temp","a"):
                     pass
 
         with open("config.yaml","r") as file:
