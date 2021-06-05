@@ -36,12 +36,12 @@ class EmbeddedFigure(tk.Frame):
         lines.set_xdata(x_data)
         lines.set_ydata(y_data)
         self.ax.set_ylim([self.y_min, self.y_max])
+        locs = self.ax.get_xticks()
         if tracking:
             self.ax.set_xlim([0,len(x_data)])
+            self.ax.set_xticklabels(np.array(np.flip(locs) / 10, dtype=int))
         else:
             self.ax.set_xlim([min(x_data),max(x_data)])
-        locs = self.ax.get_xticks()
-        self.ax.set_xticklabels(np.array(np.flip(locs) / 10, dtype=int))
 
         self.canvas.draw()
 

@@ -79,6 +79,3 @@ class DataServer:
 
     def linkConsole(self,link):
         self.console = link
-
-
-# todo: Add data client as a different class, no point in making a separate file for this.

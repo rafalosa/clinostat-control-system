@@ -1,6 +1,3 @@
-import smbus
-
-
 class LIS3DHAccelerometer:
 
     __CTRL_REG1 = 0x20

@@ -258,6 +258,7 @@ class DataEmbed(tk.Frame):
 
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
+        plt.rcParams["lines.linewidth"] = 0.5
 
         self.tabs1 = ttk.Notebook(self)
         self.tabs2 = ttk.Notebook(self)
