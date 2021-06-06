@@ -34,6 +34,7 @@ while running:
     # formulate message, ';' delimiter
     accel_vals = grav_sensor.readAllAxes()
     temp = [means[ind] * index / (index + 1) + accel_vals[ind] / (index + 1) for ind in range(3)]
+    index += 1
     means = temp
     grav_values = accel_vals + means
     msg = ";".join([str(val) for val in grav_values]) + "\n"
