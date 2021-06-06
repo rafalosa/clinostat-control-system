@@ -33,6 +33,7 @@ while running:
 
     # formulate message, ';' delimiter
     accel_vals = grav_sensor.readAllAxes()
+    accel_vals = [val/(65536/4) - 2 for val in accel_vals]
     temp = [means[ind] * index / (index + 1) + accel_vals[ind] / (index + 1) for ind in range(3)]
     index += 1
     means = temp
