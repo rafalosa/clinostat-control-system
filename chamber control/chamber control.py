@@ -21,7 +21,13 @@ grav_sensor.enable()
 
 while running:
 
+    # Once per 20min take a picture of chamber inside with flash.
+    # One per 10 min make a humidity measurement.
+
     # Read sensors
+
+    # message scheme:
+    # grav_x;grav_y;grav_z;temp1;temp2;temp3;light1;light2;humidity;time since last humidity test
 
     # formulate message, ';' delimiter
     vals = grav_sensor.readAllAxes()
@@ -30,8 +36,7 @@ while running:
     print(msg)
 
     with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sc:
+        sc.settimeout(10)
         sc.connect((address, port))
         sc.sendall(msg.encode())
     time.sleep(0.1)
-
-
