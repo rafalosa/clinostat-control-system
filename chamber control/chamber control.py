@@ -18,6 +18,8 @@ running = True
 
 grav_sensor = sensors.LIS3DHAccelerometer(config["GRAV"],main_i2c_bus)
 grav_sensor.enable()
+index = 0
+means = [0,0,0]
 
 while running:
 
@@ -30,8 +32,11 @@ while running:
     # grav_x;grav_y;grav_z;temp1;temp2;temp3;light1;light2;humidity;time since last humidity test
 
     # formulate message, ';' delimiter
-    vals = grav_sensor.readAllAxes()
-    msg = ";".join([str(val) for val in 2*vals]) + "\n"  # 2*vals is a placeholder for now.
+    accel_vals = grav_sensor.readAllAxes()
+    temp = [means[ind] * index / (index + 1) + accel_vals[ind] / (index + 1) for ind in range(3)]
+    means = temp
+    grav_values = accel_vals + means
+    msg = ";".join([str(val) for val in grav_values]) + "\n"
     msg = f'{len(msg):<{HEADER_SIZE}}' + msg
     print(msg)
 
