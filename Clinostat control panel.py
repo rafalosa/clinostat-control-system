@@ -338,10 +338,11 @@ class DataEmbed(tk.Frame):
                     temp[-1] = values[index]
                     self.data_buffers[index] = temp
                     if index == 0:
-                        frt = fft.fftshift(fft.fft(self.data_buffers[index]))
-                        fr_domain = fft.fftshift(fft.fftfreq(len(self.data_buffers[index])))
+                        N = len(self.data_buffers[index])
+                        frt = fft.fft(self.data_buffers[index])
+                        fr_domain = fft.fftfreq(N,10)[:N//2]
                         self.fourier_plot.plot(self.fourier_plot.lines[0], fr_domain,
-                                               np.abs(frt),tracking=False)
+                                               np.abs(frt[:N//2]),tracking=False)
                 else:
                     buffer.append(values[index])
             with open("temp/data.temp","a") as file:

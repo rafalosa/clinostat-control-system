@@ -42,7 +42,6 @@ class EmbeddedFigure(tk.Frame):
             self.ax.set_xticklabels(np.array(np.flip(locs) / 10, dtype=int))
         else:
             self.ax.set_xlim([min(x_data),max(x_data)])
-
         self.canvas.draw()
 
     def resetPlot(self):
