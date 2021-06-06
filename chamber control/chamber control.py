@@ -31,7 +31,7 @@ while running:
 
     # formulate message, ';' delimiter
     vals = grav_sensor.readAllAxes()
-    msg = ";".join([str(val) for val in vals]) + "\n"
+    msg = ";".join([str(val) for val in 2*vals]) + "\n"  # 2*vals is a placeholder for now.
     msg = f'{len(msg):<{HEADER_SIZE}}' + msg
     print(msg)
 
