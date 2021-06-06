@@ -343,6 +343,7 @@ class DataEmbed(tk.Frame):
                         fr_domain = fft.fftfreq(N,10)[:N//2]
                         self.fourier_plot.plot(self.fourier_plot.lines[0], fr_domain,
                                                np.abs(frt[:N//2]),tracking=False)
+                        # todo: Crop fourier domain to the maximum detected frequency, ex. half of the sampling freq.
                 else:
                     buffer.append(values[index])
             with open("temp/data.temp","a") as file:
