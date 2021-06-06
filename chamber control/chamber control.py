@@ -6,7 +6,7 @@ import smbus
 
 HEADER_SIZE = 10
 
-with open("host_config.yaml", "r") as file:
+with open("chamber_config.yaml", "r") as file:
     config = yaml.load(file, Loader=yaml.FullLoader)
 
 main_i2c_bus = smbus.SMBus(1)
@@ -16,7 +16,7 @@ port = config["PORT"]
 
 running = True
 
-grav_sensor = sensors.LIS3DHAccelerometer(0x18,main_i2c_bus)
+grav_sensor = sensors.LIS3DHAccelerometer(config["GRAV"],main_i2c_bus)
 grav_sensor.enable()
 
 while running:
@@ -37,6 +37,10 @@ while running:
 
     with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sc:
         sc.settimeout(10)
-        sc.connect((address, port))
+        try:
+            sc.connect((address, port))
+        except socket.timeout:
+            print("Connection timed out.")
+            running = False
         sc.sendall(msg.encode())
     time.sleep(0.1)
