@@ -111,7 +111,7 @@ class Camera:
     def captureFrame(self,image_path):
         timestamp = str(datetime.datetime.now()).replace(" ","-").replace(":","-").replace(".","-")
         path = image_path + timestamp + ".jpg"
-        subprocess.call(f"./take.pic.sh {self.port} {self.resolution} {path}")
+        subprocess.call(f"./take_pic.sh {self.port} {self.resolution} {path}",shell=True)
 
 
 class ImageFlash:
