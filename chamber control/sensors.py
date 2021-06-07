@@ -1,3 +1,7 @@
+import subprocess
+import datetime
+
+
 class LIS3DHAccelerometer:
 
     __CTRL_REG1 = 0x20
@@ -100,8 +104,14 @@ class HumiditySensorCircuit:
 
 class Camera:
 
-    def __init__(self):
-        pass
+    def __init__(self,port,res):
+        self.port = port
+        self.resolution = res
+
+    def captureFrame(self,image_path):
+        timestamp = str(datetime.datetime.now()).replace(" ","-").replace(":","-").replace(".","-")
+        path = image_path + timestamp + ".jpg"
+        subprocess.call(f"./take.pic.sh {self.port} {self.resolution} {path}")
 
 
 class ImageFlash:
