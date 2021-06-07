@@ -25,15 +25,12 @@ while running:
 
     # Once per 20min take a picture of chamber inside with flash.
     # One per 10 min make a humidity measurement.
-
-    # Read sensors
-
     # message scheme:
     # grav_x;grav_y;grav_z;temp1;temp2;temp3;light1;light2;humidity;time since last humidity test
 
     # formulate message, ';' delimiter
     accel_vals = grav_sensor.readAllAxes()
-    accel_vals = [val/(65536/4) for val in accel_vals]
+    accel_vals = [val/(2**16/4) for val in accel_vals]
     temp = [means[ind] * index / (index + 1) + accel_vals[ind] / (index + 1) for ind in range(3)]
     index += 1
     means = temp
@@ -49,5 +46,6 @@ while running:
         except socket.timeout:
             print("Connection timed out.")
             running = False
+            break
         sc.sendall(msg.encode())
     time.sleep(0.1)
