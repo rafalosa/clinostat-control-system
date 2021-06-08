@@ -104,6 +104,12 @@ class HumiditySensorCircuit:
 
 class Camera:
 
+    # Cameras are accessible via /dev/videoCam1 and /dev/videoCam2
+    # To set custom port names run: udevadm info /dev/video0 or whatever port the camera may be.
+    # Write down the ID_REVISION number and add a new usb rule: nano /etc/udev/rules.d/99-usbserial.rules
+    # then add the following lines: ACTION=="add",ENV{ID_BUS}=="usb",ENV{ID_REVISION}=="the written down number",SYMLINK+="yourCamName"
+    # ACTION=="add",RUN="/bin/chmod a+rw /dev/yourCamName"
+
     def __init__(self,port,res):
         self.port = port
         self.resolution = res
