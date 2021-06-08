@@ -1,0 +1,2 @@
+SUBSYSTEM=="video4linux", ENV{ID_REVISION}=="5131",SYMLINK+="videoCam0"
+SUBSYSTEM=="video4linux", ENV{ID_REVISION}=="5127",SYMLINK+="videoCam1"
