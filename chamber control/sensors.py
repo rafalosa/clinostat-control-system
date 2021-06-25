@@ -1,6 +1,6 @@
 import subprocess
 import datetime
-
+import gpiozero
 
 class LIS3DHAccelerometer:
 
@@ -98,9 +98,14 @@ class ADS1115ADC:
 
 class HumiditySensorCircuit:
 
-    def __init__(self):
-        pass
+    def __init__(self,gate_pin):
+        self._gate_control = gpiozero.LED(gate_pin)
 
+    def powerOn(self):
+        self._gate_control.on()
+
+    def powerOff(self):
+        self._gate_control.off()
 
 class Camera:
 
