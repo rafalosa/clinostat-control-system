@@ -96,7 +96,7 @@ class ADS1115ADC:
             return True
 
 
-class HumiditySensorCircuit:
+class GateDriverCircuit:
 
     def __init__(self,gate_pin):
         self._gate_control = gpiozero.LED(gate_pin)
@@ -106,6 +106,7 @@ class HumiditySensorCircuit:
 
     def powerOff(self):
         self._gate_control.off()
+
 
 class Camera:
 
@@ -121,11 +122,21 @@ class Camera:
         subprocess.call(f"./take_pic.sh {self.port} {self.resolution} {path}",shell=True)
 
 
-class ImageFlash:
+class LightPanel:
 
-    def __init__(self):
-        pass
+    def __init__(self, red_pin, blue_pin):
+        self._RED = gpiozero.PWMOutputDevice(red_pin, initial_value=0, frequency=300)
+        # self._GREEN = gpiozero.PWMOutputDevice(green_pin, initial_value=0, frequency=300)
+        self._BLUE = gpiozero.PWMOutputDevice(blue_pin, initial_value=0, frequency=300)
 
+    def powerOn(self):
+        self._RED.on()
+        self._BLUE.on()
 
+    def powerOff(self):
+        self._RED.off()
+        self._BLUE.off()
 
-
+    def setIntensity(self, red_pwm, blue_pwm):
+        self._RED.value = red_pwm
+        self._BLUE.value = blue_pwm
