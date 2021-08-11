@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <util/setbaud.h>
 //#include "lcd/LiquidCrystal.cpp"
-#include "driver_config.hpp"
+#include "driver_config.cpp"
 #include "commands.hpp"
 #include "clinostat_mechanics.hpp"
 #include "serial.hpp"
@@ -24,8 +24,17 @@ volatile uint8_t frame_stepper_status = 0;
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
 volatile unsigned long frame_interval = STOP_INTERVAL_FRAME;
 
-bool top_speed_flag = false;
 
+/* Flags declarations. */
+
+bool top_speed_flag = false;
+bool receive_serial = true;
+bool clinostat_stopping = false;
+bool clinostat_connected = false;
+
+
+uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused,   */
+uint8_t previous_program_status = 1;
 
 int main(){
 
@@ -46,6 +55,21 @@ int main(){
         - Check for motor status to disable timer interrupts if they've stopped.
         - Notify the controller about stepper's status, reaching top speed etc.
         - Monitor in what mode the clinostat is in.
+
+
+        Program structure in pseudocode:
+
+        if(serial not empty && serial flag){
+
+            new status = handleSerial();
+            check if program status needs to be updated();
+
+        }
+
+        checkFlags();
+        checkForMotorStop();
+        handleProgramStatus();
+
 
         */
 
@@ -114,24 +138,20 @@ ISR(TIMER1_COMPA_vect){
 
 }
 
-void checkForMotorStop(){
+void checkForMotorStop(){ // This function controls the absolute stop of the stepper motors
+// turning off the timers.
 
-    if(chamber_stepper_status == 4){
+    if(chamber_stepper_status == 4 && frame_stepper_status == 4){
 
         // Motor stopped and is waiting for the ISR to be disabled.
         DISABLE_TIMER1_INTERRUPTS;
         chamber_stepper_status = 0;
-        // Send message to serial.
-
-    }
-    if(frame_stepper_status == 4){
-
         //DISABLE_TIMER3_INTERRUPTS;
-        //frame_stepper_status = 1;
+        //frame_stepper_status = 0;
+        // Send message to serial.
+        current_program_status = 0;
 
     }
-
-
 }
 
 uint8_t rpmToTimerInterval(const float& speed){
@@ -168,8 +188,10 @@ void runSteppers(const float& RPM1, const float& RPM2){
 
         ENABLE_TIMER1_INTERRUPTS;
         //ENABLE_TIMER3_INTERRUPTS;
+        // Write to serial.
 
     }
+    
     // else report error (?)
 
 }
@@ -183,3 +205,70 @@ void stopSteppers(){
 
 }
 
+void updateProgramStatus(const uint8_t& new_mode){
+
+    /* Some previous and new program status combinations should be impossible to occur due to how
+    the clinostat control system app is built. They were also eliminated here to add some
+    redundancy to the whole driver. */
+
+    switch(new_mode){
+
+        case 0: // Idle mode. Switched to only when abort or pause
+                //commands were issued, after the motors have stopped.
+
+            if(current_program_status == 3){
+
+
+
+            } 
+
+            // else do nothing.
+
+        break;
+
+        case 1: // Running mode. Swtiched to when resume or start commands have been issued.
+                // The only possible previous modes are idle or paused.
+
+            if(current_program_status == 2 || current_program_status == 0){
+
+
+
+            } 
+            // else do nothig.
+
+        break;
+
+        case 2: // Paused mode. Switched to only from running mode.
+
+            if(current_program_status == 1){
+
+
+
+            } 
+            // else do nothig.
+
+
+        break;
+
+        case 3: // Stopping the clinostat mode. 
+                //Switched to only from running mode when pause or abort commands were issued.
+
+            if(current_program_status == 1){
+
+                //stopSteppers();
+
+            } 
+
+        break;
+
+        default:
+        break;
+
+
+    }
+
+
+
+
+
+}
