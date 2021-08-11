@@ -18,4 +18,4 @@ install.%: %.hex
 	avrdude -F -V -c usbasp -p m32u4 -b 115200 -U flash:w:$<
 
 clean:
-	rm -f *.hex *.out
+	rm -f *.out

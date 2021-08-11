@@ -9,9 +9,8 @@
 //#include "lcd/LiquidCrystal.cpp"
 #include "driver_config.hpp"
 #include "commands.hpp"
-
-#define MAX_INTERVAL_CHAMBER 10 // Determines the max. speed of the stepper.
-#define MAX_INTERVAL_FRAME 10
+#include "clinostat_mechanics.hpp"
+#include "serial.hpp"
 
 uint16_t top_speed_interval_chamber = 1;
 uint16_t top_speed_interval_frame = 1;
@@ -125,6 +124,13 @@ void checkMotorStatus(){
         //frame_stepper_status = 1;
 
     }
+
+
+}
+
+uint8_t rpmToTimerDelay(float speed){
+
+
 
 
 }

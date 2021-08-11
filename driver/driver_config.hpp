@@ -3,48 +3,23 @@
 
 #define CHAMBER_STEP 0 // PD0 for chamber step pin.
 #define FRAME_STEP 4 // PD4 for frame step pin.
-#define CLK_PRESCALER 1024
-#define STEP_DIV 16
 
-#define STOP_INTERVAL_CHAMBER 5000 // Determiens the starting speed of the stepper.
-#define STOP_INTERVAL_FRAME 5000
+#define STOP_INTERVAL_CHAMBER 2000 // Determiens the starting speed of the steppers.
+#define STOP_INTERVAL_FRAME 2000
 
-#define ENABLE_TIMER1_INTERRUPTS    TIMSK1 |= (1 << OCIE1A)
-#define DISABLE_TIMER1_INTERRUPTS   TIMSK1 &= ~(1 << OCIE1A)
+#define ENABLE_TIMER1_INTERRUPTS    TIMSK1 |= (1 << OCIE1A) // Macro for enabling the timer1 interrupts.
+#define DISABLE_TIMER1_INTERRUPTS   TIMSK1 &= ~(1 << OCIE1A) // Macro for disabling the timer1 interrupts.
 
-#define ENABLE_TIMER3_INTERRUPTS    TIMSK3 |= (1 << OCIE3A)
-#define DISABLE_TIMER3_INTERRUPTS   TIMSK3 &= ~(1 << OCIE3A)
+#define ENABLE_TIMER3_INTERRUPTS    TIMSK3 |= (1 << OCIE3A) // Macro for enabling the timer3 interrupts.
+#define DISABLE_TIMER3_INTERRUPTS   TIMSK3 &= ~(1 << OCIE3A) // Macro for disabling the timer3 interrupts.
 
-#define CHAMBER_STEP_HIGH   PORTD |= (1 << CHAMBER_STEP)
-#define CHAMBER_STEP_LOW    PORTD &= ~(1 << CHAMBER_STEP)
+#define CHAMBER_STEP_HIGH   PORTD |= (1 << CHAMBER_STEP) // Macro for setting a pin connected to chamber step high.
+#define CHAMBER_STEP_LOW    PORTD &= ~(1 << CHAMBER_STEP) // Macro for setting a pin connected to chamber step low.
 
-void SETUP_TIMER1_INTERRUPTS(){
+#define FRAME_STEP_HIGH   PORTD |= (1 << FRAME_STEP) // Macro for setting a pin connected to frame step high.
+#define FRAME_STEP_LOW    PORTD &= ~(1 << FRAME_STEP) // Macro for setting a pin connected to frame step low.
 
-    cli();
-    TCCR1A = 0;
-    TCCR1B = 0;
-    TCCR1B |= (1 << WGM12);
-    TCCR1B |= (1 << CS10);
-    //TCCR1B |= (1 << CS11);
-    TCCR1B |= (1 << CS12);
-    TCNT1 = 0;
-    OCR1A = STOP_INTERVAL_CHAMBER;
-    sei();
-
-}
-
-void SETUP_TIMER3_INTERRUPTS(){
-
-    cli();
-    TCCR3A = 0;
-    TCCR3B = 0;
-    TCCR3B |= (1 << WGM32);
-    TCCR3B |= (1 << CS30);
-    //TCCR3B |= (1 << CS31);
-    TCCR3B |= (1 << CS32);
-    TCNT3 = 0;
-    OCR3A = STOP_INTERVAL_FRAME;
-    sei();
-}
+void SETUP_TIMER1_INTERRUPTS();
+void SETUP_TIMER3_INTERRUPTS();
 
 #endif
