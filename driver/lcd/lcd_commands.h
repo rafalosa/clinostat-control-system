@@ -1,0 +1,14 @@
+#define DISPLAY_WRITE_IR 0x00
+#define DISPLAY_WRITE_DR 0x02
+#define DISPLAY_READ_DATA 0x01
+#define DISPLAY_READ_DR 0x03
+
+#define BIT_MODE_4 0x20
+#define DISPLAY_LINES_2_5x8_DOTS 0x28
+#define DISPLAY_POWER_ON 0x0C
+#define DISPLAY_CLEAR 0x01
+#define DISPLAY_HOME 0x02
+#define DISPLAY_ENTRY_MODE 0x06
+
+//Display on/off control
+#define DISPLAY_CURSOR_VISIBLE 0x0E
