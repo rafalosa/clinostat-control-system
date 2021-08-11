@@ -1,0 +1,9 @@
+#ifndef COMMANDS_H
+#define COMMANDS_H
+
+#define TOP_SPEED_REACHED 0xff
+#define STEPPERS_STOPPED 0xaa
+#define STEPPERS_STARTING 0xbb
+#define CLINOSTAT_CONNECTED 0x01
+
+#endif

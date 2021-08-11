@@ -24,6 +24,8 @@ volatile uint8_t frame_stepper_status = 0;
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
 volatile unsigned long frame_interval = STOP_INTERVAL_FRAME;
 
+bool top_speed_flag = false;
+
 
 int main(){
 
@@ -33,16 +35,20 @@ int main(){
     SETUP_TIMER1_INTERRUPTS();
     //SETUP_TIMER3_INTERRUPTS();
 
-    ENABLE_TIMER1_INTERRUPTS;
+    //ENABLE_TIMER1_INTERRUPTS;
     //ENABLE_TIMER3_INTERRUPTS
 
     while(true){
         
-        /* Main should check for:
+        /* Main should:
+
         - Check for commands in serial, and respond accordingly.
-        - Check for motor status to disable timer interrupts if they stopped.
+        - Check for motor status to disable timer interrupts if they've stopped.
         - Notify the controller about stepper's status, reaching top speed etc.
+        - Monitor in what mode the clinostat is in.
+
         */
+
 
     }
 
@@ -58,7 +64,7 @@ ISR(TIMER1_COMPA_vect){
             CHAMBER_STEP_HIGH;
             CHAMBER_STEP_LOW;
 
-            chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*4;
+            chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
 
             if(chamber_interval <= top_speed_interval_chamber){
 
@@ -83,7 +89,7 @@ ISR(TIMER1_COMPA_vect){
             CHAMBER_STEP_HIGH;
             CHAMBER_STEP_LOW;
 
-            chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*4;
+            chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
             //result = STOP_INTERVAL * (sqrt(steps+1) - sqrt(steps));
             
             if(chamber_interval >= STOP_INTERVAL_CHAMBER){
@@ -108,13 +114,13 @@ ISR(TIMER1_COMPA_vect){
 
 }
 
-void checkMotorStatus(){
+void checkForMotorStop(){
 
     if(chamber_stepper_status == 4){
 
         // Motor stopped and is waiting for the ISR to be disabled.
         DISABLE_TIMER1_INTERRUPTS;
-        chamber_stepper_status = 1;
+        chamber_stepper_status = 0;
         // Send message to serial.
 
     }
@@ -128,9 +134,52 @@ void checkMotorStatus(){
 
 }
 
-uint8_t rpmToTimerDelay(float speed){
+uint8_t rpmToTimerInterval(const float& speed){
 
+    // First consider the mechanics of the system.
 
+    /* Notes for calculating the conversion.
+
+    Timer ticks per second: F_CPU/TIMER_PRESCALER/TIMER_INTERVAL
+    Time delay per timer tick: TIMER_PRESCALER/F_CPU*TIMER_INTERVAL
+    Steps per rotation with step division: 400*MICROSTEP_DIVISION
+
+    Stepper speed [steps/s]: F_CPU/TIMER_PRESCALER/TIMER_INTERVAL
+    Stepper speed [RPS]: F_CPU/TIMER_PRESCALER/TIMER_INTERVAL/STEPS_PER_ROTATION
+    Stepper speed [RPM]: F_CPU/TIMER_PRESCALER/TIMER_INTERVAL/STEPS_PER_ROTATION*60
+
+    Stepper speed [RPM]: F_CPU/TIMER_PRESCALER/TIMER_INTERVAL/(400*MICROSTEP_DIVISION)*60
+
+    INTERVAL = F_CPU/TIMER_PRESCALER/RPM/400/MICROSTEP_DIVISION*60
+
+    */
+
+   return uint8_t(F_CPU/TIMER_PRESCALER/STEPS_PER_REVOLUTION*60/speed);
 
 
 }
+
+void runSteppers(const float& RPM1, const float& RPM2){
+
+    top_speed_interval_chamber = rpmToTimerInterval(RPM1);
+    top_speed_interval_frame = rpmToTimerInterval(RPM2);
+
+    if(chamber_stepper_status == 0 && frame_stepper_status == 0){
+
+        ENABLE_TIMER1_INTERRUPTS;
+        //ENABLE_TIMER3_INTERRUPTS;
+
+    }
+    // else report error (?)
+
+}
+
+void stopSteppers(){
+
+    chamber_stepper_status = 2;
+    frame_stepper_status = 2;
+    // Just setting the status to ramping down,
+    // the interrupt service routine will do the rest.
+
+}
+

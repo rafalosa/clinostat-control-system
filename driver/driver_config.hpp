@@ -7,6 +7,9 @@
 #define STOP_INTERVAL_CHAMBER 2000 // Determiens the starting speed of the steppers.
 #define STOP_INTERVAL_FRAME 2000
 
+#define TIMER_PRESCALER 1024
+#define ACCElERATION_MODIFIER 3 // Streches out the acceleration period.
+
 #define ENABLE_TIMER1_INTERRUPTS    TIMSK1 |= (1 << OCIE1A) // Macro for enabling the timer1 interrupts.
 #define DISABLE_TIMER1_INTERRUPTS   TIMSK1 &= ~(1 << OCIE1A) // Macro for disabling the timer1 interrupts.
 
