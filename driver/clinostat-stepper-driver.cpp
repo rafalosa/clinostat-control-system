@@ -24,8 +24,14 @@ volatile uint8_t frame_stepper_status = 0;
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
 volatile unsigned long frame_interval = STOP_INTERVAL_FRAME;
 
-float speed_buffer[2];
 
+
+union {
+
+    float float_value;
+    uint8_t byte_value[4];
+
+}speed_buffer[2];
 
 /* Flags declarations. */
 
@@ -235,9 +241,7 @@ void updateProgramStatus(const uint8_t& new_mode){
 
                 previous_program_status = current_program_status;
                 current_program_status = new_mode;
-
-
-
+                runSteppers(speed_buffer[0].float_value,speed_buffer[1].float_value);
 
             } 
             // else do nothig.
@@ -287,14 +291,17 @@ void handleSerial(){
     the set speeds.  
 
 
-    command = Serial.read(1); // Read 1 byte.
+    command = Serial.read(); // Read 1 byte.
 
     if(command == RUN_COMMAND){ // If the command is run then read another 8 bytes to ge the set speeds.
 
         for(uint8_t i=0;i<2;i++){
+            
+            for(uint8_t j=0;j<4;j++){
 
-            speed_buffer[i] = Serial.read(4);
+                speed_buffer[i].byte_value[j] = Serial.read();
 
+            }
         }
 
     }
@@ -315,11 +322,17 @@ void handleSerial(){
 
         case ABORT_COMMAND:
 
+            // Immediate stop of the steppers.
+            // Disable steppers after stop.
+
             updateProgramStatus(3);
 
         break;
 
         case PAUSE_COMMAND:
+
+            // Slow deceleration of steppers.
+            // Leave steppers enabled.
 
             updateProgramStatus(3);
 
