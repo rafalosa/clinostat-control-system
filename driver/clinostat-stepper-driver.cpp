@@ -12,17 +12,19 @@
 #include "clinostat_mechanics.hpp"
 #include "serial.hpp"
 
-uint16_t top_speed_interval_chamber = 1;
-uint16_t top_speed_interval_frame = 1;
+uint16_t top_speed_interval_chamber = 10;
+uint16_t top_speed_interval_frame = 10;
 
-volatile uint32_t steps_chamber_stepper = 0;
-volatile uint32_t steps_frame_stepper = 4;
+volatile uint32_t steps_chamber_stepper = 1;
+volatile uint32_t steps_frame_stepper = 1;
 
 volatile uint8_t chamber_stepper_status = 0; //0 - rampup, 1 - speed reached and rotating, 2 - stopping.
 volatile uint8_t frame_stepper_status = 0;
 
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
 volatile unsigned long frame_interval = STOP_INTERVAL_FRAME;
+
+float speed_buffer[2];
 
 
 /* Flags declarations. */
@@ -231,6 +233,10 @@ void updateProgramStatus(const uint8_t& new_mode){
 
             if(current_program_status == 2 || current_program_status == 0){
 
+                previous_program_status = current_program_status;
+                current_program_status = new_mode;
+
+
 
 
             } 
@@ -241,6 +247,8 @@ void updateProgramStatus(const uint8_t& new_mode){
         case 2: // Paused mode. Switched to only from running mode.
 
             if(current_program_status == 1){
+
+
 
 
 
@@ -267,7 +275,75 @@ void updateProgramStatus(const uint8_t& new_mode){
 
     }
 
+}
 
+void handleSerial(){
+
+    /* 
+
+    First byte read from serial is the command ID.
+    Depending on what command has been sent another 8 bytes
+    can be read from serial that contain information about
+    the set speeds.  
+
+
+    command = Serial.read(1); // Read 1 byte.
+
+    if(command == RUN_COMMAND){ // If the command is run then read another 8 bytes to ge the set speeds.
+
+        for(uint8_t i=0;i<2;i++){
+
+            speed_buffer[i] = Serial.read(4);
+
+        }
+
+    }
+
+    switch(command){
+
+        case RUN_COMMAND:
+
+            updateProgramStatus(1);
+
+        break;
+
+        case HOME_COMMAND: // This will be implemented at the very end.
+
+            updateProgramStatus(home_id_status);
+
+        break;
+
+        case ABORT_COMMAND:
+
+            updateProgramStatus(3);
+
+        break;
+
+        case PAUSE_COMMAND:
+
+            updateProgramStatus(3);
+
+        break;
+
+        case RESUME_COMMAND:
+
+            updateProgramStatus(1);
+
+        break;
+
+        case ECHO_COMMAND:
+
+            msg = generateMessage(current_program_status);
+            Serial.write(msg);
+
+        break;
+
+        default:
+        break;
+
+    }
+
+   */
 
 
 
