@@ -36,7 +36,7 @@ void Serial::begin(){
     UCSR1B = (1 << RXEN1) | (1 << TXEN1);   // Enable RX and TX.
 
 }
-void Serial::write(uint8_t byte){
+void Serial::write(const uint8_t& byte){
 
     loop_until_bit_is_set(UCSR1A,UDRE1);
     UDR1 = byte;
@@ -50,4 +50,8 @@ uint8_t Serial::read(){
 
 }
 
+bool Serial::available(){
 
+    return UCSR1A & (1<<RXC1);
+
+}
