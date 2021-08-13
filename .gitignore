@@ -1,3 +1,3 @@
-driver/serial_speed.py
-driver/clinostat_stepper_driver.ino
+driver/*.py
+driver/*.ino
 testing/**
