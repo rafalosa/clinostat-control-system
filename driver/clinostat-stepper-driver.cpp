@@ -4,6 +4,13 @@
 #include "clinostat_mechanics.hpp"
 #include "serial.hpp"
 
+void handleSerial();
+void checkForMotorStop();
+uint8_t rpmToTimerInterval(const float&);
+void handleSerial();
+void updateProgramStatus(const uint8_t&);
+
+
 uint16_t top_speed_interval_chamber = 10;
 uint16_t top_speed_interval_frame = 10;
 
@@ -34,6 +41,9 @@ bool clinostat_connected = false;
 uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused,   */
 uint8_t previous_program_status = 1;
 
+Serial serial;
+
+
 int main(){
 
     DDRD |= (1 << CHAMBER_STEP); // Setting appropriate pins as output.
@@ -43,7 +53,9 @@ int main(){
     //SETUP_TIMER3_INTERRUPTS();
 
     //ENABLE_TIMER1_INTERRUPTS;
-    //ENABLE_TIMER3_INTERRUPTS
+    //ENABLE_TIMER3_INTERRUPTS;
+
+    serial.begin();
 
     while(true){
         
@@ -66,12 +78,15 @@ int main(){
 
         checkFlags();
         checkForMotorStop();
-        handleProgramStatus();
-
 
         */
 
+        if(serial.available()){
 
+            handleSerial();
+
+        }
+        checkForMotorStop();
     }
 
     return 0;
@@ -116,6 +131,7 @@ ISR(TIMER1_COMPA_vect){
             
             if(chamber_interval >= STOP_INTERVAL_CHAMBER){
 
+                chamber_interval = STOP_INTERVAL_CHAMBER;
                 steps_chamber_stepper = 1;
                 chamber_stepper_status = 4;
                 
@@ -139,7 +155,7 @@ ISR(TIMER1_COMPA_vect){
 void checkForMotorStop(){ // This function controls the absolute stop of the stepper motors
 // turning off the timers.
 
-    if(chamber_stepper_status == 4 && frame_stepper_status == 4){
+    if(chamber_stepper_status == 4){ //&& frame_stepper_status == 4){
 
         // Motor stopped and is waiting for the ISR to be disabled.
         DISABLE_TIMER1_INTERRUPTS;
@@ -182,7 +198,7 @@ void runSteppers(const float& RPM1, const float& RPM2){
     top_speed_interval_chamber = rpmToTimerInterval(RPM1);
     top_speed_interval_frame = rpmToTimerInterval(RPM2);
 
-    if(chamber_stepper_status == 0 && frame_stepper_status == 0){
+    if(chamber_stepper_status == 0){// && frame_stepper_status == 0){
 
         ENABLE_TIMER1_INTERRUPTS;
         //ENABLE_TIMER3_INTERRUPTS;
@@ -216,7 +232,8 @@ void updateProgramStatus(const uint8_t& new_mode){
 
             if(current_program_status == 3){
 
-
+                serial.write(STEPPERS_STOPPED);
+                // Send confirmation.
 
             } 
 
@@ -232,6 +249,9 @@ void updateProgramStatus(const uint8_t& new_mode){
                 previous_program_status = current_program_status;
                 current_program_status = new_mode;
                 runSteppers(speed_buffer[0].float_value,speed_buffer[1].float_value);
+                serial.write(STEPPERS_STARTING);
+
+                // Send confirmation.
 
             } 
             // else do nothig.
@@ -244,7 +264,7 @@ void updateProgramStatus(const uint8_t& new_mode){
 
 
 
-
+                // Send confirmation.
 
             } 
             // else do nothig.
@@ -256,9 +276,13 @@ void updateProgramStatus(const uint8_t& new_mode){
                 //Switched to only from running mode when pause or abort commands were issued.
 
             if(current_program_status == 1){
+                
+                previous_program_status = current_program_status;
+                current_program_status = 3;
+                stopSteppers();
+                serial.write(STOPPING_STEPPERS);
 
-                //stopSteppers();
-
+                // Send confirmation.
             } 
 
         break;
@@ -278,10 +302,11 @@ void handleSerial(){
     First byte read from serial is the command ID.
     Depending on what command has been sent another 8 bytes
     can be read from serial that contain information about
-    the set speeds.  
+    the set speeds.  */
 
 
-    command = Serial.read(); // Read 1 byte.
+    uint8_t command = serial.read(); // Read 1 byte.
+    int n = 0;
 
     if(command == RUN_COMMAND){ // If the command is run then read another 8 bytes to ge the set speeds.
 
@@ -289,8 +314,8 @@ void handleSerial(){
             
             for(uint8_t j=0;j<4;j++){
 
-                speed_buffer[i].byte_value[j] = Serial.read();
-
+                uint8_t temp = serial.read();
+                speed_buffer[i].byte_value[j] = temp;
             }
         }
 
@@ -304,11 +329,11 @@ void handleSerial(){
 
         break;
 
-        case HOME_COMMAND: // This will be implemented at the very end.
+        /*case HOME_COMMAND: // This will be implemented at the very end.
 
             updateProgramStatus(home_id_status);
 
-        break;
+        break;*/
 
         case ABORT_COMMAND:
 
@@ -336,8 +361,23 @@ void handleSerial(){
 
         case ECHO_COMMAND:
 
-            msg = generateMessage(current_program_status);
-            Serial.write(msg);
+            switch(current_program_status){
+
+                case 0:
+                    serial.write(IDLE_MODE_REPORT);
+                break;
+
+                case 1:
+                    serial.write(RUNNING_MODE_REPORT);
+                break;
+
+                case 3:
+                    serial.write(STOPPING_MODE_REPORT);
+                break;
+
+                default:
+                break;
+            }
 
         break;
 
@@ -345,9 +385,5 @@ void handleSerial(){
         break;
 
     }
-
-   */
-
-
 
 }

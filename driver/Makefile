@@ -1,12 +1,10 @@
 CC=avr-gcc
 CFLAGS= -Os -DF_CPU=16000000UL -mmcu=atmega32u4
 
-
-
 all: clinostat-stepper-driver.out
 
 %.out: %.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) **.cpp -o $@
 
 %.hex: %.out
 	avr-objcopy -O ihex -R .eeprom $< $@
