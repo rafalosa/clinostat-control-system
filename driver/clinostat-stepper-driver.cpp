@@ -1,13 +1,5 @@
-#define __AVR_ATmega32U4__ 
-#define F_CPU 16000000UL
-#define BAUD 9600
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/delay.h>
-#include <stdbool.h>
-#include <util/setbaud.h>
-//#include "lcd/LiquidCrystal.cpp"
-#include "driver_config.cpp"
+#include "headers.hpp"
+#include "driver_config.hpp"
 #include "commands.hpp"
 #include "clinostat_mechanics.hpp"
 #include "serial.hpp"
@@ -23,8 +15,6 @@ volatile uint8_t frame_stepper_status = 0;
 
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
 volatile unsigned long frame_interval = STOP_INTERVAL_FRAME;
-
-
 
 union {
 

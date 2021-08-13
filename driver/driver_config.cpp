@@ -1,7 +1,4 @@
-#define __AVR_ATmega32U4__ 
-#include "driver_config.hpp"
-#include <avr/interrupt.h>
-#include <avr/io.h>
+#inclde "headers.hpp"
 
 void SETUP_TIMER1_INTERRUPTS(){
 
