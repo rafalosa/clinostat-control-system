@@ -1,4 +1,5 @@
-#inclde "headers.hpp"
+#include "headers.hpp"
+#include "driver_config.hpp"
 
 void SETUP_TIMER1_INTERRUPTS(){
 
