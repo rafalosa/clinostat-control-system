@@ -3,9 +3,10 @@
 #include "commands.hpp"
 #include "clinostat_mechanics.hpp"
 #include "serial.hpp"
+#include "lcd/LiquidCrystal.cpp"
 
 void handleSerial();
-void checkForMotorStop();
+void checkMotorStatus();
 uint8_t rpmToTimerInterval(const float&);
 void handleSerial();
 void updateProgramStatus(const uint8_t&);
@@ -17,7 +18,7 @@ uint16_t top_speed_interval_frame = 10;
 volatile uint32_t steps_chamber_stepper = 1;
 volatile uint32_t steps_frame_stepper = 1;
 
-volatile uint8_t chamber_stepper_status = 0; //0 - rampup, 1 - speed reached and rotating, 2 - stopping.
+volatile uint8_t chamber_stepper_status = 0; //0 - rampup, 1 - speed reached 3 - running at full speed, 2 - stopping.
 volatile uint8_t frame_stepper_status = 0;
 
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
@@ -36,6 +37,7 @@ bool top_speed_flag = false;
 bool receive_serial = true;
 bool clinostat_stopping = false;
 bool clinostat_connected = false;
+bool device_connected = false;
 
 
 uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused,   */
@@ -43,6 +45,7 @@ uint8_t previous_program_status = 1;
 
 Serial serial;
 
+LCD lcd(2,16);
 
 int main(){
 
@@ -56,6 +59,7 @@ int main(){
     //ENABLE_TIMER3_INTERRUPTS;
 
     serial.begin();
+    lcd.init();
 
     while(true){
         
@@ -86,7 +90,12 @@ int main(){
             handleSerial();
 
         }
-        checkForMotorStop();
+        checkMotorStatus();
+        lcd.print(current_program_status);
+        lcd.print(":");
+        lcd.print(OCR1A);
+        _delay_ms(300);
+        lcd.clear();
     }
 
     return 0;
@@ -101,7 +110,9 @@ ISR(TIMER1_COMPA_vect){
             CHAMBER_STEP_HIGH;
             CHAMBER_STEP_LOW;
 
-            chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
+            //chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
+            
+            chamber_interval = STOP_INTERVAL_CHAMBER*(sqrt(steps_chamber_stepper+1) - sqrt(steps_chamber_stepper));
 
             if(chamber_interval <= top_speed_interval_chamber){
 
@@ -115,7 +126,7 @@ ISR(TIMER1_COMPA_vect){
             OCR1A = int(chamber_interval);
             break;
 
-        case 1: // Keep stepping at max speed.
+        case 1: case 3: // Keep stepping at max speed.
 
             CHAMBER_STEP_HIGH;
             CHAMBER_STEP_LOW;
@@ -126,8 +137,8 @@ ISR(TIMER1_COMPA_vect){
             CHAMBER_STEP_HIGH;
             CHAMBER_STEP_LOW;
 
-            chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
-            //result = STOP_INTERVAL * (sqrt(steps+1) - sqrt(steps));
+            //chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
+            chamber_interval = STOP_INTERVAL_CHAMBER*(sqrt(steps_chamber_stepper+1) - sqrt(steps_chamber_stepper));
             
             if(chamber_interval >= STOP_INTERVAL_CHAMBER){
 
@@ -152,7 +163,7 @@ ISR(TIMER1_COMPA_vect){
 
 }
 
-void checkForMotorStop(){ // This function controls the absolute stop of the stepper motors
+void checkMotorStatus(){ // This function controls the absolute stop of the stepper motors
 // turning off the timers.
 
     if(chamber_stepper_status == 4){ //&& frame_stepper_status == 4){
@@ -164,6 +175,14 @@ void checkForMotorStop(){ // This function controls the absolute stop of the ste
         //frame_stepper_status = 0;
         // Send message to serial.
         current_program_status = 0;
+
+    }
+
+    else if(chamber_stepper_status == 1){ //&& frame_stepper_status == 1){
+
+        top_speed_flag = true;
+        serial.write(TOP_SPEED_REACHED);
+        chamber_stepper_status = 3;
 
     }
 }
@@ -202,7 +221,6 @@ void runSteppers(const float& RPM1, const float& RPM2){
 
         ENABLE_TIMER1_INTERRUPTS;
         //ENABLE_TIMER3_INTERRUPTS;
-        // Write to serial.
 
     }
     
@@ -233,7 +251,6 @@ void updateProgramStatus(const uint8_t& new_mode){
             if(current_program_status == 3){
 
                 serial.write(STEPPERS_STOPPED);
-                // Send confirmation.
 
             } 
 
@@ -262,9 +279,10 @@ void updateProgramStatus(const uint8_t& new_mode){
 
             if(current_program_status == 1){
 
-
-
-                // Send confirmation.
+                previous_program_status = current_program_status;
+                current_program_status = 3;
+                stopSteppers();
+                serial.write(STOPPING_STEPPERS);
 
             } 
             // else do nothig.
@@ -282,7 +300,6 @@ void updateProgramStatus(const uint8_t& new_mode){
                 stopSteppers();
                 serial.write(STOPPING_STEPPERS);
 
-                // Send confirmation.
             } 
 
         break;
@@ -302,88 +319,105 @@ void handleSerial(){
     First byte read from serial is the command ID.
     Depending on what command has been sent another 8 bytes
     can be read from serial that contain information about
-    the set speeds.  */
-
+    the set speeds.  
+    
+    */
 
     uint8_t command = serial.read(); // Read 1 byte.
-    int n = 0;
 
-    if(command == RUN_COMMAND){ // If the command is run then read another 8 bytes to ge the set speeds.
+    if(command == CONNECT_COMMAND){
 
-        for(uint8_t i=0;i<2;i++){
-            
-            for(uint8_t j=0;j<4;j++){
-
-                uint8_t temp = serial.read();
-                speed_buffer[i].byte_value[j] = temp;
-            }
-        }
-
+        serial.write(CLINOSTAT_CONNECTED);
+        device_connected = true;
     }
 
-    switch(command){
+    else if(command == DISCONNECT_COMMAND){
 
-        case RUN_COMMAND:
+        updateProgramStatus(3);
+        device_connected = false;
+    }
 
-            updateProgramStatus(1);
+    else{
 
-        break;
+        if(command == RUN_COMMAND){ // If the command is run then read another 8 bytes to ge the set speeds.
 
-        /*case HOME_COMMAND: // This will be implemented at the very end.
+            for(uint8_t i=0;i<2;i++){
+                
+                for(uint8_t j=0;j<4;j++){
 
-            updateProgramStatus(home_id_status);
+                    uint8_t temp = serial.read();
+                    speed_buffer[i].byte_value[j] = temp;
 
-        break;*/
+                }
+            }
 
-        case ABORT_COMMAND:
+        }
+        if(device_connected){ // Before clinostat can do anything it has to first receive an connection attempt command.
+            switch(command){
 
-            // Immediate stop of the steppers.
-            // Disable steppers after stop.
+                case RUN_COMMAND:
 
-            updateProgramStatus(3);
+                    updateProgramStatus(1);
 
-        break;
-
-        case PAUSE_COMMAND:
-
-            // Slow deceleration of steppers.
-            // Leave steppers enabled.
-
-            updateProgramStatus(3);
-
-        break;
-
-        case RESUME_COMMAND:
-
-            updateProgramStatus(1);
-
-        break;
-
-        case ECHO_COMMAND:
-
-            switch(current_program_status){
-
-                case 0:
-                    serial.write(IDLE_MODE_REPORT);
                 break;
 
-                case 1:
-                    serial.write(RUNNING_MODE_REPORT);
+                /*case HOME_COMMAND: // This will be implemented at the very end.
+
+                    updateProgramStatus(home_id_status);
+
+                break;*/
+
+                case ABORT_COMMAND:
+
+                    // Immediate stop of the steppers.
+                    // Disable steppers after stop.
+
+                    updateProgramStatus(3);
+
                 break;
 
-                case 3:
-                    serial.write(STOPPING_MODE_REPORT);
+                case PAUSE_COMMAND:
+
+                    // Slow deceleration of steppers.
+                    // Leave steppers enabled.
+
+                    updateProgramStatus(3);
+
+                break;
+
+                case RESUME_COMMAND:
+
+                    updateProgramStatus(1);
+
+                break;
+
+                case ECHO_COMMAND:
+
+                    switch(current_program_status){
+
+                        case 0:
+                            serial.write(IDLE_MODE_REPORT);
+                        break;
+
+                        case 1:
+                            serial.write(RUNNING_MODE_REPORT);
+                        break;
+
+                        case 3:
+                            serial.write(STOPPING_MODE_REPORT);
+                        break;
+
+                        default:
+                        break;
+                    }
+
                 break;
 
                 default:
                 break;
+
             }
-
-        break;
-
-        default:
-        break;
-
+        }
     }
 
 }

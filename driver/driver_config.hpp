@@ -4,10 +4,10 @@
 #define CHAMBER_STEP 0 // PD0 for chamber step pin.
 #define FRAME_STEP 4 // PD4 for frame step pin.
 
-#define STOP_INTERVAL_CHAMBER 2000 // Determiens the starting speed of the steppers.
-#define STOP_INTERVAL_FRAME 2000
+#define STOP_INTERVAL_CHAMBER 10000 // Determiens the starting speed of the steppers.
+#define STOP_INTERVAL_FRAME 10000
 
-#define TIMER_PRESCALER 1024
+#define TIMER_PRESCALER 64
 #define ACCElERATION_MODIFIER 3 // Streches out the acceleration period.
 
 #define ENABLE_TIMER1_INTERRUPTS    TIMSK1 |= (1 << OCIE1A) // Macro for enabling the timer1 interrupts.
