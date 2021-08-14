@@ -14,4 +14,5 @@ void begin();
 void write(const uint8_t& byte);
 uint8_t read();
 bool available();
+void flush();
 };

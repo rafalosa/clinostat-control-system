@@ -55,3 +55,10 @@ bool Serial::available(){
     return UCSR1A & (1<<RXC1);
 
 }
+
+void Serial::flush(){
+
+    uint8_t temp;
+    while(UCSR1A & (1 << RXC1)) temp = UDR1;
+
+}
