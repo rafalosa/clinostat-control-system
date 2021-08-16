@@ -18,7 +18,7 @@ uint16_t top_speed_interval_frame = 10;
 volatile uint32_t steps_chamber_stepper = 1;
 volatile uint32_t steps_frame_stepper = 1;
 
-volatile uint8_t chamber_stepper_status = 0; //0 - rampup, 1 - speed reached 3 - running at full speed, 2 - stopping.
+volatile uint8_t chamber_stepper_status = 0; //0 - rampup, 1 - speed reached, 3 - running at full speed, 2 - stopping.
 volatile uint8_t frame_stepper_status = 0;
 
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
@@ -31,16 +31,24 @@ union {
 
 }speed_buffer[2];
 
+/*
+
+TODOS:
+
+- Add encoder input handling.
+- Add homing command execution.
+- Add enabling/disabling stepper motors function.
+- Differentiate Pause and Abort commands.
+
+
+*/
+
+
 /* Flags declarations. */
 
-bool top_speed_flag = false;
-bool receive_serial = true;
-bool clinostat_stopping = false;
-bool clinostat_connected = false;
 bool device_connected = false;
 
-
-uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused,   */
+uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused, 3 - stopping.  */
 uint8_t previous_program_status = 1;
 
 Serial serial;
@@ -53,35 +61,21 @@ int main(){
     DDRD |= (1 << FRAME_STEP);
 
     SETUP_TIMER1_INTERRUPTS();
-    //SETUP_TIMER3_INTERRUPTS();
-
-    //ENABLE_TIMER1_INTERRUPTS;
-    //ENABLE_TIMER3_INTERRUPTS;
+    SETUP_TIMER3_INTERRUPTS();
 
     serial.begin();
     lcd.init();
 
     while(true){
         
-        /* Main should:
+        /* 
+        
+        Main should:
 
         - Check for commands in serial, and respond accordingly.
         - Check for motor status to disable timer interrupts if they've stopped.
         - Notify the controller about stepper's status, reaching top speed etc.
         - Monitor in what mode the clinostat is in.
-
-
-        Program structure in pseudocode:
-
-        if(serial not empty && serial flag){
-
-            new status = handleSerial();
-            check if program status needs to be updated();
-
-        }
-
-        checkFlags();
-        checkForMotorStop();
 
         */
 
@@ -94,6 +88,8 @@ int main(){
         lcd.print(current_program_status);
         lcd.print(":");
         lcd.print(OCR1A);
+        lcd.print(":");
+        lcd.print(OCR3A);
         _delay_ms(300);
         lcd.clear();
     }
@@ -101,93 +97,29 @@ int main(){
     return 0;
 }
 
-ISR(TIMER1_COMPA_vect){
+void checkMotorStatus(){ // This function checks if the stepper motors status needs to be updated once every program loop.
 
-    switch(chamber_stepper_status){
-
-        case 0: // Ramp up to top speed.
-
-            CHAMBER_STEP_HIGH;
-            CHAMBER_STEP_LOW;
-
-            //chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
-            
-            chamber_interval = STOP_INTERVAL_CHAMBER*(sqrt(steps_chamber_stepper+1) - sqrt(steps_chamber_stepper));
-
-            if(chamber_interval <= top_speed_interval_chamber){
-
-                chamber_interval = top_speed_interval_chamber;
-                chamber_stepper_status = 1;
-
-            }
-
-            else steps_chamber_stepper += 1;
-
-            OCR1A = int(chamber_interval);
-            break;
-
-        case 1: case 3: // Keep stepping at max speed.
-
-            CHAMBER_STEP_HIGH;
-            CHAMBER_STEP_LOW;
-            break;
-
-        case 2: // Ramp down to complete stop.
-
-            CHAMBER_STEP_HIGH;
-            CHAMBER_STEP_LOW;
-
-            //chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
-            chamber_interval = STOP_INTERVAL_CHAMBER*(sqrt(steps_chamber_stepper+1) - sqrt(steps_chamber_stepper));
-            
-            if(chamber_interval >= STOP_INTERVAL_CHAMBER){
-
-                chamber_interval = STOP_INTERVAL_CHAMBER;
-                steps_chamber_stepper = 1;
-                chamber_stepper_status = 4;
-                
-            }
-            else steps_chamber_stepper -= 1;
-            OCR1A = int(chamber_interval);
-            break;
-
-
-        default:
-            break;
-
-            // Do nothing and wait for the interrupt to be disabled in the main loop.
-
-    }
-
-    TCNT1 = 0;
-
-}
-
-void checkMotorStatus(){ // This function controls the absolute stop of the stepper motors
-// turning off the timers.
-
-    if(chamber_stepper_status == 4){ //&& frame_stepper_status == 4){
+    if(chamber_stepper_status == 4 && frame_stepper_status == 4){
 
         // Motor stopped and is waiting for the ISR to be disabled.
         DISABLE_TIMER1_INTERRUPTS;
+        DISABLE_TIMER3_INTERRUPTS;
+        frame_stepper_status = 0;
         chamber_stepper_status = 0;
-        //DISABLE_TIMER3_INTERRUPTS;
-        //frame_stepper_status = 0;
-        // Send message to serial.
-        current_program_status = 0;
+        updateProgramStatus(0);
 
     }
 
-    else if(chamber_stepper_status == 1){ //&& frame_stepper_status == 1){
+    else if(chamber_stepper_status == 1 && frame_stepper_status == 1){
 
-        top_speed_flag = true;
-        serial.write(TOP_SPEED_REACHED);
         chamber_stepper_status = 3;
+        frame_stepper_status = 3;
+        //serial.write(TOP_SPEED_REACHED);
 
     }
 }
 
-uint8_t rpmToTimerInterval(const float& speed){
+uint8_t rpmToTimerInterval(const float& speed){ // speed [RPM]
 
     // First consider the mechanics of the system.
 
@@ -217,10 +149,10 @@ void runSteppers(const float& RPM1, const float& RPM2){
     top_speed_interval_chamber = rpmToTimerInterval(RPM1);
     top_speed_interval_frame = rpmToTimerInterval(RPM2);
 
-    if(chamber_stepper_status == 0){// && frame_stepper_status == 0){
+    if(chamber_stepper_status == 0 && frame_stepper_status == 0){
 
-        ENABLE_TIMER1_INTERRUPTS;
-        //ENABLE_TIMER3_INTERRUPTS;
+        ENABLE_TIMER1_INTERRUPTS; // Enabling the timer interrupts starts the motors.
+        ENABLE_TIMER3_INTERRUPTS;
 
     }
     
@@ -233,7 +165,7 @@ void stopSteppers(){
     chamber_stepper_status = 2;
     frame_stepper_status = 2;
     // Just setting the status to ramping down,
-    // the interrupt service routine will do the rest.
+    // the interrupt service routines will do the rest.
 
 }
 
@@ -250,7 +182,8 @@ void updateProgramStatus(const uint8_t& new_mode){
 
             if(current_program_status == 3){
 
-                serial.write(STEPPERS_STOPPED);
+                //serial.write(STEPPERS_STOPPED);
+                current_program_status = 0;
 
             } 
 
@@ -299,6 +232,18 @@ void updateProgramStatus(const uint8_t& new_mode){
                 current_program_status = 3;
                 stopSteppers();
                 serial.write(STOPPING_STEPPERS);
+
+                /*
+                
+                if(steppers running){
+
+                    DISABLE INTERRUPTS;
+                    motors status = not running;
+                    disable steppers;
+
+                }
+                
+                */
 
             } 
 
@@ -419,5 +364,127 @@ void handleSerial(){
             }
         }
     }
+
+}
+
+ISR(TIMER1_COMPA_vect){ // Interrupt service routine for Timer 1.
+
+    switch(chamber_stepper_status){
+
+        case 0: // Ramp up to top speed.
+
+            CHAMBER_STEP_HIGH;
+            CHAMBER_STEP_LOW;
+
+            //chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
+            
+            chamber_interval = STOP_INTERVAL_CHAMBER*(sqrt(steps_chamber_stepper+1) - sqrt(steps_chamber_stepper));
+
+            if(chamber_interval <= top_speed_interval_chamber){
+
+                chamber_interval = top_speed_interval_chamber;
+                chamber_stepper_status = 1;
+
+            }
+
+            else steps_chamber_stepper += 1;
+
+            OCR1A = int(chamber_interval);
+            break;
+
+        case 1: case 3: // Keep stepping at max speed.
+
+            CHAMBER_STEP_HIGH;
+            CHAMBER_STEP_LOW;
+            break;
+
+        case 2: // Ramp down to complete stop.
+
+            CHAMBER_STEP_HIGH;
+            CHAMBER_STEP_LOW;
+
+            //chamber_interval = STOP_INTERVAL_CHAMBER/steps_chamber_stepper*ACCElERATION_MODIFIER;
+            chamber_interval = STOP_INTERVAL_CHAMBER*(sqrt(steps_chamber_stepper+1) - sqrt(steps_chamber_stepper));
+            
+            if(chamber_interval >= STOP_INTERVAL_CHAMBER){
+
+                chamber_interval = STOP_INTERVAL_CHAMBER;
+                steps_chamber_stepper = 1;
+                chamber_stepper_status = 4;
+                
+            }
+            else steps_chamber_stepper -= 1;
+            OCR1A = int(chamber_interval);
+            break;
+
+
+        default:
+            break;
+
+            // Do nothing and wait for the interrupt to be disabled in the main loop.
+
+    }
+
+    TCNT1 = 0;
+
+}
+
+ISR(TIMER3_COMPA_vect){ // Interrupt service routine for Timer 3.
+
+    switch(frame_stepper_status){
+
+        case 0: // Ramp up to top speed.
+
+            FRAME_STEP_HIGH;
+            FRAME_STEP_LOW;
+
+            
+            frame_interval = STOP_INTERVAL_FRAME*(sqrt(steps_frame_stepper+1) - sqrt(steps_frame_stepper));
+
+            if(frame_interval <= top_speed_interval_frame){
+
+                frame_interval = top_speed_interval_frame;
+                frame_stepper_status = 1;
+
+            }
+
+            else steps_frame_stepper += 1;
+
+            OCR3A = int(frame_interval);
+            break;
+
+        case 1: case 3: // Keep stepping at max speed.
+
+            FRAME_STEP_HIGH;
+            FRAME_STEP_LOW;
+            break;
+
+        case 2: // Ramp down to complete stop.
+
+            FRAME_STEP_HIGH;
+            FRAME_STEP_LOW;
+
+            frame_interval = STOP_INTERVAL_FRAME*(sqrt(steps_frame_stepper+1) - sqrt(steps_frame_stepper));
+            
+            if(frame_interval >= STOP_INTERVAL_FRAME){
+
+                frame_interval = STOP_INTERVAL_FRAME;
+                steps_frame_stepper = 1;
+                frame_stepper_status = 4;
+                
+            }
+            else steps_frame_stepper -= 1;
+            OCR3A = int(frame_interval);
+            break;
+
+
+        default:
+            break;
+
+            // Do nothing and wait for the interrupt to be disabled in the main loop.
+
+    }
+
+    TCNT3 = 0;
 
 }
