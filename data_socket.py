@@ -40,7 +40,7 @@ class DataServer:
 
             try:
                 client, address = self.socket.accept()
-            except(socket.timeout,OSError):
+            except(socket.timeout, OSError):
                 return
             finally:
                 if not self.running:
@@ -77,5 +77,5 @@ class DataServer:
 
         self.socket = None
 
-    def linkConsole(self,link):
+    def linkConsole(self, link):
         self.console = link

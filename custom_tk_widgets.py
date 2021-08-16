@@ -110,7 +110,7 @@ class Console(tk.scrolledtext.ScrolledText):
         self.tag_config("ERROR",foreground="red")
         self.tag_config("CCS", foreground="red")
         self.tag_config("DIRECTION", foreground="red")
-        self.tag_config("CONTROLLER", foreground="red")
+        self.tag_config("CONTROLLER", foreground="magenta")
         self.tag_config("TCP",foreground="magenta")
         self.configure(state="disabled")
 

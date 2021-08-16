@@ -96,16 +96,10 @@ class ADS1115ADC:
             return True
 
 
-class GateDriverCircuit:
+class GateDriverCircuit(gpiozero.LED):
 
-    def __init__(self,gate_pin):
-        self._gate_control = gpiozero.LED(gate_pin)
-
-    def powerOn(self):
-        self._gate_control.on()
-
-    def powerOff(self):
-        self._gate_control.off()
+    def __init__(self, gate_pin):
+        super().__init__(gate_pin)
 
 
 class Camera:
