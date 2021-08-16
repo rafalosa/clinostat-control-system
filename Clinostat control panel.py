@@ -84,6 +84,7 @@ class SerialConfig(tk.Frame):
                 self.parent.parent.device = clinostat_com.Clinostat(potential_port)
                 self.parent.parent.device.port_name = potential_port
                 self.console.println("Succesfully connected to {}.".format(potential_port), headline="STATUS: ")
+                self.parent.parent.device.linkConsole(self.console)
                 self.disconnect_button.configure(state="normal")
                 self.connect_button.configure(state="disabled")
                 self.parent.enableStart()
@@ -170,7 +171,7 @@ class ModeMenu(tk.Frame):
         self.resume_button.configure(state="disabled")
         self.home_button.configure(state="disabled")
         self.run_button.configure(state="disabled")
-        self.parent.parent.device.run(self.readIndicatorValues)
+        self.parent.parent.device.run(self.readIndicatorValues())
         self.parent.blockIndicators()
         pass
 
@@ -461,6 +462,6 @@ class App(tk.Tk):
 if __name__ == "__main__":
     root = App()
     root.title("Clinostat control system")
-    root.iconbitmap("icon/favicon.ico")
+    # root.iconbitmap("icon/favicon.ico")
     root.after(1, root.programLoop)
     root.mainloop()

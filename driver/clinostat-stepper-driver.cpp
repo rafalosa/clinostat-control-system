@@ -3,11 +3,10 @@
 #include "commands.hpp"
 #include "clinostat_mechanics.hpp"
 #include "serial.hpp"
-#include "lcd/LiquidCrystal.cpp"
 
 void handleSerial();
 void checkMotorStatus();
-uint8_t rpmToTimerInterval(const float&);
+uint16_t rpmToTimerInterval(const float&);
 void handleSerial();
 void updateProgramStatus(const uint8_t&);
 
@@ -44,16 +43,12 @@ TODOS:
 */
 
 
-/* Flags declarations. */
-
 bool device_connected = false;
 
 uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused, 3 - stopping.  */
 uint8_t previous_program_status = 1;
 
 Serial serial;
-
-LCD lcd(2,16);
 
 int main(){
 
@@ -64,7 +59,6 @@ int main(){
     SETUP_TIMER3_INTERRUPTS();
 
     serial.begin();
-    lcd.init();
 
     while(true){
         
@@ -85,13 +79,6 @@ int main(){
 
         }
         checkMotorStatus();
-        lcd.print(current_program_status);
-        lcd.print(":");
-        lcd.print(OCR1A);
-        lcd.print(":");
-        lcd.print(OCR3A);
-        _delay_ms(300);
-        lcd.clear();
     }
 
     return 0;
@@ -119,7 +106,7 @@ void checkMotorStatus(){ // This function checks if the stepper motors status ne
     }
 }
 
-uint8_t rpmToTimerInterval(const float& speed){ // speed [RPM]
+uint16_t rpmToTimerInterval(const float& speed){ // speed [RPM]
 
     // First consider the mechanics of the system.
 
@@ -139,7 +126,7 @@ uint8_t rpmToTimerInterval(const float& speed){ // speed [RPM]
 
     */
 
-   return uint8_t(F_CPU/TIMER_PRESCALER/STEPS_PER_REVOLUTION*60/speed);
+   return uint16_t(F_CPU/TIMER_PRESCALER/STEPS_PER_REVOLUTION*60/(speed*GEARBOX_REDUCTION*(MAIN_DRIVE_WHEEL_TEETH/STEPPER_BELT_WHEEL_TEETH)));
 
 
 }

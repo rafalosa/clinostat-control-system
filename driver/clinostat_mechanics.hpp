@@ -7,6 +7,6 @@
 #define STEPPER_STEPS_PER_REVOLUTION 400 // Number of steps per revolution for the stepper motor.
 #define MICROSTEP_DIVISION 16 // Chosen mode of microstepping.
 
-#define STEPS_PER_REVOLUTION STEPPER_STEPS_PER_REVOLUTION*MICROSTEP_DIVISION // Number of steps per revolution considering the microstepping.
+#define STEPS_PER_REVOLUTION (STEPPER_STEPS_PER_REVOLUTION*MICROSTEP_DIVISION) // Number of steps per revolution considering the microstepping.
 
 #endif
