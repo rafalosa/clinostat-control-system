@@ -1,3 +1,2 @@
-driver/*.py
-driver/*.ino
 driver/testing/**
+driver/lcd/**
