@@ -13,6 +13,7 @@ from shutil import copyfile
 import custom_tk_widgets as cw
 import tkinter.ttk as ttk
 from scipy import fft
+from functools import partial
 
 
 class SerialConfig(tk.Frame):
@@ -103,6 +104,8 @@ class SerialConfig(tk.Frame):
         self.disconnect_button.configure(state="disabled")
         self.parent.disableAllModes()
 
+# todo: Handle all serial traffic on separate threads. Abort command as example.
+
 
 class ModeMenu(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
@@ -116,14 +119,14 @@ class ModeMenu(tk.Frame):
         self.RPMindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nspeed")
         self.ACCELindicator1 = cw.SlidingIndicator(self.indicators_frame, label="1st DOF\nacceleration", unit="RPM/s")
         self.ACCELindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nacceleration", unit="RPM/s")
-        self.RPMindicator1.grid(row=0,column=0,padx=15)
+        self.RPMindicator1.grid(row=0, column=0,padx=15)
         self.RPMindicator2.grid(row=0, column=1, padx=15)
         self.ACCELindicator1.grid(row=0, column=2, padx=15)
         self.ACCELindicator2.grid(row=0, column=3, padx=15)
         self.indicators = [self.RPMindicator1,self.RPMindicator2,self.ACCELindicator1,self.ACCELindicator2]
 
         self.abort_button = tk.Button(self.button_frame,command=self.handleAbort,text="Abort")
-        self.abort_button.config(width=17,background="#bf4032",activebackground="#eb7063",
+        self.abort_button.config(width=17, background="#bf4032",activebackground="#eb7063",
                                  foreground="white",disabledforeground="#d1d1d1")
         self.abort_button.config(state="disabled")
 
@@ -158,12 +161,10 @@ class ModeMenu(tk.Frame):
         return (indicator.getValue() for indicator in self.indicators)
 
     def handleAbort(self):
-        self.pause_button.configure(state="disabled")
-        self.abort_button.configure(state="disabled")
-        self.resume_button.configure(state="disabled")
-        self.enable()
-        self.parent.parent.device.abort()
-        pass
+        self.disableButtons()
+        func = partial(self.parent.parent.device.abort, self.enable)
+        th = threading.Thread(target=func)
+        th.start()
 
     def handleRun(self):
         self.abort_button.configure(state="normal")
@@ -173,13 +174,11 @@ class ModeMenu(tk.Frame):
         self.run_button.configure(state="disabled")
         self.parent.parent.device.run(self.readIndicatorValues())
         self.parent.blockIndicators()
-        pass
 
     def handlePause(self):
         self.resume_button.configure(state="normal")
         self.pause_button.configure(state="disabled")
         self.parent.parent.device.pause()
-        pass
 
     def handleResume(self):
         self.resume_button.configure(state="disabled")
@@ -187,11 +186,9 @@ class ModeMenu(tk.Frame):
         self.abort_button.configure(state="normal")
         self.disableIndicators()
         self.parent.parent.device.resume()
-        pass
 
     def handleHome(self):
         self.parent.parent.device.home()
-        pass
 
     def disableButtons(self):
 

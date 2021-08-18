@@ -168,8 +168,11 @@ void updateProgramStatus(const uint8_t& new_mode){
                 //commands were issued, after the motors have stopped.
 
             if(current_program_status == 3){
-
-                //serial.write(STEPPERS_STOPPED);
+                
+                if(device_connected){
+                    
+                    serial.write(STEPPERS_STOPPED);
+                }
                 current_program_status = 0;
 
             } 

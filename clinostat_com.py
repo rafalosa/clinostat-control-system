@@ -110,10 +110,14 @@ class Clinostat:
         # listen for response, return true if controller responded correctly
         pass
 
-    def abort(self):  # Mode byte: b'\x03'.
-        # self._port.write(b'\x03')
-        # listen for response, return true if controller responded correctly
+    def abort(self, enable_interface):  # Mode byte: b'\x03'.
+
         self.handleCommand(Clinostat._ABORT)
+        rcv = b''
+        while rcv != Clinostat._STOPPED:
+            rcv = self._port.read(1)
+        self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
+        enable_interface()
 
     def pause(self):  # Mode byte: b'\x04'.
 
@@ -166,6 +170,7 @@ def generateMessage(response):
         message = "Unknown response."
 
     return message
+
 
 def getPorts() -> list:
 
