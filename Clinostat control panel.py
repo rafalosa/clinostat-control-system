@@ -162,18 +162,20 @@ class ModeMenu(tk.Frame):
 
     def handleAbort(self):
         self.disableButtons()
-        func = partial(self.parent.parent.device.abort, self.enable)
-        th = threading.Thread(target=func)
-        th.start()
+        func = partial(self.parent.parent.device.abort, self.enableRun)
+        threading.Thread(target=func).start()
 
     def handleRun(self):
-        self.abort_button.configure(state="normal")
-        self.pause_button.configure(state="normal")
-        self.resume_button.configure(state="disabled")
-        self.home_button.configure(state="disabled")
-        self.run_button.configure(state="disabled")
-        self.parent.parent.device.run(self.readIndicatorValues())
+        self.disableButtons()
         self.parent.blockIndicators()
+        # self.abort_button.configure(state="normal")
+        # self.pause_button.configure(state="normal")
+        # self.resume_button.configure(state="disabled")
+        # self.home_button.configure(state="disabled")
+        # self.run_button.configure(state="disabled")
+        func = partial(self.parent.parent.device.run, self.readIndicatorValues(), self.enableStop)
+        threading.Thread(target=func).start()
+        # self.parent.parent.device.run(self.readIndicatorValues())
 
     def handlePause(self):
         self.resume_button.configure(state="normal")
@@ -198,7 +200,11 @@ class ModeMenu(tk.Frame):
         self.resume_button.config(state="disabled")
         self.home_button.config(state="disabled")
 
-    def enable(self):
+    def enableStop(self):
+        self.abort_button.configure(state="normal")
+        self.pause_button.configure(state="normal")
+
+    def enableRun(self):
         self.run_button.config(state="normal")
         self.home_button.config(state="normal")
         for indicator in self.indicators:
@@ -407,7 +413,7 @@ class ClinostatControlSystem(tk.Frame):
         self.mode_options.disableIndicators()
 
     def enableStart(self):
-        self.mode_options.enable()
+        self.mode_options.enableRun()
 
 
 class App(tk.Tk):

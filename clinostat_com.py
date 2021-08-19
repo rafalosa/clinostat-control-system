@@ -77,7 +77,7 @@ class Clinostat:
 
         self.console.println(message,headline="DEVICE: ",msg_type="CONTROLLER")
 
-    def run(self, rpm: tuple):
+    def run(self, rpm: tuple, enable_interface):
         # Sends mode ID and 8 more bytes containing 2 floats for the speed.
         # listen for response, return true if controller responded correctly
         vals = [r for r in rpm]
@@ -101,6 +101,7 @@ class Clinostat:
             raise ClinostatCommunicationError("Device didn't respond.")
         if response == Clinostat._STARTING:
             self.console.println("Starting motors.", headline="CONTROLLER: ", msg_type="CONTROLLER")
+            enable_interface()
         else:
             self.console.println("Received incorrect response, aborting.",
                                  headline="CONTROLLER ERROR: ", msg_type="CONTROLLER")
