@@ -173,16 +173,11 @@ void updateProgramStatus(const uint8_t& new_mode){
 
             if(current_program_status == 3 || current_program_status == 4){
                 
-                if(device_connected && previous_program_status != 0){
+                if(device_connected){
                     
                     serial.write(STEPPERS_STOPPED);
                 }
 
-                if(current_program_status == 2){
-
-                    DISABLE_STEPPERS;
-
-                }
                 current_program_status = 0;
 
             } 
@@ -197,7 +192,7 @@ void updateProgramStatus(const uint8_t& new_mode){
             if(current_program_status == 2 || current_program_status == 0){
 
                 previous_program_status = current_program_status;
-                current_program_status = new_mode;
+                current_program_status = 1;
                 runSteppers(speed_buffer[0].float_value,speed_buffer[1].float_value);
                 serial.write(STEPPERS_STARTING);
 
@@ -252,13 +247,11 @@ void updateProgramStatus(const uint8_t& new_mode){
                 chamber_stepper_status = 4;
                 steps_chamber_stepper = 1;
                 steps_frame_stepper = 1;
-                // DISABLE_TIMER3_INTERRUPTS;
-                // DISABLE_TIMER1_INTERRUPTS;
                 
             }
-            else if(current_program_status == 2){
-                current_program_status = 4;
-                updateProgramStatus(0);
+            else if(current_program_status == 0){
+                previous_program_status = current_program_status;
+                DISABLE_STEPPERS;
 
             }
 

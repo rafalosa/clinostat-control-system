@@ -81,6 +81,7 @@ class Clinostat:
     def run(self, rpm: tuple, enable_interface):
         # Sends mode ID and 8 more bytes containing 2 floats for the speed.
         # listen for response, return true if controller responded correctly
+        self.res = False
         vals = [r for r in rpm]
         message = Clinostat._RUN
         for speed in vals[:2]:
@@ -116,7 +117,6 @@ class Clinostat:
 
         self.handleCommand(Clinostat._ABORT, response=False)
         if self.res == False:
-            print("czekam")
             rcv = b''
             while rcv != Clinostat._STOPPED:
                 rcv = self._port.read(1)
