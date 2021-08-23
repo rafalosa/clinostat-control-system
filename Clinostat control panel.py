@@ -178,9 +178,9 @@ class ModeMenu(tk.Frame):
         # self.parent.parent.device.run(self.readIndicatorValues())
 
     def handlePause(self):
-        self.resume_button.configure(state="normal")
-        self.pause_button.configure(state="disabled")
-        self.parent.parent.device.pause()
+        self.disableButtons()
+        func = partial(self.parent.parent.device.pause, self.enableResume)
+        threading.Thread(target=func).start()
 
     def handleResume(self):
         self.resume_button.configure(state="disabled")
@@ -209,6 +209,11 @@ class ModeMenu(tk.Frame):
         self.home_button.config(state="normal")
         for indicator in self.indicators:
             indicator.configureState(state="normal")
+
+    def enableResume(self):
+        self.resume_button.configure(state="normal")
+        self.pause_button.configure(state="disabled")
+        self.abort_button.configure(state="normal")
 
     def disableIndicators(self):
         for indicator in self.indicators:

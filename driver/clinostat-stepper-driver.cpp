@@ -45,7 +45,7 @@ TODOS:
 
 bool device_connected = false;
 
-uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused, 3 - stopping.  */
+uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused, 3 - stopping, 4 - aborted.  */
 uint8_t previous_program_status = 1;
 
 Serial serial;
@@ -54,9 +54,12 @@ int main(){
 
     DDRD |= (1 << CHAMBER_STEP); // Setting appropriate pins as output.
     DDRD |= (1 << FRAME_STEP);
+    DDRB |= (1 <<  ENABLE_PIN);
 
     SETUP_TIMER1_INTERRUPTS();
     SETUP_TIMER3_INTERRUPTS();
+
+    DISABLE_STEPPERS;
 
     serial.begin();
 
@@ -138,6 +141,7 @@ void runSteppers(const float& RPM1, const float& RPM2){
 
     if(chamber_stepper_status == 0 && frame_stepper_status == 0){
 
+        ENABLE_STEPPERS;
         ENABLE_TIMER1_INTERRUPTS; // Enabling the timer interrupts starts the motors.
         ENABLE_TIMER3_INTERRUPTS;
 
@@ -167,11 +171,17 @@ void updateProgramStatus(const uint8_t& new_mode){
         case 0: // Idle mode. Switched to only when abort or pause
                 //commands were issued, after the motors have stopped.
 
-            if(current_program_status == 3){
+            if(current_program_status == 3 || current_program_status == 4){
                 
-                if(device_connected){
+                if(device_connected && previous_program_status != 0){
                     
                     serial.write(STEPPERS_STOPPED);
+                }
+
+                if(current_program_status == 2){
+
+                    DISABLE_STEPPERS;
+
                 }
                 current_program_status = 0;
 
@@ -213,8 +223,8 @@ void updateProgramStatus(const uint8_t& new_mode){
 
         break;
 
-        case 3: // Stopping the clinostat mode. 
-                //Switched to only from running mode when pause or abort commands were issued.
+        case 3: // Soft stopping the clinostat mode. 
+                //Switched to only from running mode when pause command is issued.
 
             if(current_program_status == 1){
                 
@@ -223,25 +233,37 @@ void updateProgramStatus(const uint8_t& new_mode){
                 stopSteppers();
                 serial.write(STOPPING_STEPPERS);
 
-                /*
-                
-                if(steppers running){
-
-                    DISABLE INTERRUPTS;
-                    motors status = not running;
-                    disable steppers;
-
-                }
-                
-                */
-
             } 
 
         break;
 
+        case 4: // Aborting the current run of the clinostat. Used to completely deenergize motors after
+        // soft stop or to immediately stop the clinostat in the case of emergency.
+
+
+            if(current_program_status == 1){
+                
+                previous_program_status = current_program_status;
+                current_program_status = 4;
+                DISABLE_STEPPERS;
+                chamber_interval = STOP_INTERVAL_CHAMBER;
+                frame_interval = STOP_INTERVAL_FRAME;
+                frame_stepper_status = 4;
+                chamber_stepper_status = 4;
+                steps_chamber_stepper = 1;
+                steps_frame_stepper = 1;
+                // DISABLE_TIMER3_INTERRUPTS;
+                // DISABLE_TIMER1_INTERRUPTS;
+                
+            }
+            else if(current_program_status == 2){
+                current_program_status = 4;
+                updateProgramStatus(0);
+
+            }
+
         default:
         break;
-
 
     }
 
@@ -307,7 +329,7 @@ void handleSerial(){
                     // Immediate stop of the steppers.
                     // Disable steppers after stop.
 
-                    updateProgramStatus(3);
+                    updateProgramStatus(4);
 
                 break;
 

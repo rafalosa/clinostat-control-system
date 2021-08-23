@@ -51,6 +51,7 @@ class Clinostat:
         self._port = serial.Serial(port_name, self._baud, timeout=2)
         self.port_name = port_name
         self.console = None
+        self.res = False
 
     def echo(self) -> None:
         # Check if device is responding. Device should return its current mode.
@@ -113,21 +114,31 @@ class Clinostat:
 
     def abort(self, enable_interface):  # Mode byte: b'\x03'.
 
-        self.handleCommand(Clinostat._ABORT)
+        self.handleCommand(Clinostat._ABORT, response=False)
+        if self.res == False:
+            print("czekam")
+            rcv = b''
+            while rcv != Clinostat._STOPPED:
+                rcv = self._port.read(1)
+            self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
+            self.res = False
+        enable_interface()
+
+    def pause(self,enable_interface):  # Mode byte: b'\x04'.
+
+        self.handleCommand(Clinostat._PAUSE)
         rcv = b''
         while rcv != Clinostat._STOPPED:
             rcv = self._port.read(1)
         self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
+        self.res = True
         enable_interface()
-
-    def pause(self):  # Mode byte: b'\x04'.
-
-        self.handleCommand(Clinostat._PAUSE)
 
     def resume(self):  # Mode byte: b'\x05'.
         # resume run with previously set speeds, check for flag if paused first.
         # listen for response, return true if controller responded correctly
         self.handleCommand(Clinostat._RESUME)
+        self.res = False
 
     def disconnect(self):
 
@@ -140,21 +151,21 @@ class Clinostat:
     def linkConsole(self, console) -> None:
         self.console = console
 
-    def handleCommand(self, command):
+    def handleCommand(self, command,response=True):
 
         try:
             self._port.write(command)
         except serial.SerialException as err:
             self.console.println(err.args[1], headline="DEVICE ERROR: ", msg_type="ERROR")
         sleep(0.1)
-
-        try:
-            response = self._port.read(1)
-            print(response)
-        except serial.SerialTimeoutException:
-            raise ClinostatCommunicationError("Device didn't respond.")
-        msg = generateMessage(response)
-        self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
+        if response:
+            try:
+                response = self._port.read(1)
+                print(response)
+            except serial.SerialTimeoutException:
+                raise ClinostatCommunicationError("Device didn't respond.")
+            msg = generateMessage(response)
+            self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
 
 def generateMessage(response):
