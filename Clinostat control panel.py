@@ -117,13 +117,13 @@ class ModeMenu(tk.Frame):
         self.indicators_frame = tk.Frame(self)
         self.RPMindicator1 = cw.SlidingIndicator(self.indicators_frame, label="1st DOF\nspeed")
         self.RPMindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nspeed")
-        self.ACCELindicator1 = cw.SlidingIndicator(self.indicators_frame, label="1st DOF\nacceleration", unit="RPM/s")
-        self.ACCELindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nacceleration", unit="RPM/s")
-        self.RPMindicator1.grid(row=0, column=0,padx=15)
-        self.RPMindicator2.grid(row=0, column=1, padx=15)
-        self.ACCELindicator1.grid(row=0, column=2, padx=15)
-        self.ACCELindicator2.grid(row=0, column=3, padx=15)
-        self.indicators = [self.RPMindicator1,self.RPMindicator2,self.ACCELindicator1,self.ACCELindicator2]
+        # self.ACCELindicator1 = cw.SlidingIndicator(self.indicators_frame, label="1st DOF\nacceleration", unit="RPM/s")
+        # self.ACCELindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nacceleration", unit="RPM/s")
+        self.RPMindicator1.grid(row=0, column=0,padx=30)
+        self.RPMindicator2.grid(row=0, column=1, padx=30)
+        # self.ACCELindicator1.grid(row=0, column=2, padx=15)
+        # self.ACCELindicator2.grid(row=0, column=3, padx=15)
+        self.indicators = [self.RPMindicator1,self.RPMindicator2]  # ,self.ACCELindicator1,self.ACCELindicator2]
 
         self.abort_button = tk.Button(self.button_frame,command=self.handleAbort,text="Abort")
         self.abort_button.config(width=17, background="#bf4032",activebackground="#eb7063",
@@ -146,11 +146,16 @@ class ModeMenu(tk.Frame):
         self.home_button.config(width=17)
         self.home_button.config(state="disabled")
 
+        self.echo_button = tk.Button(self.button_frame, command=self.handleEcho, text="Echo")
+        self.echo_button.config(width=17)
+        self.echo_button.config(state="disabled")
+
         self.abort_button.grid(row=0,column=0,pady=6)
         self.run_button.grid(row=1, column=0,pady=6)
         self.pause_button.grid(row=2, column=0,pady=6)
         self.resume_button.grid(row=3, column=0,pady=6)
         self.home_button.grid(row=4, column=0,pady=6)
+        self.echo_button.grid(row=5, column=0, pady=6)
         self.button_frame.grid(row=0,column=0,padx=10)
         self.indicators_frame.grid(row=0,column=1,padx=10,rowspan=5,sticky="N")
 
@@ -168,14 +173,11 @@ class ModeMenu(tk.Frame):
     def handleRun(self):
         self.disableButtons()
         self.parent.blockIndicators()
-        # self.abort_button.configure(state="normal")
-        # self.pause_button.configure(state="normal")
-        # self.resume_button.configure(state="disabled")
-        # self.home_button.configure(state="disabled")
-        # self.run_button.configure(state="disabled")
         func = partial(self.parent.parent.device.run, self.readIndicatorValues(), self.enableStop)
         threading.Thread(target=func).start()
-        # self.parent.parent.device.run(self.readIndicatorValues())
+
+    def handleEcho(self):
+        self.parent.parent.device.echo()
 
     def handlePause(self):
         self.disableButtons()
@@ -186,6 +188,7 @@ class ModeMenu(tk.Frame):
         self.resume_button.configure(state="disabled")
         self.pause_button.configure(state="normal")
         self.abort_button.configure(state="normal")
+        self.echo_button.configure(state="normal")
         self.disableIndicators()
         self.parent.parent.device.resume()
 
@@ -198,15 +201,18 @@ class ModeMenu(tk.Frame):
         self.run_button.config(state="disabled")
         self.pause_button.config(state="disabled")
         self.resume_button.config(state="disabled")
+        self.echo_button.config(state="disabled")
         self.home_button.config(state="disabled")
 
     def enableStop(self):
         self.abort_button.configure(state="normal")
         self.pause_button.configure(state="normal")
+        self.echo_button.configure(state="normal")
 
     def enableRun(self):
         self.run_button.config(state="normal")
         self.home_button.config(state="normal")
+        self.echo_button.config(state="normal")
         for indicator in self.indicators:
             indicator.configureState(state="normal")
 
@@ -214,6 +220,7 @@ class ModeMenu(tk.Frame):
         self.resume_button.configure(state="normal")
         self.pause_button.configure(state="disabled")
         self.abort_button.configure(state="normal")
+        self.echo_button.configure(state="normal")
 
     def disableIndicators(self):
         for indicator in self.indicators:
