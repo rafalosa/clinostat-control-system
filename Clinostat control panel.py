@@ -196,7 +196,7 @@ class ModeMenu(tk.Frame):
         self.parent.parent.device.home()
 
     def disableButtons(self):
-
+        self.parent.serial_config.disconnect_button.configure(state="disabled")
         self.abort_button.config(state="disabled")
         self.run_button.config(state="disabled")
         self.pause_button.config(state="disabled")
@@ -205,6 +205,7 @@ class ModeMenu(tk.Frame):
         self.home_button.config(state="disabled")
 
     def enableStop(self):
+        self.parent.serial_config.disconnect_button.configure(state="normal")
         self.abort_button.configure(state="normal")
         self.pause_button.configure(state="normal")
         self.echo_button.configure(state="normal")
@@ -217,6 +218,7 @@ class ModeMenu(tk.Frame):
             indicator.configureState(state="normal")
 
     def enableResume(self):
+        self.parent.serial_config.disconnect_button.configure(state="normal")
         self.resume_button.configure(state="normal")
         self.pause_button.configure(state="disabled")
         self.abort_button.configure(state="normal")

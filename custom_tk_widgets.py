@@ -65,12 +65,13 @@ class SlidingIndicator(tk.Frame):
         self.var = tk.StringVar()
         self.var.set(label)
         self.label = tk.Label(self,textvariable=self.var)
-        self.slider = tk.Scale(self,from_=5,to=0,orient="vertical",
-                               resolution=0.1,length=150,command=self.updateEntry,showvalue=0,width=30)
+        self.slider = tk.Scale(self,from_=5,to=0.1,orient="vertical",
+                               resolution=0.1,length=150,command=self.updateEntry,showvalue=0.1,width=30)
         self.slider.configure(cursor="dot",troughcolor="green")
 
         self.entry_frame = tk.Frame(self)
         self.var = tk.DoubleVar()
+        self.var.set(0.1)
         self.entry = tk.Entry(self.entry_frame,textvariable=self.var)
         self.entry.config(width=3,state="disabled")
         self.entry.configure(disabledbackground="white",disabledforeground="black")
@@ -98,8 +99,8 @@ class SlidingIndicator(tk.Frame):
         self.slider.configure(state=state)
 
     def reset(self):
-        self.slider.set(0)
-        self.var.set(0.0)
+        self.slider.set(0.1)
+        self.var.set(0.1)
 
 
 class Console(tk.scrolledtext.ScrolledText):
