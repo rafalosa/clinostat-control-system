@@ -116,7 +116,7 @@ class Clinostat:
     def abort(self, enable_interface):  # Mode byte: b'\x03'.
 
         self.handleCommand(Clinostat._ABORT, response=False)
-        if self.res == False:
+        if not self.res:
             rcv = b''
             while rcv != Clinostat._STOPPED:
                 rcv = self._port.read(1)
