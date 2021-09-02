@@ -4,6 +4,7 @@ import tkinter.scrolledtext
 import matplotlib.pyplot as plt
 from datetime import datetime
 import numpy as np
+import subprocess
 
 
 class EmbeddedFigure(tk.Frame):
@@ -128,3 +129,23 @@ class Console(tk.scrolledtext.ScrolledText):
         self.configure(state="disabled")
         self.see("end")
         # todo: Add logging to text file.
+
+
+class TerminalEmulator(tk.scrolledtext.ScrolledText):
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+        self.bind("<Return>",self.getInput)
+
+    def getInput(self,event):
+        input = self.get("1.0","end-1c")
+
+        print(input)
+
+
+if __name__ == "__main__":
+    app = tk.Tk()
+    app.title("widget test")
+
+    term = TerminalEmulator(master=app)
+    term.pack()
+    app.mainloop()
