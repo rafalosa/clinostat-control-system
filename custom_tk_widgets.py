@@ -4,46 +4,65 @@ import tkinter.scrolledtext
 import matplotlib.pyplot as plt
 from datetime import datetime
 import numpy as np
-import subprocess
+from mpl_toolkits.mplot3d import Axes3D
 
 
 class EmbeddedFigure(tk.Frame):
 
-    def __init__(self,parent, figsize=(1,1), maxrecords=100,*args,**kwargs):
+    def __init__(self,parent, figsize=(1,1), maxrecords=100, spatial = False,*args,**kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
         self.fig = plt.figure(figsize=figsize)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.ax = self.fig.add_subplot()
+        self.spatial = spatial
+        if self.spatial:
+            self.ax = self.fig.add_subplot(projection="3d")
+            self.y_max = 1
+            self.y_min = -1
+            self.x_max = 1
+            self.x_min = -1
+            self.z_max = 1
+            self.z_min = -1
+            self.ax.set_ylim([self.y_min, self.y_max])
+            self.ax.set_xlim([self.x_min, self.x_max])
+            self.ax.set_zlim([self.z_min, self.z_max])
+
+        else:
+            self.ax = self.fig.add_subplot()
+            self.y_max = 1
+            self.y_min = -1
+            self.ax.set_ylim([self.y_min, self.y_max])
+
         self.ax.grid("minor")
         self.lines = [self.ax.plot([], [])[0]]
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.canvas.draw()
-        self.y_max = 1
-        self.y_min = -1
-        self.ax.set_ylim([self.y_min, self.y_max])
 
     def draw(self):
         self.canvas.draw()
 
-    def plot(self,lines, x_data, y_data,tracking=True):
+    def plot(self,lines, x_data, y_data,z_data = None,tracking=True):
 
-        if self.y_max < max(y_data):
-            self.y_max = max(y_data)
+        if self.spatial:
+            self.ax.quiver(0,0,0,x_data/9.81,y_data/9.81,z_data/9.81,length=1,normalize=True)
 
-        if self.y_min > min(y_data):
-            self.y_min = min(y_data)
-
-        lines.set_xdata(x_data)
-        lines.set_ydata(y_data)
-        self.ax.set_ylim([self.y_min, self.y_max])
-        locs = self.ax.get_xticks()
-        if tracking:
-            self.ax.set_xlim([0,len(x_data)])
-            self.ax.set_xticklabels(np.array(np.flip(locs) / 10, dtype=int))
         else:
-            self.ax.set_xlim([min(x_data),max(x_data)])
-        self.canvas.draw()
+            if self.y_max < max(y_data):
+                self.y_max = max(y_data)
+
+            if self.y_min > min(y_data):
+                self.y_min = min(y_data)
+
+            lines.set_xdata(x_data)
+            lines.set_ydata(y_data)
+            self.ax.set_ylim([self.y_min, self.y_max])
+            locs = self.ax.get_xticks()
+            if tracking:
+                self.ax.set_xlim([0,len(x_data)])
+                self.ax.set_xticklabels(np.array(np.flip(locs) / 10, dtype=int))
+            else:
+                self.ax.set_xlim([min(x_data),max(x_data)])
+            self.canvas.draw()
 
     def resetPlot(self):
         self.y_max = 1
@@ -130,22 +149,24 @@ class Console(tk.scrolledtext.ScrolledText):
         self.see("end")
         # todo: Add logging to text file.
 
-
-class TerminalEmulator(tk.scrolledtext.ScrolledText):
-    def __init__(self,**kwargs):
-        super().__init__(**kwargs)
-        self.bind("<Return>",self.getInput)
-
-    def getInput(self,event):
-        input = self.get("1.0","end-1c")
-
-        print(input)
+# Should reconsider this or at least postpone it. This is not very trivial to implement nor is it necessary.
+# class TerminalEmulator(tk.scrolledtext.ScrolledText):
+#     def __init__(self,**kwargs):
+#         super().__init__(**kwargs)
+#         self.bind("<Return>",self.getInput)
+#
+#     def getInput(self,event):
+#         input = self.get("1.0","end-1c")
+#
+#         str_ = os.popen(input)
+#         out = str_.read()
+#         print(out)
 
 
 if __name__ == "__main__":
     app = tk.Tk()
     app.title("widget test")
 
-    term = TerminalEmulator(master=app)
-    term.pack()
+    # term = TerminalEmulator(master=app)
+    # term.pack()
     app.mainloop()

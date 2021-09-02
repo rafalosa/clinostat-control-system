@@ -287,37 +287,45 @@ class DataEmbed(tk.Frame):
         plt.rcParams['font.size'] = 7
         plt.rcParams["lines.linewidth"] = 0.5
 
-        self.tabs1 = ttk.Notebook(self)
-        self.tabs2 = ttk.Notebook(self)
+        self.gravity_plots = ttk.Notebook(self)
+        self.fourier = ttk.Notebook(self)
+        self.time_shift = ttk.Notebook(self)
+        self.gravity_vector = ttk.Notebook(self)
 
         self.all_plots = []
-        plot_descriptions = ["Gravity vector", "Mean gravity", "Temperature", "Humidity"]
+        plot_descriptions = ["Gravity vector", "Mean gravity"]
 
-        for i in range(2):
-            plot = cw.EmbeddedFigure(self.tabs1, figsize=(3, 2), maxrecords=600)
+        for i in range(len(plot_descriptions)):
+            plot = cw.EmbeddedFigure(self.gravity_plots, figsize=(3, 2), maxrecords=600)
             plot.addLinesObject()
             plot.addLinesObject()
             self.all_plots.append(plot)
-            self.tabs1.add(plot, text=plot_descriptions[i])
+            self.gravity_plots.add(plot, text=plot_descriptions[i])
             for _ in range(3):
                 self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
-        self.text_area = tk.Text(self, height=4, width=37)
-
         self.data_buttons_frame = tk.Frame(self)
 
-        self.fourier_plot = cw.EmbeddedFigure(self.tabs2, figsize=(3, 2), maxrecords=600)
-        self.tabs2.add(self.fourier_plot, text="FFT of gravity vector")
+        self.fourier_plot = cw.EmbeddedFigure(self.fourier, figsize=(3, 2), maxrecords=600)
+        self.fourier.add(self.fourier_plot, text="FFT of gravity vector")
 
-        self.save_button = tk.Button(self.data_buttons_frame, text="Save to file", command=self.saveFile)
+        self.time_shift_plot = cw.EmbeddedFigure(self.time_shift,figsize=(3, 2), maxrecords=600)
+        self.time_shift.add(self.time_shift_plot,text="Time shift map of gravity vector")
+
+        self.gravity_vector_plot = cw.EmbeddedFigure(self.gravity_vector,figsize=(3, 3), maxrecords=600, spatial=True)
+        self.gravity_vector.add(self.gravity_vector_plot,text="Gravity vector orientation")
+
+        self.save_button = tk.Button(self.data_buttons_frame, text="Save to CSV", command=self.saveFile)
         self.clear_button = tk.Button(self.data_buttons_frame, text="Clear data", command=self.clearData)
         self.save_button.grid(row=0, column=0, padx=10)
         self.clear_button.grid(row=0, column=1, padx=10)
 
         self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10)
         self.console.grid(row=1, column=0, padx=10,pady=10)
-        self.tabs1.grid(row=2, column=0, padx=10, pady=10)
-        self.tabs2.grid(row=3, column=0, padx=10, pady=10)
+        self.gravity_plots.grid(row=2, column=0, padx=10, pady=10)
+        self.fourier.grid(row=3, column=0, padx=10, pady=10)
+        self.time_shift.grid(row=2, column=1, padx=10, pady=10)
+        self.gravity_vector.grid(row=3, column=1, padx=10, pady=10)
         self.data_buttons_frame.grid(row=4, column=0, pady=10, padx=10)
 
     def handleRunServer(self):
@@ -357,6 +365,7 @@ class DataEmbed(tk.Frame):
         if not data_queue.empty():
             message_string = data_queue.get()
             values = [float(val) for val in message_string.split(";")]
+            #self.gravity_vector_plot.plot()
 
             for index, buffer in enumerate(self.data_buffers):
 
@@ -430,14 +439,8 @@ class ClinostatControlSystem(tk.Frame):
 
         self.data_embed = DataEmbed(self)
 
-        # self.environment_control = EnvironmentControl(self)
-
         self.main_tabs.add(self.motors_tab, text="Clinostat control")
         self.main_tabs.add(self.data_embed, text="Data server")
-
-        # self.serial_config.grid(row=0,column=0,padx=10,pady=10,sticky="n")
-        # self.mode_options.grid(row=1,column=0,padx=10,pady=10,sticky="w")
-        # self.data_embed.grid(row=0, column=1, padx=10, pady=10,rowspan=2,sticky="n")
 
         self.main_tabs.pack()
 
