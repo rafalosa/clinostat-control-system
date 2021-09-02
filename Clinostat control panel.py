@@ -16,6 +16,13 @@ from scipy import fft
 from functools import partial
 
 
+# todo: Maybe add terminal emulator to the data tab for easy access for the ssh to chamber computer.
+# todo: Add time shift maps to data tab.
+# todo: Split momentary and mean gravity data plots (?).
+# todo: Rewrite most of the program to avoid reverse calls like self.parent.master.parent.device.pause.
+# todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
+# The above is due to the change in the program architecture which wasn't planned in this form in the beginning.
+
 class SerialConfig(tk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
@@ -35,7 +42,7 @@ class SerialConfig(tk.Frame):
         self.port_menu_frame = tk.Frame(self)
         self.port_label = tk.Label(self.port_menu_frame, textvariable=self.port_description)
         self.port_menu = tk.OptionMenu(self.port_menu_frame, self.port_option_var, *self.available_ports)
-        self.refresh_button = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh")
+        self.refresh_button = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh ports")
         self.refresh_button.config(width=17)
         self.port_menu.config(width=15)
         self.port_label.grid(row=0, column=0)
@@ -68,6 +75,7 @@ class SerialConfig(tk.Frame):
         self.port_menu['menu'].delete(0, "end")
         for port in self.available_ports:
             self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
+        self.console.println("Updated available serial ports.",headline="SERIAL: ",msg_type="MESSAGE")
 
     def connectToPort(self) -> None:
 
@@ -103,9 +111,6 @@ class SerialConfig(tk.Frame):
         self.connect_button.configure(state="normal")
         self.disconnect_button.configure(state="disabled")
         self.parent.master.disableAllModes()
-
-
-# todo: Handle all serial traffic on separate threads. Abort command as example.
 
 
 class ModeMenu(tk.Frame):
@@ -158,7 +163,7 @@ class ModeMenu(tk.Frame):
         self.home_button.grid(row=4, column=0, pady=6)
         self.echo_button.grid(row=5, column=0, pady=6)
         self.button_frame.grid(row=0, column=0, padx=10)
-        self.indicators_frame.grid(row=0, column=1, padx=10, rowspan=5, sticky="N")
+        self.indicators_frame.grid(row=0, column=1, padx=30, rowspan=5, sticky="NE")
 
         for indicator in self.indicators:
             indicator.configureState(state="disabled")
@@ -276,6 +281,8 @@ class DataEmbed(tk.Frame):
         self.address_label.grid(row=2, column=0)
         self.entry.grid(row=2, column=1)
 
+        self.console = cw.Console(self,width=50,height=10,font=("normal", 8))
+
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
         plt.rcParams["lines.linewidth"] = 0.5
@@ -307,10 +314,10 @@ class DataEmbed(tk.Frame):
         self.save_button.grid(row=0, column=0, padx=10)
         self.clear_button.grid(row=0, column=1, padx=10)
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10)
-        self.tabs1.grid(row=1, column=0, padx=10, pady=10)
-        self.tabs2.grid(row=2, column=0, padx=10, pady=10)
-        self.text_area.grid(row=3, column=0, pady=10, padx=10, sticky="W")
+        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10)
+        self.console.grid(row=1, column=0, padx=10,pady=10)
+        self.tabs1.grid(row=2, column=0, padx=10, pady=10)
+        self.tabs2.grid(row=3, column=0, padx=10, pady=10)
         self.data_buttons_frame.grid(row=4, column=0, pady=10, padx=10)
 
     def handleRunServer(self):
@@ -333,7 +340,7 @@ class DataEmbed(tk.Frame):
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
         self.address_var.set("")
-        self.parent.serial_config.console.println("Connection to server closed.", headline="TCP: ", msg_type="TCP")
+        self.parent.parent.server.console.println("Connection to server closed.", headline="TCP: ", msg_type="TCP")
 
     def resetDataBuffers(self):
         self.parent.parent.data_queue = queue.Queue()
@@ -404,7 +411,7 @@ class DataEmbed(tk.Frame):
             except FileNotFoundError:
                 pass
         else:
-            self.parent.serial_config.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+            self.parent.parent.server.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -418,8 +425,8 @@ class ClinostatControlSystem(tk.Frame):
         self.serial_config = SerialConfig(self.motors_tab)
         self.mode_options = ModeMenu(self.motors_tab)
 
-        self.serial_config.grid(row=0, column=0, sticky="nw")
-        self.mode_options.grid(row=1, column=0, sticky="nw")
+        self.serial_config.grid(row=0, column=0, sticky="nw",padx=10,pady=20)
+        self.mode_options.grid(row=1, column=0, sticky="sw",padx=10,pady=20)
 
         self.data_embed = DataEmbed(self)
 
@@ -473,7 +480,7 @@ class App(tk.Tk):
                                              thread_lock=self.lock)
         self.control_system = ClinostatControlSystem(self)
         self.control_system.pack(side="top", fill="both", expand=True)
-        self.server.linkConsole(self.control_system.serial_config.console)
+        self.server.linkConsole(self.control_system.data_embed.console)
 
     def destroy(self):
         if self.server.running:

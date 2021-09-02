@@ -66,7 +66,7 @@ class SlidingIndicator(tk.Frame):
         self.var.set(label)
         self.label = tk.Label(self,textvariable=self.var)
         self.slider = tk.Scale(self,from_=5,to=0.1,orient="vertical",
-                               resolution=0.1,length=150,command=self.updateEntry,showvalue=0.1,width=30)
+                               resolution=0.1,length=150,command=self.updateEntry,showvalue=0.1,width=45)
         self.slider.configure(cursor="dot",troughcolor="green")
 
         self.entry_frame = tk.Frame(self)
