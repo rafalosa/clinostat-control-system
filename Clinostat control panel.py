@@ -290,7 +290,7 @@ class DataEmbed(tk.Frame):
         self.gravity_plots = ttk.Notebook(self)
         self.fourier = ttk.Notebook(self)
         self.time_shift = ttk.Notebook(self)
-        self.gravity_vector = ttk.Notebook(self)
+        #self.gravity_vector = ttk.Notebook(self)
 
         self.all_plots = []
         plot_descriptions = ["Gravity vector", "Mean gravity"]
@@ -304,6 +304,9 @@ class DataEmbed(tk.Frame):
             for _ in range(3):
                 self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
+        # self.gravity_vector_plot = cw.EmbeddedFigure(self.gravity_plots, figsize=(3, 3), maxrecords=600, spatial=True)
+        # self.gravity_plots.add(self.gravity_vector_plot,text="Gravity vector orientation")
+
         self.data_buttons_frame = tk.Frame(self)
 
         self.fourier_plot = cw.EmbeddedFigure(self.fourier, figsize=(3, 2), maxrecords=600)
@@ -312,20 +315,19 @@ class DataEmbed(tk.Frame):
         self.time_shift_plot = cw.EmbeddedFigure(self.time_shift,figsize=(3, 2), maxrecords=600)
         self.time_shift.add(self.time_shift_plot,text="Time shift map of gravity vector")
 
-        self.gravity_vector_plot = cw.EmbeddedFigure(self.gravity_vector,figsize=(3, 3), maxrecords=600, spatial=True)
-        self.gravity_vector.add(self.gravity_vector_plot,text="Gravity vector orientation")
+        # self.gravity_vector.add(self.gravity_vector_plot,text="Gravity vector orientation")
 
-        self.save_button = tk.Button(self.data_buttons_frame, text="Save to CSV", command=self.saveFile)
-        self.clear_button = tk.Button(self.data_buttons_frame, text="Clear data", command=self.clearData)
-        self.save_button.grid(row=0, column=0, padx=10)
-        self.clear_button.grid(row=0, column=1, padx=10)
+        self.save_button = tk.Button(self.server_buttons_frame, text="Save to CSV", command=self.saveFile, width=17)
+        self.clear_button = tk.Button(self.server_buttons_frame, text="Clear data", command=self.clearData, width=17)
+        self.save_button.grid(row=1, column=2, padx=10)
+        self.clear_button.grid(row=1, column=3, padx=10)
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10)
+        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10,columnspan = 2)
         self.console.grid(row=1, column=0, padx=10,pady=10)
         self.gravity_plots.grid(row=2, column=0, padx=10, pady=10)
-        self.fourier.grid(row=3, column=0, padx=10, pady=10)
+        self.fourier.grid(row=1, column=1, padx=10, pady=10)
         self.time_shift.grid(row=2, column=1, padx=10, pady=10)
-        self.gravity_vector.grid(row=3, column=1, padx=10, pady=10)
+        #self.gravity_vector.grid(row=3, column=1, padx=10, pady=10)
         self.data_buttons_frame.grid(row=4, column=0, pady=10, padx=10)
 
     def handleRunServer(self):
