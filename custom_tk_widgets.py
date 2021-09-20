@@ -76,10 +76,19 @@ class EmbeddedFigure(tk.Frame):
     def addLinesObject(self):
         self.lines.append(self.ax.plot([], [])[0])
 
+    def legend(self, labels,**kwargs):
+        self.ax.legend(self.lines, labels,**kwargs)
+
+    def xlabel(self, label):
+        self.ax.set_xlabel(label)
+
+    def ylabel(self, label):
+        self.ax.set_ylabel(label)
+
 
 class SlidingIndicator(tk.Frame):
 
-    def __init__(self,parent, label="Speed",unit="RPM", *args,**kwargs):
+    def __init__(self,parent, label="Speed",unit="[RPM]", *args,**kwargs):
         tk.Frame.__init__(self,parent,*args,**kwargs)
         self.parent = parent
         self.var = tk.StringVar()
@@ -98,7 +107,7 @@ class SlidingIndicator(tk.Frame):
         self.unit_var = tk.StringVar()
         self.unit_var.set(unit)
         self.entry_label = tk.Label(self.entry_frame,textvariable=self.unit_var)
-        self.entry.grid(row=0,column=0)
+        #self.entry.grid(row=0,column=0)
         self.entry_label.grid(row=0, column=1)
 
         self.label.grid(row=0,column=0)

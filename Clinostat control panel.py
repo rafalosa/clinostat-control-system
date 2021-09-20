@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, Grid
 import clinostat_com
 from datetime import datetime
 import threading
@@ -18,8 +18,7 @@ from functools import partial
 
 # todo: Maybe add terminal emulator to the data tab for easy access for the ssh to chamber computer.
 # todo: Add time shift maps to data tab.
-# todo: Split momentary and mean gravity data plots (?).
-# todo: Rewrite most of the program to avoid reverse calls like self.parent.master.parent.device.pause.
+# todo: Rewrite most of the program to avoid re verse calls like self.parent.master.parent.device.pause.
 # todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
 # The above is due to the change in the program architecture which wasn't planned in this form in the beginning.
 
@@ -281,38 +280,51 @@ class DataEmbed(tk.Frame):
         self.address_label.grid(row=2, column=0)
         self.entry.grid(row=2, column=1)
 
-        self.console = cw.Console(self,width=50,height=10,font=("normal", 8))
+        self.console = cw.Console(self,width=50,height=15,font=("normal", 8))
 
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
         plt.rcParams["lines.linewidth"] = 0.5
+        plt.rcParams["figure.subplot.top"] = 0.85
+        plt.rcParams["figure.subplot.bottom"] = 0.15
+        plt.rcParams["figure.subplot.left"] = 0.17
 
         self.gravity_plots = ttk.Notebook(self)
         self.fourier = ttk.Notebook(self)
         self.time_shift = ttk.Notebook(self)
         #self.gravity_vector = ttk.Notebook(self)
 
-        self.all_plots = []
+        self.grav_axes = []
         plot_descriptions = ["Gravity vector", "Mean gravity"]
 
         for i in range(len(plot_descriptions)):
-            plot = cw.EmbeddedFigure(self.gravity_plots, figsize=(3, 2), maxrecords=600)
+            plot = cw.EmbeddedFigure(self.gravity_plots, figsize=(3.5, 2.5), maxrecords=600)
             plot.addLinesObject()
             plot.addLinesObject()
-            self.all_plots.append(plot)
+            self.grav_axes.append(plot)
             self.gravity_plots.add(plot, text=plot_descriptions[i])
             for _ in range(3):
                 self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
+
+        for ax in self.grav_axes:
+            ax.legend(["X","Y","Z"],bbox_to_anchor=(0,1.02,1,.102),loc=3,ncol=3)
+            ax.xlabel("Time elapsed (s)")
+            ax.ylabel("Gravitational acceleration (G)")
 
         # self.gravity_vector_plot = cw.EmbeddedFigure(self.gravity_plots, figsize=(3, 3), maxrecords=600, spatial=True)
         # self.gravity_plots.add(self.gravity_vector_plot,text="Gravity vector orientation")
 
         self.data_buttons_frame = tk.Frame(self)
 
-        self.fourier_plot = cw.EmbeddedFigure(self.fourier, figsize=(3, 2), maxrecords=600)
+        self.fourier_plot = cw.EmbeddedFigure(self.fourier, figsize=(3.5, 2.5), maxrecords=600)
+        self.fourier_plot.addLinesObject()
+        self.fourier_plot.addLinesObject()
+        self.fourier_plot.xlabel("Frequency (Hz)")
+        self.fourier_plot.ylabel("Intensity")
         self.fourier.add(self.fourier_plot, text="FFT of gravity vector")
+        self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"],bbox_to_anchor=(0,1.02,1,.102),loc=3,ncol=3)
 
-        self.time_shift_plot = cw.EmbeddedFigure(self.time_shift,figsize=(3, 2), maxrecords=600)
+        self.time_shift_plot = cw.EmbeddedFigure(self.time_shift,figsize=(3.5, 2.5), maxrecords=600)
         self.time_shift.add(self.time_shift_plot,text="Time shift map of gravity vector")
 
         # self.gravity_vector.add(self.gravity_vector_plot,text="Gravity vector orientation")
@@ -328,7 +340,7 @@ class DataEmbed(tk.Frame):
         self.fourier.grid(row=1, column=1, padx=10, pady=10)
         self.time_shift.grid(row=2, column=1, padx=10, pady=10)
         #self.gravity_vector.grid(row=3, column=1, padx=10, pady=10)
-        self.data_buttons_frame.grid(row=4, column=0, pady=10, padx=10)
+        self.data_buttons_frame.grid(row=3, column=0, pady=10, padx=10)
 
     def handleRunServer(self):
         server_object = self.parent.parent.server
@@ -367,6 +379,7 @@ class DataEmbed(tk.Frame):
         if not data_queue.empty():
             message_string = data_queue.get()
             values = [float(val) for val in message_string.split(";")]
+            print(message_string)
             #self.gravity_vector_plot.plot()
 
             for index, buffer in enumerate(self.data_buffers):
@@ -375,11 +388,11 @@ class DataEmbed(tk.Frame):
                     temp = list(np.roll(buffer, -1))
                     temp[-1] = values[index]
                     self.data_buffers[index] = temp
-                    if index == 0:
+                    if index <= 2:
                         N = len(self.data_buffers[index])
                         frt = fft.fft(self.data_buffers[index])
                         fr_domain = fft.fftfreq(N, 10)[:N // 2]
-                        self.fourier_plot.plot(self.fourier_plot.lines[0], fr_domain,
+                        self.fourier_plot.plot(self.fourier_plot.lines[index], fr_domain,
                                                np.abs(frt[:N // 2]), tracking=False)
                         # todo: Crop fourier domain to the maximum detected frequency, ex. half of the sampling freq.
                 else:
@@ -390,13 +403,13 @@ class DataEmbed(tk.Frame):
 
         if all(self.data_buffers):  # If data buffers are not empty, plot.
 
-            for plot_ind, plot in enumerate(self.all_plots):
+            for plot_ind, plot in enumerate(self.grav_axes):
                 for line, buffer in zip(plot.lines, self.data_buffers[3 * plot_ind:3 * plot_ind + 3]):
                     plot.plot(line, np.arange(0, len(buffer)), buffer)
 
         else:
             self.fourier_plot.resetPlot()
-            for plot in self.all_plots:
+            for plot in self.grav_axes:
                 plot.resetPlot()
 
     def clearData(self):
@@ -436,15 +449,18 @@ class ClinostatControlSystem(tk.Frame):
         self.serial_config = SerialConfig(self.motors_tab)
         self.mode_options = ModeMenu(self.motors_tab)
 
-        self.serial_config.grid(row=0, column=0, sticky="nw",padx=10,pady=20)
-        self.mode_options.grid(row=1, column=0, sticky="sw",padx=10,pady=20)
+        self.serial_config.grid(row=0, column=0, sticky="nswe",padx=10,pady=20)
+        self.mode_options.grid(row=1, column=0, sticky="nswe",padx=10,pady=20)
 
         self.data_embed = DataEmbed(self)
 
         self.main_tabs.add(self.motors_tab, text="Clinostat control")
-        self.main_tabs.add(self.data_embed, text="Data server")
+        self.main_tabs.add(self.data_embed, text="Chamber computer")
 
-        self.main_tabs.pack()
+        Grid.rowconfigure(self, 0, weight=1)
+        Grid.columnconfigure(self, 0, weight=1)
+
+        self.main_tabs.grid(row=0,column=0,sticky="nswe")
 
     def disableAllModes(self):
         self.mode_options.disableButtons()
@@ -483,8 +499,12 @@ class App(tk.Tk):
         self.server = data_socket.DataServer(parent=self, queue_=self.data_queue,
                                              address=config["IP"], port=config["PORT"],
                                              thread_lock=self.lock)
+        
         self.control_system = ClinostatControlSystem(self)
-        self.control_system.pack(side="top", fill="both", expand=True)
+        Grid.rowconfigure(self, 0, weight=1)
+        Grid.columnconfigure(self, 0, weight=1)
+        self.control_system.grid(row=0,column=0,sticky="nswe")
+
         self.server.linkConsole(self.control_system.data_embed.console)
 
     def destroy(self):
