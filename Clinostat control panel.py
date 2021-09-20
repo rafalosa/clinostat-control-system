@@ -334,13 +334,21 @@ class DataEmbed(tk.Frame):
         self.save_button.grid(row=1, column=2, padx=10)
         self.clear_button.grid(row=1, column=3, padx=10)
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10,columnspan = 2)
-        self.console.grid(row=1, column=0, padx=10,pady=10)
-        self.gravity_plots.grid(row=2, column=0, padx=10, pady=10)
-        self.fourier.grid(row=1, column=1, padx=10, pady=10)
-        self.time_shift.grid(row=2, column=1, padx=10, pady=10)
+        Grid.rowconfigure(self, 0, weight = 1)
+        Grid.columnconfigure(self, 0, weight = 1)
+        Grid.rowconfigure(self, 1, weight = 1)
+        Grid.columnconfigure(self, 1, weight = 1)
+        Grid.rowconfigure(self, 2, weight = 1)
+        Grid.rowconfigure(self, 3, weight = 1)
+
+
+        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10,columnspan = 2, sticky="nswe")
+        self.console.grid(row=1, column=0, padx=10,pady=10, sticky="nswe")
+        self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="nswe")
+        self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="nswe")
+        self.time_shift.grid(row=2, column=1, padx=10, pady=10, sticky="nswe")
         #self.gravity_vector.grid(row=3, column=1, padx=10, pady=10)
-        self.data_buttons_frame.grid(row=3, column=0, pady=10, padx=10)
+        self.data_buttons_frame.grid(row=3, column=0, pady=10, padx=10, sticky="nswe")
 
     def handleRunServer(self):
         server_object = self.parent.parent.server
@@ -437,7 +445,6 @@ class DataEmbed(tk.Frame):
         else:
             self.parent.parent.server.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
 
-
 class ClinostatControlSystem(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
@@ -526,6 +533,7 @@ class App(tk.Tk):
 
 if __name__ == "__main__":
     root = App()
+    root.resizable(False, False)
     root.title("Clinostat control system")
     # root.iconbitmap("icon/favicon.ico")
     root.after(1, root.programLoop)
