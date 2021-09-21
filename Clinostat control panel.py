@@ -39,10 +39,12 @@ class SerialConfig(tk.Frame):
 
         self.port_menu_frame = tk.Frame(self)
         self.port_label = tk.Label(self.port_menu_frame, textvariable=self.port_description)
-        self.port_menu = tk.OptionMenu(self.port_menu_frame, self.port_option_var, *self.available_ports)
+        #self.port_menu = tk.OptionMenu(self.port_menu_frame, self.port_option_var, *self.available_ports)
+        self.port_menu = ttk.Combobox(self.port_menu_frame, textvariable=self.port_option_var,state="readonly")
+        self.port_menu["values"] = self.available_ports
         self.refresh_button = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh ports")
         self.refresh_button.config(width=17)
-        self.port_menu.config(width=15)
+        self.port_menu.config(width=17)
         self.port_label.grid(row=0, column=0)
         self.port_menu.grid(row=1, column=0, pady=2)
         self.refresh_button.grid(row=2, column=0, pady=2)
@@ -70,9 +72,10 @@ class SerialConfig(tk.Frame):
         if not self.available_ports:
             self.available_ports = ["Empty"]
 
-        self.port_menu['menu'].delete(0, "end")
-        for port in self.available_ports:
-            self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
+        # self.port_menu['menu'].delete(0, "end")
+        # for port in self.available_ports:
+        #     self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
+        self.port_menu["values"] = self.available_ports
         self.console.println("Updated available serial ports.",headline="SERIAL: ",msg_type="MESSAGE")
 
     def connectToPort(self) -> None:
@@ -288,7 +291,6 @@ class DataEmbed(tk.Frame):
         self.gravity_plots = ttk.Notebook(self)
         self.fourier = ttk.Notebook(self)
         self.time_shift = ttk.Notebook(self)
-        #self.gravity_vector = ttk.Notebook(self)
 
         self.grav_axes = []
         plot_descriptions = ["Gravity vector", "Mean gravity"]
@@ -306,9 +308,6 @@ class DataEmbed(tk.Frame):
             ax.legend(["X","Y","Z"],bbox_to_anchor=(0,1.02,1,.102),loc=3,ncol=3)
             ax.xlabel("Time elapsed (s)")
             ax.ylabel("Gravitational acceleration (G)")
-
-        # self.gravity_vector_plot = cw.EmbeddedFigure(self.gravity_plots, figsize=(3, 3), maxrecords=600, spatial=True)
-        # self.gravity_plots.add(self.gravity_vector_plot,text="Gravity vector orientation")
 
         self.data_buttons_frame = tk.Frame(self)
 
@@ -342,7 +341,6 @@ class DataEmbed(tk.Frame):
         self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="nswe")
         self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="nswe")
         self.time_shift.grid(row=2, column=1, padx=10, pady=10, sticky="nswe")
-        #self.gravity_vector.grid(row=3, column=1, padx=10, pady=10)
         self.data_buttons_frame.grid(row=3, column=0, pady=10, padx=10, sticky="nswe")
 
     def handleRunServer(self):
@@ -451,9 +449,10 @@ class PumpControl(tk.Frame):
         # time remaining to next pumping cycle
 
         section_title = tk.StringVar()
-        section_title.set("Pump controls:")
+        section_title.set("Pump control:")
         self.label = tk.Label(self, textvariable=section_title)
         self.label.grid(row=0, column=0, padx=10, pady=10)
+
 
 
 class ClinostatControlSystem(tk.Frame):
