@@ -18,15 +18,14 @@ from functools import partial
 
 # todo: Maybe add terminal emulator to the data tab for easy access for the ssh to chamber computer.
 # todo: Add time shift maps to data tab.
-# todo: Rewrite most of the program to avoid re verse calls like self.parent.master.parent.device.pause.
+# todo: Rewrite most of the program to avoid re verse calls like self.master.master.master.device.pause.
 # todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
 # The above is due to the change in the program architecture which wasn't planned in this form in the beginning.
 
 class SerialConfig(tk.Frame):
 
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self.parent = parent
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.available_ports = clinostat_com.getPorts()
 
         if not self.available_ports:
@@ -79,8 +78,8 @@ class SerialConfig(tk.Frame):
     def connectToPort(self) -> None:
 
         self.connect_button.configure(state="disabled")
-        if self.parent.master.parent.device is not None:
-            self.parent.master.parent.device.close_serial()
+        if self.master.master.master.device is not None:
+            self.master.master.master.device.close_serial()
 
         potential_port = self.port_option_var.get()
 
@@ -89,13 +88,13 @@ class SerialConfig(tk.Frame):
             self.connect_button.configure(state="normal")
         else:
             if clinostat_com.tryConnection(potential_port):
-                self.parent.master.parent.device = clinostat_com.Clinostat(potential_port)
-                self.parent.master.parent.device.port_name = potential_port
+                self.master.master.master.device = clinostat_com.Clinostat(potential_port)
+                self.master.master.master.device.port_name = potential_port
                 self.console.println("Succesfully connected to {}.".format(potential_port), headline="STATUS: ")
-                self.parent.master.parent.device.linkConsole(self.console)
+                self.master.master.master.device.linkConsole(self.console)
                 self.disconnect_button.configure(state="normal")
                 self.connect_button.configure(state="disabled")
-                self.parent.master.enableStart()
+                self.master.master.enableStart()
 
             else:
                 self.console.println("Connection to serial port failed.", headline="ERROR: ", msg_type="ERROR")
@@ -103,25 +102,23 @@ class SerialConfig(tk.Frame):
 
     def disconnectPort(self) -> None:
 
-        self.parent.master.parent.device.close_serial()
-        self.console.println("Succesfully disconnected from {}.".format(self.parent.master.parent.device.port_name),
+        self.master.master.master.device.close_serial()
+        self.console.println("Succesfully disconnected from {}.".format(self.master.master.master.device.port_name),
                              headline="STATUS: ")
-        self.parent.master.parent.device = None
+        self.master.master.master.device = None
         self.connect_button.configure(state="normal")
         self.disconnect_button.configure(state="disabled")
-        self.parent.master.disableAllModes()
+        self.master.master.disableAllModes()
 
 
 class ModeMenu(tk.Frame):
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self.parent = parent
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.button_frame = tk.Frame(self)
 
         self.indicators_frame = tk.Frame(self)
-        self.RPMindicator1 = cw.SlidingIndicator(self.indicators_frame, label="1st DOF\nspeed")
-        self.RPMindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nspeed")
+        self.RPMindicator1 = cw.SlidingIndicator(master=self.indicators_frame, label="1st DOF\nspeed")
+        self.RPMindicator2 = cw.SlidingIndicator(master=self.indicators_frame, label="2nd DOF\nspeed")
         # self.ACCELindicator1 = cw.SlidingIndicator(self.indicators_frame, label="1st DOF\nacceleration", unit="RPM/s")
         # self.ACCELindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nacceleration", unit="RPM/s")
         self.RPMindicator1.grid(row=0, column=0, padx=30)
@@ -172,21 +169,21 @@ class ModeMenu(tk.Frame):
 
     def handleAbort(self):
         self.disableButtons()
-        func = partial(self.parent.master.parent.device.abort, self.enableRun)
+        func = partial(self.master.master.master.device.abort, self.enableRun)
         threading.Thread(target=func).start()
 
     def handleRun(self):
         self.disableButtons()
-        self.parent.master.blockIndicators()
-        func = partial(self.parent.master.parent.device.run, self.readIndicatorValues(), self.enableStop)
+        self.master.master.blockIndicators()
+        func = partial(self.master.master.master.device.run, self.readIndicatorValues(), self.enableStop)
         threading.Thread(target=func).start()
 
     def handleEcho(self):
-        self.parent.master.parent.device.echo()
+        self.master.master.master.device.echo()
 
     def handlePause(self):
         self.disableButtons()
-        func = partial(self.parent.master.parent.device.pause, self.enableResume)
+        func = partial(self.master.master.master.device.pause, self.enableResume)
         threading.Thread(target=func).start()
 
     def handleResume(self):
@@ -195,13 +192,13 @@ class ModeMenu(tk.Frame):
         self.abort_button.configure(state="normal")
         self.echo_button.configure(state="normal")
         self.disableIndicators()
-        self.parent.master.parent.device.resume()
+        self.master.master.master.device.resume()
 
     def handleHome(self):
-        self.parent.master.parent.device.home()
+        self.master.master.master.device.home()
 
     def disableButtons(self):
-        self.parent.master.serial_config.disconnect_button.configure(state="disabled")
+        self.master.master.serial_config.disconnect_button.configure(state="disabled")
         self.abort_button.config(state="disabled")
         self.run_button.config(state="disabled")
         self.pause_button.config(state="disabled")
@@ -210,7 +207,7 @@ class ModeMenu(tk.Frame):
         self.home_button.config(state="disabled")
 
     def enableStop(self):
-        self.parent.master.serial_config.disconnect_button.configure(state="normal")
+        self.master.master.serial_config.disconnect_button.configure(state="normal")
         self.abort_button.configure(state="normal")
         self.pause_button.configure(state="normal")
         self.echo_button.configure(state="normal")
@@ -219,12 +216,12 @@ class ModeMenu(tk.Frame):
         self.run_button.config(state="normal")
         self.home_button.config(state="normal")
         self.echo_button.config(state="normal")
-        self.parent.master.serial_config.disconnect_button.configure(state="normal")
+        self.master.master.serial_config.disconnect_button.configure(state="normal")
         for indicator in self.indicators:
             indicator.configureState(state="normal")
 
     def enableResume(self):
-        self.parent.master.serial_config.disconnect_button.configure(state="normal")
+        self.master.master.serial_config.disconnect_button.configure(state="normal")
         self.resume_button.configure(state="normal")
         self.pause_button.configure(state="disabled")
         self.abort_button.configure(state="normal")
@@ -243,9 +240,8 @@ class ModeMenu(tk.Frame):
 
 class DataEmbed(tk.Frame):
 
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self.parent = parent
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.data_buffers = []
         self.plotting_flag = False
         self.new_data_available = False
@@ -298,7 +294,7 @@ class DataEmbed(tk.Frame):
         plot_descriptions = ["Gravity vector", "Mean gravity"]
 
         for i in range(len(plot_descriptions)):
-            plot = cw.EmbeddedFigure(self.gravity_plots, figsize=(3.5, 2.5), maxrecords=600)
+            plot = cw.EmbeddedFigure(master=self.gravity_plots, figsize=(3.5, 2.5), maxrecords=600)
             plot.addLinesObject()
             plot.addLinesObject()
             self.grav_axes.append(plot)
@@ -316,7 +312,7 @@ class DataEmbed(tk.Frame):
 
         self.data_buttons_frame = tk.Frame(self)
 
-        self.fourier_plot = cw.EmbeddedFigure(self.fourier, figsize=(3.5, 2.5), maxrecords=600)
+        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=(3.5, 2.5), maxrecords=600)
         self.fourier_plot.addLinesObject()
         self.fourier_plot.addLinesObject()
         self.fourier_plot.xlabel("Frequency (Hz)")
@@ -324,7 +320,7 @@ class DataEmbed(tk.Frame):
         self.fourier.add(self.fourier_plot, text="FFT of gravity vector")
         self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"],bbox_to_anchor=(0,1.02,1,.102),loc=3,ncol=3)
 
-        self.time_shift_plot = cw.EmbeddedFigure(self.time_shift,figsize=(3.5, 2.5), maxrecords=600)
+        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift,figsize=(3.5, 2.5), maxrecords=600)
         self.time_shift.add(self.time_shift_plot,text="Time shift map of gravity vector")
 
         # self.gravity_vector.add(self.gravity_vector_plot,text="Gravity vector orientation")
@@ -341,7 +337,6 @@ class DataEmbed(tk.Frame):
         Grid.rowconfigure(self, 2, weight = 1)
         Grid.rowconfigure(self, 3, weight = 1)
 
-
         self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10,columnspan = 2, sticky="nswe")
         self.console.grid(row=1, column=0, padx=10,pady=10, sticky="nswe")
         self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="nswe")
@@ -351,7 +346,7 @@ class DataEmbed(tk.Frame):
         self.data_buttons_frame.grid(row=3, column=0, pady=10, padx=10, sticky="nswe")
 
     def handleRunServer(self):
-        server_object = self.parent.parent.server
+        server_object = self.master.master.server
         server_object.runServer()
 
     def enableInterface(self):  # Had to define different method for changing the button states. Since runServer()
@@ -359,22 +354,22 @@ class DataEmbed(tk.Frame):
         # been updated yet. Changing button states has to be done from within the runServer method.
         self.start_server_button.configure(state="disabled")
         self.close_server_button.configure(state="normal")
-        server_object = self.parent.parent.server
+        server_object = self.master.master.server
         self.address_var.set(server_object.address + ":" + str(server_object.port))
         self.plotting_flag = True
 
     def handleCloseServer(self):
         self.plotting_flag = False
-        server_object = self.parent.parent.server
+        server_object = self.master.master.server
         server_object.closeServer()
         self.start_server_button.configure(state="normal")
         self.close_server_button.configure(state="disabled")
         self.address_var.set("")
-        self.parent.parent.server.console.println("Connection to server closed.", headline="TCP: ", msg_type="TCP")
+        self.master.master.server.console.println("Connection to server closed.", headline="TCP: ", msg_type="TCP")
 
     def resetDataBuffers(self):
-        self.parent.parent.data_queue = queue.Queue()
-        self.parent.parent.server.data_queue = self.parent.parent.data_queue
+        self.master.master.data_queue = queue.Queue()
+        self.master.master.server.data_queue = self.master.master.data_queue
         size_ = len(self.data_buffers)
         self.data_buffers = []
         for i in range(size_):
@@ -382,7 +377,7 @@ class DataEmbed(tk.Frame):
 
     def updateData(self):
 
-        data_queue = self.parent.parent.data_queue
+        data_queue = self.master.master.data_queue
 
         if not data_queue.empty():
             message_string = data_queue.get()
@@ -443,21 +438,46 @@ class DataEmbed(tk.Frame):
             except FileNotFoundError:
                 pass
         else:
-            self.parent.parent.server.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+            self.master.master.server.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+
+
+class PumpControl(tk.Frame):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # volume of water to pump
+        # time interval of the watering
+        # update parameters button
+        # time remaining to next pumping cycle
+
+        section_title = tk.StringVar()
+        section_title.set("Pump controls:")
+        self.label = tk.Label(self, textvariable=section_title)
+        self.label.grid(row=0, column=0, padx=10, pady=10)
+
 
 class ClinostatControlSystem(tk.Frame):
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self.parent = parent
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.main_tabs = ttk.Notebook(self)
 
         self.motors_tab = tk.Frame(self)
+
         self.serial_config = SerialConfig(self.motors_tab)
         self.mode_options = ModeMenu(self.motors_tab)
+        self.pump_control = PumpControl(self.motors_tab)
 
-        self.serial_config.grid(row=0, column=0, sticky="nswe",padx=10,pady=20)
-        self.mode_options.grid(row=1, column=0, sticky="nswe",padx=10,pady=20)
+        print(self.pump_control.master)
+
+        # Grid.rowconfigure(self, 0, weight=1)
+        # Grid.columnconfigure(self, 0, weight=1)
+        # Grid.rowconfigure(self, 1, weight=1)
+        # Grid.columnconfigure(self, 1, weight=1)
+
+        self.serial_config.grid(row=0, column=0, sticky="nswe", padx=10, pady=10)
+        self.mode_options.grid(row=1, column=0, sticky="nswe", padx=10, pady=10)
+        self.pump_control.grid(row=0, column=1, sticky="nswe", padx=10, pady=10)
 
         self.data_embed = DataEmbed(self)
 
@@ -467,7 +487,7 @@ class ClinostatControlSystem(tk.Frame):
         Grid.rowconfigure(self, 0, weight=1)
         Grid.columnconfigure(self, 0, weight=1)
 
-        self.main_tabs.grid(row=0,column=0,sticky="nswe")
+        self.main_tabs.grid(row=0, column=0, sticky="nswe")
 
     def disableAllModes(self):
         self.mode_options.disableButtons()

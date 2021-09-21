@@ -9,9 +9,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 class EmbeddedFigure(tk.Frame):
 
-    def __init__(self,parent, figsize=(1,1), maxrecords=100, spatial = False,*args,**kwargs):
-        tk.Frame.__init__(self,parent,*args,**kwargs)
-        self.parent = parent
+    def __init__(self, figsize=(1,1), maxrecords=100, spatial = False,*args,**kwargs):
+        super().__init__(*args,**kwargs)
         self.fig = plt.figure(figsize=figsize)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.spatial = spatial
@@ -88,9 +87,8 @@ class EmbeddedFigure(tk.Frame):
 
 class SlidingIndicator(tk.Frame):
 
-    def __init__(self,parent, label="Speed",unit="[RPM]", *args,**kwargs):
-        tk.Frame.__init__(self,parent,*args,**kwargs)
-        self.parent = parent
+    def __init__(self,label="Speed",unit="[RPM]", *args,**kwargs):
+        super().__init__(*args,**kwargs)
         self.var = tk.StringVar()
         self.var.set(label)
         self.label = tk.Label(self,textvariable=self.var)
@@ -134,8 +132,8 @@ class SlidingIndicator(tk.Frame):
 
 class Console(tk.scrolledtext.ScrolledText):
 
-    def __init__(self,parent,**kwargs):
-        tk.scrolledtext.ScrolledText.__init__(self,parent,**kwargs)
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
         self.tag_config("MESSAGE",foreground="green")
         self.tag_config("ERROR",foreground="red")
         self.tag_config("CCS", foreground="red")
