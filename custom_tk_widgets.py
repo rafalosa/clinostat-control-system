@@ -87,30 +87,35 @@ class EmbeddedFigure(tk.Frame):
 
 class SlidingIndicator(tk.Frame):
 
-    def __init__(self,label="Speed",unit="[RPM]", *args,**kwargs):
+    def __init__(self,label="Speed",unit="RPM",orientation="vertical", from_=5,to=0.1,res=0.1,
+                 length=180,width=45, entry_pos = "bot", *args,**kwargs):
         super().__init__(*args,**kwargs)
+        self.min = min((from_,to))
         self.var = tk.StringVar()
         self.var.set(label)
         self.label = tk.Label(self,textvariable=self.var)
-        self.slider = tk.Scale(self,from_=5,to=0.1,orient="vertical",
-                               resolution=0.1,length=150,command=self.updateEntry,showvalue=0.1,width=45)
-        self.slider.configure(cursor="dot",troughcolor="green")
+        self.slider = tk.Scale(self,from_=from_,to=to,orient=orientation,
+                               resolution=res,length=length,command=self.updateEntry,showvalue=0,width=width)
+        self.slider.configure(cursor="dot")
 
         self.entry_frame = tk.Frame(self)
         self.var = tk.DoubleVar()
-        self.var.set(0.1)
+        self.var.set(self.min)
         self.entry = tk.Entry(self.entry_frame,textvariable=self.var)
-        self.entry.config(width=3,state="disabled")
-        self.entry.configure(disabledbackground="white",disabledforeground="black")
+        self.entry.configure(width=3,state="disabled",disabledbackground="white",
+                             disabledforeground="black",justify="center")
         self.unit_var = tk.StringVar()
         self.unit_var.set(unit)
         self.entry_label = tk.Label(self.entry_frame,textvariable=self.unit_var)
-        #self.entry.grid(row=0,column=0)
+        self.entry.grid(row=0,column=0)
         self.entry_label.grid(row=0, column=1)
 
         self.label.grid(row=0,column=0)
         self.slider.grid(row=1,column=0)
-        self.entry_frame.grid(row=2, column=0)
+        if entry_pos == "bot":
+            self.entry_frame.grid(row=2, column=0, sticky="N")
+        elif entry_pos == "right":
+            self.entry_frame.grid(row=1, column=1,sticky="E")
 
     def updateEntry(self,*args):
         self.var.set(args[0])
@@ -126,8 +131,8 @@ class SlidingIndicator(tk.Frame):
         self.slider.configure(state=state)
 
     def reset(self):
-        self.slider.set(0.1)
-        self.var.set(0.1)
+        self.slider.set(self.min)
+        self.var.set(self.min)
 
 
 class Console(tk.scrolledtext.ScrolledText):

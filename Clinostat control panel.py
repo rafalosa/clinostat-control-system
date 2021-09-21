@@ -15,14 +15,14 @@ import tkinter.ttk as ttk
 from scipy import fft
 from functools import partial
 
-
-# todo: Maybe add terminal emulator to the data tab for easy access for the ssh to chamber computer.
 # todo: Add time shift maps to data tab.
 # todo: Rewrite most of the program to avoid re verse calls like self.master.master.master.device.pause.
-# todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
 # The above is due to the change in the program architecture which wasn't planned in this form in the beginning.
 
-class SerialConfig(tk.Frame):
+# todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
+
+
+class SerialConfig(ttk.LabelFrame):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,12 +39,12 @@ class SerialConfig(tk.Frame):
 
         self.port_menu_frame = tk.Frame(self)
         self.port_label = tk.Label(self.port_menu_frame, textvariable=self.port_description)
-        #self.port_menu = tk.OptionMenu(self.port_menu_frame, self.port_option_var, *self.available_ports)
-        self.port_menu = ttk.Combobox(self.port_menu_frame, textvariable=self.port_option_var,state="readonly")
+        # self.port_menu = tk.OptionMenu(self.port_menu_frame, self.port_option_var, *self.available_ports)
+        self.port_menu = ttk.Combobox(self.port_menu_frame, textvariable=self.port_option_var, state="readonly")
         self.port_menu["values"] = self.available_ports
         self.refresh_button = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh ports")
         self.refresh_button.config(width=17)
-        self.port_menu.config(width=17)
+        self.port_menu.config(width=18)
         self.port_label.grid(row=0, column=0)
         self.port_menu.grid(row=1, column=0, pady=2)
         self.refresh_button.grid(row=2, column=0, pady=2)
@@ -76,7 +76,7 @@ class SerialConfig(tk.Frame):
         # for port in self.available_ports:
         #     self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
         self.port_menu["values"] = self.available_ports
-        self.console.println("Updated available serial ports.",headline="SERIAL: ",msg_type="MESSAGE")
+        self.console.println("Updated available serial ports.", headline="SERIAL: ", msg_type="MESSAGE")
 
     def connectToPort(self) -> None:
 
@@ -114,7 +114,7 @@ class SerialConfig(tk.Frame):
         self.master.master.disableAllModes()
 
 
-class ModeMenu(tk.Frame):
+class ModeMenu(ttk.LabelFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.button_frame = tk.Frame(self)
@@ -245,41 +245,45 @@ class DataEmbed(tk.Frame):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.data_buffers = []
         self.plotting_flag = False
         self.new_data_available = False
 
-        self.server_buttons_frame = tk.Frame(self)
-
-        self.desc_var = tk.StringVar()
-        self.desc_var.set("TCP data server:")
-        self.server_label = tk.Label(self.server_buttons_frame, textvariable=self.desc_var)
-        self.server_label.grid(row=0, column=0, columnspan=2)
+        self.server_buttons_frame = ttk.LabelFrame(self, text="Data server connection")
+        self.data_save_frame = ttk.LabelFrame(self, text="Data")
 
         self.start_server_button = tk.Button(self.server_buttons_frame,
                                              text="Start server", command=self.handleRunServer)
-        self.start_server_button.grid(row=1, column=0, pady=2, padx=5)
-        self.start_server_button.configure(width=17)
+        self.start_server_button.grid(row=0, column=0, pady=2, padx=5)
+        self.start_server_button.configure(width=20)
 
         self.close_server_button = tk.Button(self.server_buttons_frame,
                                              text="Close server", command=self.handleCloseServer)
-        self.close_server_button.grid(row=1, column=1, pady=2, padx=5)
-        self.close_server_button.configure(width=17)
+        self.close_server_button.grid(row=0, column=1, pady=2, padx=5)
+        self.close_server_button.configure(width=20)
         self.close_server_button.configure(state="disabled")
 
-        self.address_var = tk.StringVar()
-        self.entry = tk.Entry(self.server_buttons_frame, textvariable=self.address_var)
-        self.entry.config(width=20, state="disabled")
-        self.entry.configure(disabledbackground="white", disabledforeground="black")
+        self.address_frame = tk.Frame(self.server_buttons_frame)
 
         self.address_label_var = tk.StringVar()
         self.address_label_var.set("Current server address:")
+        self.address_var = tk.StringVar()
+        self.entry = tk.Entry(self.address_frame, textvariable=self.address_var)
+        self.entry.config(width=20, state="disabled")
+        self.entry.configure(disabledbackground="white", disabledforeground="black")
 
-        self.address_label = tk.Label(self.server_buttons_frame, textvariable=self.address_label_var)
-        self.address_label.grid(row=2, column=0)
-        self.entry.grid(row=2, column=1)
+        self.server_buttons_frame.rowconfigure(0, weight=1)
+        self.server_buttons_frame.columnconfigure(0, weight=1)
+        self.server_buttons_frame.rowconfigure(1, weight=1)
+        self.server_buttons_frame.columnconfigure(1, weight=1)
 
-        self.console = cw.Console(self,width=50,height=15,font=("normal", 8))
+        self.address_label = tk.Label(self.address_frame, textvariable=self.address_label_var)
+        self.address_label.grid(row=1, column=0)
+        self.entry.grid(row=1, column=1)
+        self.address_frame.grid(row=1, column=0, columnspan=2)
+
+        self.console = cw.Console(self, width=50, height=15, font=("normal", 8))
 
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
@@ -296,7 +300,7 @@ class DataEmbed(tk.Frame):
         plot_descriptions = ["Gravity vector", "Mean gravity"]
 
         for i in range(len(plot_descriptions)):
-            plot = cw.EmbeddedFigure(master=self.gravity_plots, figsize=(3.5, 2.5), maxrecords=600)
+            plot = cw.EmbeddedFigure(master=self.gravity_plots, figsize=(5, 2.5), maxrecords=600)
             plot.addLinesObject()
             plot.addLinesObject()
             self.grav_axes.append(plot)
@@ -305,38 +309,43 @@ class DataEmbed(tk.Frame):
                 self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
         for ax in self.grav_axes:
-            ax.legend(["X","Y","Z"],bbox_to_anchor=(0,1.02,1,.102),loc=3,ncol=3)
+            ax.legend(["X", "Y" ,"Z"],bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
             ax.xlabel("Time elapsed (s)")
             ax.ylabel("Gravitational acceleration (G)")
 
         self.data_buttons_frame = tk.Frame(self)
 
-        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=(3.5, 2.5), maxrecords=600)
+        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=(5, 2.5), maxrecords=600)
         self.fourier_plot.addLinesObject()
         self.fourier_plot.addLinesObject()
         self.fourier_plot.xlabel("Frequency (Hz)")
         self.fourier_plot.ylabel("Intensity")
         self.fourier.add(self.fourier_plot, text="FFT of gravity vector")
-        self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"],bbox_to_anchor=(0,1.02,1,.102),loc=3,ncol=3)
+        self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"],bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
 
-        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift,figsize=(3.5, 2.5), maxrecords=600)
+        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift,figsize=(5, 2.5), maxrecords=600)
         self.time_shift.add(self.time_shift_plot,text="Time shift map of gravity vector")
 
         # self.gravity_vector.add(self.gravity_vector_plot,text="Gravity vector orientation")
 
-        self.save_button = tk.Button(self.server_buttons_frame, text="Save to CSV", command=self.saveFile, width=17)
-        self.clear_button = tk.Button(self.server_buttons_frame, text="Clear data", command=self.clearData, width=17)
-        self.save_button.grid(row=1, column=2, padx=10)
-        self.clear_button.grid(row=1, column=3, padx=10)
+        self.data_save_frame.rowconfigure(0,weight=1)
+        self.data_save_frame.columnconfigure(0, weight=1)
+        self.data_save_frame.columnconfigure(1, weight=1)
 
-        Grid.rowconfigure(self, 0, weight = 1)
-        Grid.columnconfigure(self, 0, weight = 1)
-        Grid.rowconfigure(self, 1, weight = 1)
-        Grid.columnconfigure(self, 1, weight = 1)
-        Grid.rowconfigure(self, 2, weight = 1)
-        Grid.rowconfigure(self, 3, weight = 1)
+        self.save_button = ttk.Button(  self.data_save_frame, text="Save to CSV", command=self.saveFile, width=17)
+        self.clear_button = tk.Button(  self.data_save_frame, text="Clear data", command=self.clearData, width=17)
+        self.save_button.grid(row=0, column=0, padx=10,sticky="nswe")
+        self.clear_button.grid(row=0, column=1, padx=10,sticky="nswe")
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10,columnspan = 2, sticky="nswe")
+        Grid.rowconfigure(self, 0, weight=1)
+        Grid.columnconfigure(self, 0, weight=1)
+        Grid.rowconfigure(self, 1, weight=1)
+        Grid.columnconfigure(self, 1, weight=1)
+        Grid.rowconfigure(self, 2, weight=1)
+        Grid.rowconfigure(self, 3, weight=1)
+
+        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10, sticky="nswe")
+        self.data_save_frame.grid(row=0, column=1, padx=10,pady=10, sticky="nswe")
         self.console.grid(row=1, column=0, padx=10,pady=10, sticky="nswe")
         self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="nswe")
         self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="nswe")
@@ -381,7 +390,6 @@ class DataEmbed(tk.Frame):
             message_string = data_queue.get()
             values = [float(val) for val in message_string.split(";")]
             print(message_string)
-            #self.gravity_vector_plot.plot()
 
             for index, buffer in enumerate(self.data_buffers):
 
@@ -439,20 +447,80 @@ class DataEmbed(tk.Frame):
             self.master.master.server.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
 
 
-class PumpControl(tk.Frame):
+class PumpControl(ttk.LabelFrame):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.cycle_active = False
         # volume of water to pump
         # time interval of the watering
         # update parameters button
         # time remaining to next pumping cycle
 
-        section_title = tk.StringVar()
-        section_title.set("Pump control:")
-        self.label = tk.Label(self, textvariable=section_title)
-        self.label.grid(row=0, column=0, padx=10, pady=10)
+        # water_title = tk.StringVar()
+        # water_title.set("Watering volume:")
+        # self.water_label = tk.Label(self,textvariable=water_title)
+        # self.water_var = tk.DoubleVar()
+        # self.water_var.set(0)
+        # self.water_slider = tk.Scale(self,from_=0, to=200,orient="horizontal",resolution=10,length=300,
+        #                              command = self.updateWaterSlider,showvalue=0,width=30)
+        # water_unit_var = tk.StringVar()
+        # water_unit_var.set("ml")
+        # self.water_unit_label = tk.Label(self,textvariable=water_unit_var)
 
+        self.water_slider = cw.SlidingIndicator(master=self, label="Watering volume",unit="ml",
+                                                orientation="horizontal", from_=0,to=250,res=10,length=300,
+                                                width=30,entry_pos="right")
+
+        self.time_slider = cw.SlidingIndicator(master=self, label="Watering time interval",unit="min",
+                                                orientation="horizontal", from_=0,to=240,res=10,length=300,
+                                                width=30,entry_pos="right")
+
+        self.times_frame = tk.Frame(self)
+
+        self.time_passed_label_var = tk.StringVar()
+        self.time_passed_label_var.set("Time from last watering cycle:")
+        self.time_passed_label = tk.Label(self.times_frame,textvariable=self.time_passed_label_var)
+        self.time_passed_var = tk.DoubleVar()
+        self.time_passed_var.set(0)
+        self.time_passed_entry = tk.Entry(self.times_frame, textvariable=self.time_passed_var)
+        self.time_passed_entry.configure(width=4, state="disabled", disabledbackground="white",
+                                         disabledforeground="black", justify="center")
+
+        self.time_left_label_var = tk.StringVar()
+        self.time_left_label_var.set("Time till next watering cycle:")
+        self.time_left_label = tk.Label(self.times_frame, textvariable=self.time_left_label_var)
+        self.time_left_var = tk.DoubleVar()
+        self.time_left_var.set(0)
+        self.time_left_entry = tk.Entry(self.times_frame, textvariable=self.time_left_var)
+        self.time_left_entry.configure(width=4, state="disabled", disabledbackground="white",
+                                         disabledforeground="black", justify="center")
+
+        self.time_passed_label.grid(row=0,column=0)
+        self.time_passed_entry.grid(row=0,column=1)
+        self.time_left_label.grid(row=1, column=0)
+        self.time_left_entry.grid(row=1, column=1)
+
+        self.buttons_frame = tk.Frame(self)
+        self.start_button = tk.Button(self.buttons_frame, text="Start cycle", command=self.startWateringCycle)
+        self.stop_button = tk.Button(self.buttons_frame, text="Stop cycle", command=self.stopWateringCycle)
+        self.start_button.grid(row=0,column=0,padx=10,pady=10)
+        self.stop_button.grid(row=0, column=1, padx=10, pady=10)
+
+        self.water_slider.grid(row=0,column=0,padx=10,pady=10)
+        self.time_slider.grid(row=1,column=0,padx=10,pady=10)
+        self.times_frame.grid(row=2,column=0,padx=10,pady=10,sticky="W")
+        self.buttons_frame.grid(row=3,column=0,padx=10,pady=10)
+        # self.water_label.grid(row=1,column=0,padx=10,pady=5,sticky="W")
+        # self.water_slider.grid(row=2,column=0,padx=10,pady=10)
+        # self.water_unit_label.grid(row=2,column=1,sticky="W")
+
+
+    def startWateringCycle(self):
+        self.cycle_active = True
+
+    def stopWateringCycle(self):
+        self.cycle_active = False
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -463,9 +531,9 @@ class ClinostatControlSystem(tk.Frame):
 
         self.motors_tab = tk.Frame(self)
 
-        self.serial_config = SerialConfig(self.motors_tab)
-        self.mode_options = ModeMenu(self.motors_tab)
-        self.pump_control = PumpControl(self.motors_tab)
+        self.serial_config = SerialConfig(self.motors_tab,text="Controller connection")
+        self.mode_options = ModeMenu(self.motors_tab,text="Motors control")
+        self.pump_control = PumpControl(self.motors_tab, text="Pump control")
 
         print(self.pump_control.master)
 
@@ -546,6 +614,8 @@ class App(tk.Tk):
 
         if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
             self.control_system.data_embed.updateData()
+
+        # todo: Add scheduling watering cycles.
 
         self.after(1, self.programLoop)
 

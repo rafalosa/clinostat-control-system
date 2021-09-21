@@ -167,6 +167,9 @@ class Clinostat:
             msg = generateMessage(response)
             self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
+    def startWateringCycle(self,amount):
+        pass
+
 
 def generateMessage(response):
 
