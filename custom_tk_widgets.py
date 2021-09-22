@@ -88,9 +88,9 @@ class EmbeddedFigure(tk.Frame):
 class SlidingIndicator(tk.Frame):
 
     def __init__(self,label="Speed",unit="RPM",orientation="vertical", from_=5,to=0.1,res=0.1,
-                 length=180,width=45, entry_pos = "bot", *args,**kwargs):
-        super().__init__(*args,**kwargs)
-        self.min = min((from_,to))
+                 length=180, width=45, entry_pos = "bot", *args,**kwargs):
+        super().__init__(*args, **kwargs)
+        self.min = min((from_, to))
         self.var = tk.StringVar()
         self.var.set(label)
         self.label = tk.Label(self,textvariable=self.var)

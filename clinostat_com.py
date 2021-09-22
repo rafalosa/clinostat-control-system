@@ -33,6 +33,7 @@ class Clinostat:
     _ECHO = b'\x06'
     _CONNECT = b'\x07'
     _DISCONNECT = b'\x08'
+    _WATERING = b'\x09'
 
     # Commands received from device.
 

@@ -14,6 +14,8 @@ import custom_tk_widgets as cw
 import tkinter.ttk as ttk
 from scipy import fft
 from functools import partial
+import time
+import math
 
 # todo: Add time shift maps to data tab.
 # todo: Rewrite most of the program to avoid re verse calls like self.master.master.master.device.pause.
@@ -251,7 +253,7 @@ class DataEmbed(tk.Frame):
         self.new_data_available = False
 
         self.server_buttons_frame = ttk.LabelFrame(self, text="Data server connection")
-        self.data_save_frame = ttk.LabelFrame(self, text="Data")
+        self.data_save_frame = ttk.LabelFrame(self, text="Save or discard data")
 
         self.start_server_button = tk.Button(self.server_buttons_frame,
                                              text="Start server", command=self.handleRunServer)
@@ -261,8 +263,7 @@ class DataEmbed(tk.Frame):
         self.close_server_button = tk.Button(self.server_buttons_frame,
                                              text="Close server", command=self.handleCloseServer)
         self.close_server_button.grid(row=0, column=1, pady=2, padx=5)
-        self.close_server_button.configure(width=20)
-        self.close_server_button.configure(state="disabled")
+        self.close_server_button.configure(width=20, state="disabled")
 
         self.address_frame = tk.Frame(self.server_buttons_frame)
 
@@ -272,11 +273,6 @@ class DataEmbed(tk.Frame):
         self.entry = tk.Entry(self.address_frame, textvariable=self.address_var)
         self.entry.config(width=20, state="disabled")
         self.entry.configure(disabledbackground="white", disabledforeground="black")
-
-        self.server_buttons_frame.rowconfigure(0, weight=1)
-        self.server_buttons_frame.columnconfigure(0, weight=1)
-        self.server_buttons_frame.rowconfigure(1, weight=1)
-        self.server_buttons_frame.columnconfigure(1, weight=1)
 
         self.address_label = tk.Label(self.address_frame, textvariable=self.address_label_var)
         self.address_label.grid(row=1, column=0)
@@ -309,7 +305,7 @@ class DataEmbed(tk.Frame):
                 self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
         for ax in self.grav_axes:
-            ax.legend(["X", "Y" ,"Z"],bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
+            ax.legend(["X", "Y", "Z"],bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
             ax.xlabel("Time elapsed (s)")
             ax.ylabel("Gravitational acceleration (G)")
 
@@ -326,23 +322,14 @@ class DataEmbed(tk.Frame):
         self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift,figsize=(5, 2.5), maxrecords=600)
         self.time_shift.add(self.time_shift_plot,text="Time shift map of gravity vector")
 
-        # self.gravity_vector.add(self.gravity_vector_plot,text="Gravity vector orientation")
-
         self.data_save_frame.rowconfigure(0,weight=1)
         self.data_save_frame.columnconfigure(0, weight=1)
         self.data_save_frame.columnconfigure(1, weight=1)
 
-        self.save_button = ttk.Button(  self.data_save_frame, text="Save to CSV", command=self.saveFile, width=17)
-        self.clear_button = tk.Button(  self.data_save_frame, text="Clear data", command=self.clearData, width=17)
-        self.save_button.grid(row=0, column=0, padx=10,sticky="nswe")
-        self.clear_button.grid(row=0, column=1, padx=10,sticky="nswe")
-
-        Grid.rowconfigure(self, 0, weight=1)
-        Grid.columnconfigure(self, 0, weight=1)
-        Grid.rowconfigure(self, 1, weight=1)
-        Grid.columnconfigure(self, 1, weight=1)
-        Grid.rowconfigure(self, 2, weight=1)
-        Grid.rowconfigure(self, 3, weight=1)
+        self.save_button = tk.Button(self.data_save_frame, text="Save to CSV", command=self.saveFile, width=17)
+        self.clear_button = tk.Button(self.data_save_frame, text="Clear data", command=self.clearData, width=17)
+        self.save_button.grid(row=0, column=0, padx=10)
+        self.clear_button.grid(row=0, column=1, padx=10)
 
         self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10, sticky="nswe")
         self.data_save_frame.grid(row=0, column=1, padx=10,pady=10, sticky="nswe")
@@ -473,7 +460,7 @@ class PumpControl(ttk.LabelFrame):
                                                 width=30,entry_pos="right")
 
         self.time_slider = cw.SlidingIndicator(master=self, label="Watering time interval",unit="min",
-                                                orientation="horizontal", from_=0,to=240,res=10,length=300,
+                                                orientation="horizontal", from_=0,to=240,res=5,length=300,
                                                 width=30,entry_pos="right")
 
         self.times_frame = tk.Frame(self)
@@ -481,19 +468,19 @@ class PumpControl(ttk.LabelFrame):
         self.time_passed_label_var = tk.StringVar()
         self.time_passed_label_var.set("Time from last watering cycle:")
         self.time_passed_label = tk.Label(self.times_frame,textvariable=self.time_passed_label_var)
-        self.time_passed_var = tk.DoubleVar()
+        self.time_passed_var = tk.StringVar()
         self.time_passed_var.set(0)
         self.time_passed_entry = tk.Entry(self.times_frame, textvariable=self.time_passed_var)
-        self.time_passed_entry.configure(width=4, state="disabled", disabledbackground="white",
+        self.time_passed_entry.configure(width=9, state="disabled", disabledbackground="white",
                                          disabledforeground="black", justify="center")
 
         self.time_left_label_var = tk.StringVar()
         self.time_left_label_var.set("Time till next watering cycle:")
         self.time_left_label = tk.Label(self.times_frame, textvariable=self.time_left_label_var)
-        self.time_left_var = tk.DoubleVar()
+        self.time_left_var = tk.StringVar()
         self.time_left_var.set(0)
         self.time_left_entry = tk.Entry(self.times_frame, textvariable=self.time_left_var)
-        self.time_left_entry.configure(width=4, state="disabled", disabledbackground="white",
+        self.time_left_entry.configure(width=9, state="disabled", disabledbackground="white",
                                          disabledforeground="black", justify="center")
 
         self.time_passed_label.grid(row=0,column=0)
@@ -515,7 +502,6 @@ class PumpControl(ttk.LabelFrame):
         # self.water_slider.grid(row=2,column=0,padx=10,pady=10)
         # self.water_unit_label.grid(row=2,column=1,sticky="W")
 
-
     def startWateringCycle(self):
         self.cycle_active = True
 
@@ -534,13 +520,6 @@ class ClinostatControlSystem(tk.Frame):
         self.serial_config = SerialConfig(self.motors_tab,text="Controller connection")
         self.mode_options = ModeMenu(self.motors_tab,text="Motors control")
         self.pump_control = PumpControl(self.motors_tab, text="Pump control")
-
-        print(self.pump_control.master)
-
-        # Grid.rowconfigure(self, 0, weight=1)
-        # Grid.columnconfigure(self, 0, weight=1)
-        # Grid.rowconfigure(self, 1, weight=1)
-        # Grid.columnconfigure(self, 1, weight=1)
 
         self.serial_config.grid(row=0, column=0, sticky="nswe", padx=10, pady=10)
         self.mode_options.grid(row=1, column=0, sticky="nswe", padx=10, pady=10)
@@ -572,6 +551,9 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.device = None
+        self.seconds_tracker = time.time()
+        self.pumps_tracker = time.time()
+        self.pump_flag_previous_state = False
 
         if "saved data" not in os.listdir("."):
             os.mkdir("saved data")
@@ -615,8 +597,30 @@ class App(tk.Tk):
         if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
             self.control_system.data_embed.updateData()
 
-        # todo: Add scheduling watering cycles.
+        if self.device and self.control_system.pump_control.cycle_active:
 
+            now_time = time.time()
+
+            if self.pump_flag_previous_state != self.control_system.pump_control.cycle_active:
+                self.seconds_tracker = now_time
+                self.pumps_tracker = now_time
+
+            if now_time - self.seconds_tracker >= 1:
+                # update entries
+                time_left = self.control_system.pump_control.time_slider.getValue()*60 - (now_time - self.pumps_tracker)
+                mins = math.floor(time_left/60)
+                secs = math.floor(time_left - mins*60)
+                self.control_system.pump_control.time_passed_var.set(0)
+                self.control_system.pump_control.time_left_var.set(f"{mins:02d}:{secs:02d}")
+                print(time_left)
+                self.seconds_tracker = now_time
+
+            if (now_time - self.pumps_tracker)/60 >= self.control_system.pump_control.time_slider.getValue():
+                # send command to controller to execute watering routine
+                # send console notification
+                self.pumps_tracker = now_time
+
+        self.pump_flag_previous_state = self.control_system.pump_control.cycle_active
         self.after(1, self.programLoop)
 
 
