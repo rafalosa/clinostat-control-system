@@ -145,8 +145,11 @@ class Clinostat:
 
         self._port.write(Clinostat._DISCONNECT)
 
-    def close_serial(self) -> None:
-        self.disconnect()
+    def close_serial(self):
+        try:
+            self.disconnect()
+        except serial.serialutil.SerialException:
+            raise ClinostatCommunicationError("Device is already physically disconnected. Check USB cable.")
         self._port.close()
 
     def linkConsole(self, console) -> None:

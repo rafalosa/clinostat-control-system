@@ -3,7 +3,6 @@ from tkinter import filedialog, messagebox, Grid
 import clinostat_com
 from datetime import datetime
 import threading
-import multiprocessing as mp
 from multiprocessing import Pool
 import data_socket
 import matplotlib.pyplot as plt
@@ -108,14 +107,21 @@ class SerialConfig(ttk.LabelFrame):
 
     def disconnectPort(self) -> None:
 
-        self.master.master.master.device.close_serial()
-        self.console.println("Succesfully disconnected from {}.".format(self.master.master.master.device.port_name),
+        try:
+            self.master.master.master.device.close_serial()
+        except clinostat_com.ClinostatCommunicationError as ex:
+            self.console.println(ex.message, headline="ERROR: ",msg_type="ERROR")
+            return
+        finally:
+            port_name = self.master.master.master.device.port_name
+            self.master.master.master.device = None
+            self.connect_button.configure(state="normal")
+            self.disconnect_button.configure(state="disabled")
+            self.master.master.disableAllModes()
+            self.master.master.pump_control.cycle_active = False
+
+        self.console.println("Succesfully disconnected from {}.".format(port_name),
                              headline="STATUS: ")
-        self.master.master.master.device = None
-        self.connect_button.configure(state="normal")
-        self.disconnect_button.configure(state="disabled")
-        self.master.master.disableAllModes()
-        self.master.master.control_system.pump_control.cycle_active = False
 
 
 class ModeMenu(ttk.LabelFrame):
@@ -406,8 +412,8 @@ class DataEmbed(tk.Frame):
                     result = pool.imap(fft.fft,self.data_buffers[:3])
                     pool.close()
                     pool.join()
-                    a = [vec for vec in result]
-                    for index, buffer in enumerate(a):
+                    calculated_ffts = [fft_ for fft_ in result]
+                    for index, buffer in enumerate(calculated_ffts):
                         N = len(self.data_buffers[index])
                         frt = fft.fft(self.data_buffers[index])
                         fr_domain = fft.fftfreq(N, 10)[:N // 2]
@@ -634,7 +640,6 @@ class App(tk.Tk):
                 self.pumps_tracker = now_time
 
             if now_time - self.seconds_tracker >= 1:
-                # update entries
                 time_left = self.control_system.pump_control.time_slider.getValue()*60 - (now_time - self.pumps_tracker)
                 mins = math.floor(time_left/60)
                 secs = math.floor(time_left - mins*60)
@@ -649,7 +654,7 @@ class App(tk.Tk):
                 self.pumps_tracker = now_time
 
         self.pump_flag_previous_state = self.control_system.pump_control.cycle_active
-        self.after(1, self.programLoop)
+        self.after(100, self.programLoop)
 
 
 if __name__ == "__main__":
