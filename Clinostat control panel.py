@@ -3,6 +3,8 @@ from tkinter import filedialog, messagebox, Grid
 import clinostat_com
 from datetime import datetime
 import threading
+import multiprocessing as mp
+from multiprocessing import Pool
 import data_socket
 import matplotlib.pyplot as plt
 import numpy as np
@@ -41,7 +43,6 @@ class SerialConfig(ttk.LabelFrame):
 
         self.port_menu_frame = tk.Frame(self)
         self.port_label = tk.Label(self.port_menu_frame, textvariable=self.port_description)
-        # self.port_menu = tk.OptionMenu(self.port_menu_frame, self.port_option_var, *self.available_ports)
         self.port_menu = ttk.Combobox(self.port_menu_frame, textvariable=self.port_option_var, state="readonly")
         self.port_menu["values"] = self.available_ports
         self.refresh_button = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh ports")
@@ -114,6 +115,7 @@ class SerialConfig(ttk.LabelFrame):
         self.connect_button.configure(state="normal")
         self.disconnect_button.configure(state="disabled")
         self.master.master.disableAllModes()
+        self.master.master.control_system.pump_control.cycle_active = False
 
 
 class ModeMenu(ttk.LabelFrame):
@@ -248,6 +250,8 @@ class DataEmbed(tk.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.data_records_amount = 300
+
         self.data_buffers = []
         self.plotting_flag = False
         self.new_data_available = False
@@ -376,21 +380,14 @@ class DataEmbed(tk.Frame):
         if not data_queue.empty():
             message_string = data_queue.get()
             values = [float(val) for val in message_string.split(";")]
-            print(message_string)
 
             for index, buffer in enumerate(self.data_buffers):
 
-                if len(buffer) >= 600:
+                if len(buffer) >= self.data_records_amount:
                     temp = list(np.roll(buffer, -1))
                     temp[-1] = values[index]
                     self.data_buffers[index] = temp
-                    if index <= 2:
-                        N = len(self.data_buffers[index])
-                        frt = fft.fft(self.data_buffers[index])
-                        fr_domain = fft.fftfreq(N, 10)[:N // 2]
-                        self.fourier_plot.plot(self.fourier_plot.lines[index], fr_domain,
-                                               np.abs(frt[:N // 2]), tracking=False)
-                        # todo: Crop fourier domain to the maximum detected frequency, ex. half of the sampling freq.
+
                 else:
                     buffer.append(values[index])
             with open("temp/data.temp", "a") as file:
@@ -402,6 +399,19 @@ class DataEmbed(tk.Frame):
             for plot_ind, plot in enumerate(self.grav_axes):
                 for line, buffer in zip(plot.lines, self.data_buffers[3 * plot_ind:3 * plot_ind + 3]):
                     plot.plot(line, np.arange(0, len(buffer)), buffer)
+
+            if len(self.data_buffers[0]) >= self.data_records_amount:
+                pool = Pool(processes=3)
+                result = pool.imap(fft.fft,self.data_buffers[:3])
+                pool.close()
+                pool.join()
+                a = [vec for vec in result]
+                for index, buffer in enumerate(a):
+                    N = len(self.data_buffers[index])
+                    frt = fft.fft(self.data_buffers[index])
+                    fr_domain = fft.fftfreq(N, 10)[:N // 2]
+                    self.fourier_plot.plot(self.fourier_plot.lines[index], fr_domain,
+                                           np.abs(frt[:N // 2]), tracking=False)
 
         else:
             self.fourier_plot.resetPlot()
@@ -463,6 +473,9 @@ class PumpControl(ttk.LabelFrame):
                                                 orientation="horizontal", from_=0,to=240,res=5,length=300,
                                                 width=30,entry_pos="right")
 
+        self.water_slider.configureState(state="disabled")
+        self.time_slider.configureState(state="disabled")
+
         self.times_frame = tk.Frame(self)
 
         self.time_passed_label_var = tk.StringVar()
@@ -491,6 +504,8 @@ class PumpControl(ttk.LabelFrame):
         self.buttons_frame = tk.Frame(self)
         self.start_button = tk.Button(self.buttons_frame, text="Start cycle", command=self.startWateringCycle)
         self.stop_button = tk.Button(self.buttons_frame, text="Stop cycle", command=self.stopWateringCycle)
+        self.start_button.configure(state="disabled")
+        self.stop_button.configure(state="disabled")
         self.start_button.grid(row=0,column=0,padx=10,pady=10)
         self.stop_button.grid(row=0, column=1, padx=10, pady=10)
 
@@ -507,6 +522,18 @@ class PumpControl(ttk.LabelFrame):
 
     def stopWateringCycle(self):
         self.cycle_active = False
+
+    def disableUI(self):
+        self.stop_button.configure(state="disabled")
+        self.start_button.configure(state="disabled")
+        self.water_slider.configureState(state="disabled")
+        self.time_slider.configureState(state="disabled")
+
+    def enableUI(self):
+        self.stop_button.configure(state="active")
+        self.start_button.configure(state="active")
+        self.water_slider.configureState(state="active")
+        self.time_slider.configureState(state="active")
 
 
 class ClinostatControlSystem(tk.Frame):
@@ -539,12 +566,14 @@ class ClinostatControlSystem(tk.Frame):
         self.mode_options.disableButtons()
         self.mode_options.resetIndicators()
         self.mode_options.disableIndicators()
+        self.pump_control.disableUI()
 
     def blockIndicators(self):
         self.mode_options.disableIndicators()
 
     def enableStart(self):
         self.mode_options.enableRun()
+        self.pump_control.enableUI()
 
 
 class App(tk.Tk):
@@ -577,8 +606,6 @@ class App(tk.Tk):
                                              thread_lock=self.lock)
         
         self.control_system = ClinostatControlSystem(self)
-        Grid.rowconfigure(self, 0, weight=1)
-        Grid.columnconfigure(self, 0, weight=1)
         self.control_system.grid(row=0,column=0,sticky="nswe")
 
         self.server.linkConsole(self.control_system.data_embed.console)

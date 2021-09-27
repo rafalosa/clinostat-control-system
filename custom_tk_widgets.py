@@ -1,10 +1,12 @@
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter.scrolledtext
+import matplotlib
 import matplotlib.pyplot as plt
 from datetime import datetime
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+matplotlib.use('TkAgg')
 
 
 class EmbeddedFigure(tk.Frame):
@@ -108,7 +110,7 @@ class SlidingIndicator(tk.Frame):
         self.unit_var.set(unit)
         self.entry_label = tk.Label(self.entry_frame,textvariable=self.unit_var)
         self.entry.grid(row=0,column=0)
-        self.entry_label.grid(row=0, column=1)
+        self.entry_label.grid(row=1, column=0)
 
         self.label.grid(row=0,column=0)
         self.slider.grid(row=1,column=0)
