@@ -396,22 +396,23 @@ class DataEmbed(tk.Frame):
 
         if all(self.data_buffers):  # If data buffers are not empty, plot.
 
-            for plot_ind, plot in enumerate(self.grav_axes):
-                for line, buffer in zip(plot.lines, self.data_buffers[3 * plot_ind:3 * plot_ind + 3]):
-                    plot.plot(line, np.arange(0, len(buffer)), buffer)
+            if self.master.main_tabs.index(self.master.main_tabs.select()) == 1: # Update plots only if data tab is active.
+                for plot_ind, plot in enumerate(self.grav_axes):
+                    for line, buffer in zip(plot.lines, self.data_buffers[3 * plot_ind:3 * plot_ind + 3]):
+                        plot.plot(line, np.arange(0, len(buffer)), buffer)
 
-            if len(self.data_buffers[0]) >= self.data_records_amount:
-                pool = Pool(processes=3)
-                result = pool.imap(fft.fft,self.data_buffers[:3])
-                pool.close()
-                pool.join()
-                a = [vec for vec in result]
-                for index, buffer in enumerate(a):
-                    N = len(self.data_buffers[index])
-                    frt = fft.fft(self.data_buffers[index])
-                    fr_domain = fft.fftfreq(N, 10)[:N // 2]
-                    self.fourier_plot.plot(self.fourier_plot.lines[index], fr_domain,
-                                           np.abs(frt[:N // 2]), tracking=False)
+                if len(self.data_buffers[0]) >= self.data_records_amount:
+                    pool = Pool(processes=3)
+                    result = pool.imap(fft.fft,self.data_buffers[:3])
+                    pool.close()
+                    pool.join()
+                    a = [vec for vec in result]
+                    for index, buffer in enumerate(a):
+                        N = len(self.data_buffers[index])
+                        frt = fft.fft(self.data_buffers[index])
+                        fr_domain = fft.fftfreq(N, 10)[:N // 2]
+                        self.fourier_plot.plot(self.fourier_plot.lines[index], fr_domain,
+                                               np.abs(frt[:N // 2]), tracking=False)
 
         else:
             self.fourier_plot.resetPlot()
