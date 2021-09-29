@@ -17,6 +17,9 @@
 #define ENABLE_TIMER3_INTERRUPTS    TIMSK3 |= (1 << OCIE3A) // Macro for enabling the timer3 interrupts.
 #define DISABLE_TIMER3_INTERRUPTS   TIMSK3 &= ~(1 << OCIE3A) // Macro for disabling the timer3 interrupts.
 
+#define ENABLE_TIMER0_INTERRUPTS    TIMSK0 |= (1 << OCIE0A) // Macro for enabling the timer3 interrupts.
+#define DISABLE_TIMER0_INTERRUPTS   TIMSK0 &= ~(1 << OCIE0A) // Macro for disabling the timer3 interrupts.
+
 #define CHAMBER_STEP_HIGH   PORTD |= (1 << CHAMBER_STEP) // Macro for setting a pin connected to chamber step high.
 #define CHAMBER_STEP_LOW    PORTD &= ~(1 << CHAMBER_STEP) // Macro for setting a pin connected to chamber step low.
 
@@ -28,5 +31,6 @@
 
 void SETUP_TIMER1_INTERRUPTS();
 void SETUP_TIMER3_INTERRUPTS();
+void SETUP_TIMER0();
 
 #endif

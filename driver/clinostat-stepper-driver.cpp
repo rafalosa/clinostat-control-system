@@ -10,6 +10,7 @@ uint16_t rpmToTimerInterval(const float&);
 void handleSerial();
 void updateProgramStatus(const uint8_t&);
 
+extern uint64_t program_time_milis;
 
 uint16_t top_speed_interval_chamber = 10;
 uint16_t top_speed_interval_frame = 10;
@@ -55,13 +56,18 @@ int main(){
     DDRD |= (1 << CHAMBER_STEP); // Setting appropriate pins as output.
     DDRD |= (1 << FRAME_STEP);
     DDRB |= (1 <<  ENABLE_PIN);
+    DDRD |= (1 << PD6);
 
     SETUP_TIMER1_INTERRUPTS();
     SETUP_TIMER3_INTERRUPTS();
+    SETUP_TIMER0();
+    ENABLE_TIMER0_INTERRUPTS;
 
     DISABLE_STEPPERS;
 
     serial.begin();
+
+    uint64_t now = program_time_milis;
 
     while(true){
         
@@ -82,6 +88,14 @@ int main(){
 
         }
         checkMotorStatus();
+
+        if(program_time_milis - now >= 1000){
+
+            now = program_time_milis;
+            PORTD ^= (1 << PD6);
+            }
+
+
     }
 
     return 0;
