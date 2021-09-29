@@ -4,6 +4,7 @@
 #define CHAMBER_STEP 0 // PD0 for chamber step pin.
 #define FRAME_STEP 1 // PD1 for frame step pin.
 #define ENABLE_PIN 4 // PB4 for enable pin for both motors.
+#define PUMP_PIN 6 // PD6 for driving the pump mosfet.
 
 #define STOP_INTERVAL_CHAMBER 10000 // Determiens the starting speed of the steppers.
 #define STOP_INTERVAL_FRAME 10000

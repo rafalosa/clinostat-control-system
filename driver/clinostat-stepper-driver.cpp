@@ -3,14 +3,17 @@
 #include "commands.hpp"
 #include "clinostat_mechanics.hpp"
 #include "serial.hpp"
+#include "pump_config.hpp"
 
 void handleSerial();
 void checkMotorStatus();
 uint16_t rpmToTimerInterval(const float&);
+uint16_t volumeToPumpTime(const uint16_t&);
 void handleSerial();
 void updateProgramStatus(const uint8_t&);
 
 extern uint64_t program_time_milis;
+uint64_t pump_start_timestamp = 0;
 
 uint16_t top_speed_interval_chamber = 10;
 uint16_t top_speed_interval_frame = 10;
@@ -31,20 +34,28 @@ union {
 
 }speed_buffer[2];
 
+union{
+
+    uint32_t uint_value;
+    uint8_t byte_value[4];
+
+}watering_volume;
+
+uint32_t watering_time;
+
 /*
 
 TODOS:
 
 - Add encoder input handling.
 - Add homing command execution.
-- Add enabling/disabling stepper motors function.
-- Differentiate Pause and Abort commands.
 
 
 */
 
 
 bool device_connected = false;
+bool pumping = false;
 
 uint8_t current_program_status = 0; /* 0 -idle, 1 - running, 2 - paused, 3 - stopping, 4 - aborted.  */
 uint8_t previous_program_status = 1;
@@ -56,7 +67,7 @@ int main(){
     DDRD |= (1 << CHAMBER_STEP); // Setting appropriate pins as output.
     DDRD |= (1 << FRAME_STEP);
     DDRB |= (1 <<  ENABLE_PIN);
-    DDRD |= (1 << PD6);
+    DDRD |= (1 << PUMP_PIN);
 
     SETUP_TIMER1_INTERRUPTS();
     SETUP_TIMER3_INTERRUPTS();
@@ -87,14 +98,19 @@ int main(){
             handleSerial();
 
         }
-        checkMotorStatus();
 
-        if(program_time_milis - now >= 1000){
+        if(pumping){
 
-            now = program_time_milis;
-            PORTD ^= (1 << PD6);
+            if(program_time_milis - pump_start_timestamp >= watering_time){
+
+                TURN_OFF_PUMP;
+                pumping = false;
+
             }
 
+        }
+
+        checkMotorStatus();
 
     }
 
@@ -145,6 +161,12 @@ uint16_t rpmToTimerInterval(const float& speed){ // speed [RPM]
 
    return uint16_t(F_CPU/TIMER_PRESCALER/STEPS_PER_REVOLUTION*60/(speed*GEARBOX_REDUCTION*(MAIN_DRIVE_WHEEL_TEETH/STEPPER_BELT_WHEEL_TEETH)));
 
+
+}
+
+uint32_t volumeToPumpTime(const uint32_t& volume){
+
+    return volume/PUMPING_CONSTANT*60*1000;
 
 }
 
@@ -303,7 +325,9 @@ void handleSerial(){
 
     else{
 
-        if(command == RUN_COMMAND){ // If the command is run then read another 8 bytes to ge the set speeds.
+        if(device_connected){ // Before clinostat can do anything it has to first receive an connection attempt command.
+
+            if(command == RUN_COMMAND){ // If the command is run then read another 8 bytes to ge the set speeds.
 
             for(uint8_t i=0;i<2;i++){
                 
@@ -312,11 +336,23 @@ void handleSerial(){
                     uint8_t temp = serial.read();
                     speed_buffer[i].byte_value[j] = temp;
 
+                    }
                 }
+
+            }
+            else if(command == BEGIN_WATERING_COMMAND){
+
+                for(uint8_t j=0;j<4;j++){
+
+                    uint8_t temp = serial.read();
+                    watering_volume.byte_value[j] = temp;
+
+                    }
+                watering_time = volumeToPumpTime(watering_volume.uint_value);
+
             }
 
-        }
-        if(device_connected){ // Before clinostat can do anything it has to first receive an connection attempt command.
+    
             switch(command){
 
                 case RUN_COMMAND:
@@ -374,6 +410,14 @@ void handleSerial(){
                         default:
                         break;
                     }
+
+                break;
+
+                case BEGIN_WATERING_COMMAND:
+
+                    TURN_ON_PUMP;
+                    pump_start_timestamp = program_time_milis;
+                    pumping = true;
 
                 break;
 
