@@ -45,6 +45,7 @@ class Clinostat:
     _RUNNING_STATE = b'\x06'
     _STOPPING_STATE = b'\x07'
     _IDLE_STATE = b'\x08'
+    _PUMPING_STARTED = b'\x09'
 
     def __init__(self, port_name):
 
@@ -95,7 +96,9 @@ class Clinostat:
             try:
                 self._port.write(byte.to_bytes(1, 'little'))
             except serial.SerialException as err:
-                self.console.println(err.args[1], headline="DEVICE ERROR: ", msg_type="ERROR")
+                self.console.println(err.args[0], headline="SERIAL ERROR: ", msg_type="ERROR")
+
+                return
             sleep(0.1)
         try:
             response = self._port.read(1)
@@ -160,7 +163,8 @@ class Clinostat:
         try:
             self._port.write(command)
         except serial.SerialException as err:
-            self.console.println(err.args[1], headline="DEVICE ERROR: ", msg_type="ERROR")
+            self.console.println(err, headline="SERIAL ERROR: ", msg_type="ERROR")
+            raise ClinostatCommunicationError("Device is already physically disconnected. Check USB cable.")
         sleep(0.1)
         if response:
             try:
@@ -168,27 +172,26 @@ class Clinostat:
                 print(response)
             except serial.SerialTimeoutException:
                 raise ClinostatCommunicationError("Device didn't respond.")
-            msg = generateMessage(response)
+            msg = self.generateMessage(response)
             self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
     def startWateringCycle(self,amount):
         pass
 
+    def generateMessage(self,response):
 
-def generateMessage(response):
+        if response == Clinostat._STOPPING:
+            message = "Stopping motors."
+        elif response == Clinostat._STARTING:
+            message = "Starting motors."
+        elif response == Clinostat._STOPPED:
+            message = "Motors stopped."
+        elif response == Clinostat._TOP_SPEED:
+            message = "Motors have reached full speed."
+        else:
+            message = "Unknown response."
 
-    if response == Clinostat._STOPPING:
-        message = "Stopping motors."
-    elif response == Clinostat._STARTING:
-        message = "Starting motors."
-    elif response == Clinostat._STOPPED:
-        message = "Motors stopped."
-    elif response == Clinostat._TOP_SPEED:
-        message = "Motors have reached full speed."
-    else:
-        message = "Unknown response."
-
-    return message
+        return message
 
 
 def getPorts() -> list:

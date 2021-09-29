@@ -1,17 +1,15 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, Grid
-import clinostat_com
+from modules import clinostat_com, custom_tk_widgets as cw, data_socket
 from datetime import datetime
 import threading
 from multiprocessing import Pool
-import data_socket
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 import queue
 import os
 from shutil import copyfile
-import custom_tk_widgets as cw
 import tkinter.ttk as ttk
 from scipy import fft
 from functools import partial
@@ -587,6 +585,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.device = None
+        self.running = True
         self.seconds_tracker = time.time()
         self.pumps_tracker = time.time()
         self.pump_flag_previous_state = False
@@ -602,7 +601,7 @@ class App(tk.Tk):
                 with open("temp/data.temp", "a"):
                     pass
 
-        with open("config.yaml", "r") as file:
+        with open("config/config.yaml", "r") as file:
             config = yaml.load(file, Loader=yaml.FullLoader)
 
         self.lock = threading.Lock()
@@ -618,11 +617,14 @@ class App(tk.Tk):
         self.server.linkConsole(self.control_system.data_embed.console)
 
     def destroy(self):
+
         if self.server.running:
             self.server.closeServer()
 
         if self.device:
             self.device.close_serial()
+
+        self.running=False
 
         tk.Tk.destroy(self)
 
@@ -654,7 +656,8 @@ class App(tk.Tk):
                 self.pumps_tracker = now_time
 
         self.pump_flag_previous_state = self.control_system.pump_control.cycle_active
-        self.after(100, self.programLoop)
+        if self.running:
+            self.after(100, self.programLoop)
 
 
 if __name__ == "__main__":
