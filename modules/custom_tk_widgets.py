@@ -133,8 +133,10 @@ class SlidingIndicator(tk.Frame):
         self.slider.configure(state=state)
 
     def reset(self):
+        self.configureState(state="normal")
         self.slider.set(self.min)
         self.var.set(self.min)
+        self.configureState(state="disabled")
 
 
 class Console(tk.scrolledtext.ScrolledText):

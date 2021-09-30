@@ -21,6 +21,7 @@ import math
 # The above is due to the change in the program architecture which wasn't planned in this form in the beginning.
 
 # todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
+# todo: Refresh ports should also reset the selected port.
 
 
 class SerialConfig(ttk.LabelFrame):
@@ -42,6 +43,7 @@ class SerialConfig(ttk.LabelFrame):
         self.port_label = tk.Label(self.port_menu_frame, textvariable=self.port_description)
         self.port_menu = ttk.Combobox(self.port_menu_frame, textvariable=self.port_option_var, state="readonly")
         self.port_menu["values"] = self.available_ports
+        self.port_menu.bind("<<ComboboxSelected>>", lambda x: self.port_menu.selection_clear())
         self.refresh_button = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh ports")
         self.refresh_button.config(width=17)
         self.port_menu.config(width=18)
@@ -66,6 +68,9 @@ class SerialConfig(ttk.LabelFrame):
         self.connections_frame.grid(row=1, column=0, padx=10, sticky="s")
         self.console.grid(row=0, column=1, rowspan=2)
 
+        self.master.master.serial_buttons.append(self.connect_button)
+        self.master.master.serial_buttons.append(self.disconnect_button)
+
     def refreshPorts(self) -> None:
 
         self.available_ports = clinostat_com.getPorts()
@@ -76,6 +81,8 @@ class SerialConfig(ttk.LabelFrame):
         # for port in self.available_ports:
         #     self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
         self.port_menu["values"] = self.available_ports
+        self.port_option_var.set("Select serial port")
+        self.port_description.set("Select serial port:")
         self.console.println("Updated available serial ports.", headline="SERIAL: ", msg_type="MESSAGE")
 
     def connectToPort(self) -> None:
@@ -90,10 +97,10 @@ class SerialConfig(ttk.LabelFrame):
             self.console.println("No ports to connect to.", headline="ERROR: ", msg_type="ERROR")
             self.connect_button.configure(state="normal")
         else:
-            if clinostat_com.tryConnection(potential_port):
+            if clinostat_com.Clinostat.tryConnection(potential_port):
                 self.master.master.master.device = clinostat_com.Clinostat(potential_port)
                 self.master.master.master.device.port_name = potential_port
-                self.console.println("Succesfully connected to {}.".format(potential_port), headline="STATUS: ")
+                self.console.println(f"Successfully connected to {potential_port}.", headline="STATUS: ")
                 self.master.master.master.device.linkConsole(self.console)
                 self.disconnect_button.configure(state="normal")
                 self.connect_button.configure(state="disabled")
@@ -108,7 +115,7 @@ class SerialConfig(ttk.LabelFrame):
         try:
             self.master.master.master.device.close_serial()
         except clinostat_com.ClinostatCommunicationError as ex:
-            self.console.println(ex.message, headline="ERROR: ",msg_type="ERROR")
+            self.console.println(ex.message, headline="ERROR: ", msg_type="ERROR")
             return
         finally:
             port_name = self.master.master.master.device.port_name
@@ -118,7 +125,7 @@ class SerialConfig(ttk.LabelFrame):
             self.master.master.disableAllModes()
             self.master.master.pump_control.cycle_active = False
 
-        self.console.println("Succesfully disconnected from {}.".format(port_name),
+        self.console.println(f"Successfully disconnected from {port_name}.",
                              headline="STATUS: ")
 
 
@@ -175,6 +182,13 @@ class ModeMenu(ttk.LabelFrame):
         for indicator in self.indicators:
             indicator.configureState(state="disabled")
 
+        self.master.master.serial_buttons.append(self.abort_button)
+        self.master.master.serial_buttons.append(self.run_button)
+        self.master.master.serial_buttons.append(self.pause_button)
+        self.master.master.serial_buttons.append(self.resume_button)
+        self.master.master.serial_buttons.append(self.home_button)
+        self.master.master.serial_buttons.append(self.echo_button)
+
     def readIndicatorValues(self):
         return (indicator.getValue() for indicator in self.indicators)
 
@@ -186,6 +200,7 @@ class ModeMenu(ttk.LabelFrame):
     def handleRun(self):
         self.disableButtons()
         self.master.master.blockIndicators()
+        self.master.master.suspendSerialUI()
         func = partial(self.master.master.master.device.run, self.readIndicatorValues(), self.enableStop)
         threading.Thread(target=func).start()
 
@@ -194,6 +209,7 @@ class ModeMenu(ttk.LabelFrame):
 
     def handlePause(self):
         self.disableButtons()
+        self.master.master.suspendSerialUI()
         func = partial(self.master.master.master.device.pause, self.enableResume)
         threading.Thread(target=func).start()
 
@@ -218,6 +234,7 @@ class ModeMenu(ttk.LabelFrame):
         self.home_button.config(state="disabled")
 
     def enableStop(self):
+        self.master.master.breakSuspendSerialUI()
         self.master.master.serial_config.disconnect_button.configure(state="normal")
         self.abort_button.configure(state="normal")
         self.pause_button.configure(state="normal")
@@ -232,6 +249,7 @@ class ModeMenu(ttk.LabelFrame):
             indicator.configureState(state="normal")
 
     def enableResume(self):
+        self.master.master.breakSuspendSerialUI()
         self.master.master.serial_config.disconnect_button.configure(state="normal")
         self.resume_button.configure(state="normal")
         self.pause_button.configure(state="disabled")
@@ -244,9 +262,8 @@ class ModeMenu(ttk.LabelFrame):
 
     def resetIndicators(self):
         for indicator in self.indicators:
-            indicator.configureState(state="normal")
             indicator.reset()
-            indicator.configureState(state="disabled")
+
 
 
 class DataEmbed(tk.Frame):
@@ -313,7 +330,7 @@ class DataEmbed(tk.Frame):
                 self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
         for ax in self.grav_axes:
-            ax.legend(["X", "Y", "Z"],bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
+            ax.legend(["X", "Y", "Z"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
             ax.xlabel("Time elapsed (s)")
             ax.ylabel("Gravitational acceleration (G)")
 
@@ -325,12 +342,12 @@ class DataEmbed(tk.Frame):
         self.fourier_plot.xlabel("Frequency (Hz)")
         self.fourier_plot.ylabel("Intensity")
         self.fourier.add(self.fourier_plot, text="FFT of gravity vector")
-        self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"],bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
+        self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
 
-        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift,figsize=(5, 2.5), maxrecords=600)
-        self.time_shift.add(self.time_shift_plot,text="Time shift map of gravity vector")
+        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift, figsize=(5, 2.5), maxrecords=600)
+        self.time_shift.add(self.time_shift_plot, text="Time shift map of gravity vector")
 
-        self.data_save_frame.rowconfigure(0,weight=1)
+        self.data_save_frame.rowconfigure(0, weight=1)
         self.data_save_frame.columnconfigure(0, weight=1)
         self.data_save_frame.columnconfigure(1, weight=1)
 
@@ -339,9 +356,9 @@ class DataEmbed(tk.Frame):
         self.save_button.grid(row=0, column=0, padx=10)
         self.clear_button.grid(row=0, column=1, padx=10)
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10,pady=10, sticky="nswe")
-        self.data_save_frame.grid(row=0, column=1, padx=10,pady=10, sticky="nswe")
-        self.console.grid(row=1, column=0, padx=10,pady=10, sticky="nswe")
+        self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
+        self.data_save_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
+        self.console.grid(row=1, column=0, padx=10, pady=10, sticky="nswe")
         self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="nswe")
         self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="nswe")
         self.time_shift.grid(row=2, column=1, padx=10, pady=10, sticky="nswe")
@@ -400,14 +417,15 @@ class DataEmbed(tk.Frame):
 
         if all(self.data_buffers):  # If data buffers are not empty, plot.
 
-            if self.master.main_tabs.index(self.master.main_tabs.select()) == 1: # Update plots only if data tab is active.
+            # Update plots only if data tab is active.
+            if self.master.main_tabs.index(self.master.main_tabs.select()) == 1:
                 for plot_ind, plot in enumerate(self.grav_axes):
                     for line, buffer in zip(plot.lines, self.data_buffers[3 * plot_ind:3 * plot_ind + 3]):
                         plot.plot(line, np.arange(0, len(buffer)), buffer)
 
                 if len(self.data_buffers[0]) >= self.data_records_amount:
                     pool = Pool(processes=3)
-                    result = pool.imap(fft.fft,self.data_buffers[:3])
+                    result = pool.imap(fft.fft, self.data_buffers[:3])
                     pool.close()
                     pool.join()
                     calculated_ffts = [fft_ for fft_ in result]
@@ -470,72 +488,105 @@ class PumpControl(ttk.LabelFrame):
         # water_unit_var.set("ml")
         # self.water_unit_label = tk.Label(self,textvariable=water_unit_var)
 
-        self.water_slider = cw.SlidingIndicator(master=self, label="Watering volume",unit="ml",
-                                                orientation="horizontal", from_=0,to=250,res=10,length=300,
-                                                width=30,entry_pos="right")
+        self.water_slider = cw.SlidingIndicator(master=self, label="Watering volume", unit="ml",
+                                                orientation="horizontal", from_=0, to=250, res=10, length=300,
+                                                width=30, entry_pos="right")
 
-        self.time_slider = cw.SlidingIndicator(master=self, label="Watering time interval",unit="min",
-                                                orientation="horizontal", from_=0,to=240,res=5,length=300,
-                                                width=30,entry_pos="right")
+        self.time_slider = cw.SlidingIndicator(master=self, label="Watering time interval", unit="min",
+                                               orientation="horizontal", from_=0, to=240, res=5, length=300,
+                                               width=30, entry_pos="right")
 
         self.water_slider.configureState(state="disabled")
         self.time_slider.configureState(state="disabled")
 
         self.times_frame = tk.Frame(self)
 
-        self.time_passed_label_var = tk.StringVar()
-        self.time_passed_label_var.set("Time from last watering cycle:")
-        self.time_passed_label = tk.Label(self.times_frame,textvariable=self.time_passed_label_var)
-        self.time_passed_var = tk.StringVar()
-        self.time_passed_var.set(0)
-        self.time_passed_entry = tk.Entry(self.times_frame, textvariable=self.time_passed_var)
-        self.time_passed_entry.configure(width=9, state="disabled", disabledbackground="white",
-                                         disabledforeground="black", justify="center")
+        # self.time_passed_label_var = tk.StringVar()
+        # self.time_passed_label_var.set("Time from last watering cycle:")
+        # self.time_passed_label = tk.Label(self.times_frame, textvariable=self.time_passed_label_var)
+        # self.time_passed_var = tk.StringVar()
+        # self.time_passed_var.set("00:00")
+        # self.time_passed_entry = tk.Entry(self.times_frame, textvariable=self.time_passed_var)
+        # self.time_passed_entry.configure(width=9, state="disabled", disabledbackground="white",
+        #                                  disabledforeground="black", justify="center")
 
         self.time_left_label_var = tk.StringVar()
         self.time_left_label_var.set("Time till next watering cycle:")
         self.time_left_label = tk.Label(self.times_frame, textvariable=self.time_left_label_var)
         self.time_left_var = tk.StringVar()
-        self.time_left_var.set(0)
+        self.time_left_var.set("00:00")
         self.time_left_entry = tk.Entry(self.times_frame, textvariable=self.time_left_var)
         self.time_left_entry.configure(width=9, state="disabled", disabledbackground="white",
-                                         disabledforeground="black", justify="center")
+                                       disabledforeground="black", justify="center")
 
-        self.time_passed_label.grid(row=0,column=0)
-        self.time_passed_entry.grid(row=0,column=1)
-        self.time_left_label.grid(row=1, column=0)
-        self.time_left_entry.grid(row=1, column=1)
+        # self.time_passed_label.grid(row=0, column=0)
+        # self.time_passed_entry.grid(row=0, column=1)
+        self.time_left_label.grid(row=0, column=0)
+        self.time_left_entry.grid(row=0, column=1)
 
         self.buttons_frame = tk.Frame(self)
         self.start_button = tk.Button(self.buttons_frame, text="Start cycle", command=self.startWateringCycle)
         self.stop_button = tk.Button(self.buttons_frame, text="Stop cycle", command=self.stopWateringCycle)
-        self.start_button.configure(state="disabled")
-        self.stop_button.configure(state="disabled")
-        self.start_button.grid(row=0,column=0,padx=10,pady=10)
+        self.force_cycle_button = tk.Button(self.buttons_frame, text="Force watering", command=self.forceWateringCycle)
+        self.start_button.configure(state="disabled", width=9)
+        self.stop_button.configure(state="disabled", width=9)
+        self.force_cycle_button.configure(state="disabled", width=9)
+        self.start_button.grid(row=0, column=0, padx=10, pady=10)
         self.stop_button.grid(row=0, column=1, padx=10, pady=10)
+        self.force_cycle_button.grid(row=0, column=2, padx=10, pady=10)
 
-        self.water_slider.grid(row=0,column=0,padx=10,pady=10)
-        self.time_slider.grid(row=1,column=0,padx=10,pady=10)
-        self.times_frame.grid(row=2,column=0,padx=10,pady=10,sticky="W")
-        self.buttons_frame.grid(row=3,column=0,padx=10,pady=10)
-        # self.water_label.grid(row=1,column=0,padx=10,pady=5,sticky="W")
-        # self.water_slider.grid(row=2,column=0,padx=10,pady=10)
-        # self.water_unit_label.grid(row=2,column=1,sticky="W")
+        self.water_slider.grid(row=0, column=0, padx=10, pady=10)
+        self.time_slider.grid(row=1, column=0, padx=10, pady=10)
+        self.times_frame.grid(row=2, column=0, padx=10, pady=10, sticky="W")
+        self.buttons_frame.grid(row=3, column=0, padx=10, pady=10)
+
+        self.master.master.serial_buttons.append(self.start_button)
+        self.master.master.serial_buttons.append(self.stop_button)
+        self.master.master.serial_buttons.append(self.force_cycle_button)
 
     def startWateringCycle(self):
-        self.cycle_active = True
+        if self.water_slider.getValue() > 0 and self.time_slider.getValue() > 0:
+
+            self.cycle_active = True
+            self.force_cycle_button.configure(state="normal")
+            self.stop_button.configure(state="normal")
+            self.start_button.configure(state="disabled")
+
+        else:
+            self.master.master.serial_config.console.println("Time and volume values have to be greater than 0.",
+                                                      headline="CCS: ", msg_type="CCS")
 
     def stopWateringCycle(self):
         self.cycle_active = False
+        self.time_left_var.set("00:00")
+        self.force_cycle_button.configure(state="disabled")
+        self.start_button.configure(state="normal")
+        self.stop_button.configure(state="disabled")
+
+    def forceWateringCycle(self):
+        self.master.master.suspendSerialUI()
+        func = partial(self.master.master.master.device.dumpWater, self.water_slider.getValue(), self.master.master.breakSuspendSerialUI)
+        threading.Thread(target=func).start()
+        # todo: reset time variable and label.
+        # todo: send command to clinostat to start watering.
+        pass
 
     def disableUI(self):
         self.stop_button.configure(state="disabled")
         self.start_button.configure(state="disabled")
         self.water_slider.configureState(state="disabled")
         self.time_slider.configureState(state="disabled")
+        self.time_slider.reset()
+        self.water_slider.reset()
+        self.force_cycle_button.configure(state="disabled")
+
+    def disableButtons(self):
+        self.force_cycle_button.configure(state="disabled")
+        self.stop_button.configure(state="disabled")
+        self.start_button.configure(state="disabled")
 
     def enableUI(self):
-        self.stop_button.configure(state="active")
+        self.stop_button.configure(state="disabled")
         self.start_button.configure(state="active")
         self.water_slider.configureState(state="active")
         self.time_slider.configureState(state="active")
@@ -545,12 +596,15 @@ class ClinostatControlSystem(tk.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.serial_buttons = []
+        self.saved_button_states = []
+
         self.main_tabs = ttk.Notebook(self)
 
         self.motors_tab = tk.Frame(self)
 
-        self.serial_config = SerialConfig(self.motors_tab,text="Controller connection")
-        self.mode_options = ModeMenu(self.motors_tab,text="Motors control")
+        self.serial_config = SerialConfig(self.motors_tab, text="Controller connection")
+        self.mode_options = ModeMenu(self.motors_tab, text="Motors control")
         self.pump_control = PumpControl(self.motors_tab, text="Pump control")
 
         self.serial_config.grid(row=0, column=0, sticky="nswe", padx=10, pady=10)
@@ -572,6 +626,15 @@ class ClinostatControlSystem(tk.Frame):
         self.mode_options.resetIndicators()
         self.mode_options.disableIndicators()
         self.pump_control.disableUI()
+
+    def suspendSerialUI(self):
+        self.saved_button_states = [button["state"] for button in self.serial_buttons]
+        for button in self.serial_buttons:
+            button.configure(state="disabled")
+
+    def breakSuspendSerialUI(self):
+        for button,state_ in zip(self.serial_buttons,self.saved_button_states):
+            button.configure(state=state_)
 
     def blockIndicators(self):
         self.mode_options.disableIndicators()
@@ -612,7 +675,7 @@ class App(tk.Tk):
                                              thread_lock=self.lock)
         
         self.control_system = ClinostatControlSystem(self)
-        self.control_system.grid(row=0,column=0,sticky="nswe")
+        self.control_system.grid(row=0, column=0, sticky="nswe")
 
         self.server.linkConsole(self.control_system.data_embed.console)
 
@@ -624,9 +687,9 @@ class App(tk.Tk):
         if self.device:
             self.device.close_serial()
 
-        self.running=False
+        self.running = False
 
-        tk.Tk.destroy(self)
+        super().quit()
 
     def programLoop(self):
 
@@ -645,7 +708,7 @@ class App(tk.Tk):
                 time_left = self.control_system.pump_control.time_slider.getValue()*60 - (now_time - self.pumps_tracker)
                 mins = math.floor(time_left/60)
                 secs = math.floor(time_left - mins*60)
-                self.control_system.pump_control.time_passed_var.set(0)
+                # self.control_system.pump_control.time_passed_var.set(0)
                 self.control_system.pump_control.time_left_var.set(f"{mins:02d}:{secs:02d}")
                 print(time_left)
                 self.seconds_tracker = now_time
@@ -653,6 +716,7 @@ class App(tk.Tk):
             if (now_time - self.pumps_tracker)/60 >= self.control_system.pump_control.time_slider.getValue():
                 # send command to controller to execute watering routine
                 # send console notification
+                self.control_system.pump_control.forceWateringCycle()
                 self.pumps_tracker = now_time
 
         self.pump_flag_previous_state = self.control_system.pump_control.cycle_active

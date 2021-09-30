@@ -7,5 +7,4 @@
 #define TURN_OFF_PUMP PORTD &= ~(1 << PUMP_PIN)
 #define TOGGLE_PUMP PORTD ^= (1 << PUMP_PIN)
 
-
 #endif

@@ -6,21 +6,6 @@ import struct
 from time import sleep
 
 
-def tryConnection(port):
-    try:
-        test_serial = serial.Serial(port,baudrate=57600,timeout=2)
-    except serial.serialutil.SerialException:
-        return False
-    test_serial.write(Clinostat._CONNECT)
-    time.sleep(0.001)
-    received = test_serial.read(1)
-    test_serial.close()
-    if received == Clinostat._CONNECTED:
-        return True
-    else:
-        return False
-
-
 class Clinostat:
 
     # Commands that can be sent to device.
@@ -46,6 +31,7 @@ class Clinostat:
     _STOPPING_STATE = b'\x07'
     _IDLE_STATE = b'\x08'
     _PUMPING_STARTED = b'\x09'
+    _STILL_PUMPING = b'\x0a'
 
     def __init__(self, port_name):
 
@@ -169,16 +155,45 @@ class Clinostat:
         if response:
             try:
                 response = self._port.read(1)
-                print(response)
+                # print(response)
             except serial.SerialTimeoutException:
                 raise ClinostatCommunicationError("Device didn't respond.")
             msg = self.generateMessage(response)
             self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
-    def startWateringCycle(self,amount):
-        pass
+    def dumpWater(self,amount, enable_interface):
+        # Sends mode ID and 8 more bytes containing 2 floats for the speed.
+        # listen for response, return true if controller responded correctly
+        message = Clinostat._WATERING
+        message += bytes(bytearray(struct.pack("f", amount)))
+        print(message)
 
-    def generateMessage(self,response):
+        for byte in message:
+            try:
+                self._port.write(byte.to_bytes(1, 'little'))
+            except serial.SerialException as err:
+                self.console.println(err.args[0], headline="SERIAL ERROR: ", msg_type="ERROR")
+
+                return
+            sleep(0.1)
+        try:
+            response = self._port.read(1)
+            print(response)
+        except serial.SerialTimeoutException:
+            raise ClinostatCommunicationError("Device didn't respond.")
+        if response == Clinostat._PUMPING_STARTED:
+            self.console.println("Watering starting.", headline="CONTROLLER: ", msg_type="CONTROLLER")
+            enable_interface()
+        elif response == Clinostat._STILL_PUMPING:
+            self.console.println("Previous watering process still running.", headline="CONTROLLER: ", msg_type="CONTROLLER")
+            enable_interface()
+        else:
+            self.console.println("Received incorrect response, aborting.",
+                                 headline="CONTROLLER ERROR: ", msg_type="ERROR")
+            # todo: Actually add handling the mentioned abort.
+
+    @staticmethod
+    def generateMessage(response):
 
         if response == Clinostat._STOPPING:
             message = "Stopping motors."
@@ -188,10 +203,29 @@ class Clinostat:
             message = "Motors stopped."
         elif response == Clinostat._TOP_SPEED:
             message = "Motors have reached full speed."
+        elif response == Clinostat._PUMPING_STARTED:
+            message = "Watering started."
+        elif response == Clinostat._STILL_PUMPING:
+            message = "Previous watering cycle hasn't finished yet."
         else:
             message = "Unknown response."
 
         return message
+
+    @staticmethod
+    def tryConnection(port):
+        try:
+            test_serial = serial.Serial(port, baudrate=57600, timeout=2)
+        except serial.serialutil.SerialException:
+            return False
+        test_serial.write(Clinostat._CONNECT)
+        time.sleep(0.001)
+        received = test_serial.read(1)
+        test_serial.close()
+        if received == Clinostat._CONNECTED:
+            return True
+        else:
+            return False
 
 
 def getPorts() -> list:
