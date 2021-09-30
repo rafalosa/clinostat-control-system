@@ -71,8 +71,8 @@ int main(){
 
     SETUP_TIMER1_INTERRUPTS();
     SETUP_TIMER3_INTERRUPTS();
-    SETUP_TIMER0();
-    ENABLE_TIMER0_INTERRUPTS;
+    SETUP_TIMER0_INTERRUPTS();
+    ENABLE_TIMER0_INTERRUPTS; // Begin time tracking rightaway.
 
     DISABLE_STEPPERS;
 
@@ -321,6 +321,12 @@ void handleSerial(){
 
         updateProgramStatus(3);
         device_connected = false;
+        if(pumping){
+
+            TURN_OFF_PUMP;
+            pumping = false;
+
+        }
     }
 
     else{
@@ -415,9 +421,18 @@ void handleSerial(){
 
                 case BEGIN_WATERING_COMMAND:
 
-                    TURN_ON_PUMP;
-                    pump_start_timestamp = program_time_milis;
-                    pumping = true;
+                    if(pumping){
+
+                        serial.write(STILL_WATERING);
+
+                    }
+
+                    else{
+                        serial.write(WATERING_STARTED);
+                        TURN_ON_PUMP;
+                        pump_start_timestamp = program_time_milis;
+                        pumping = true;
+                    }
 
                 break;
 

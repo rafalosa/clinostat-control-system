@@ -31,7 +31,7 @@ void SETUP_TIMER3_INTERRUPTS(){
     sei();
 }
 
-void SETUP_TIMER0(){ // Configuration of 8-bit timer for time tracking.
+void SETUP_TIMER0_INTERRUPTS(){ // Configuration of 8-bit timer for time tracking.
 
     cli();
     TCCR0A = 0; // OC0A and OC0B pins disconnected.

@@ -24,6 +24,7 @@
 #define STOPPING_STEPPERS 0x04
 #define STEPPERS_STOPPED 0x05
 #define WATERING_STARTED 0x09
+#define STILL_WATERING 0x0A
 
 // Status report commands.
 
