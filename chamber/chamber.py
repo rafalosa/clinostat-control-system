@@ -1,4 +1,4 @@
-import sensors
+from chamber.modules import sensors
 import socket
 import time
 import yaml
@@ -6,7 +6,7 @@ import smbus
 
 HEADER_SIZE = 10
 
-with open("chamber_config.yaml", "r") as file:
+with open("config/chamber_config.yaml", "r") as file:
     config = yaml.load(file, Loader=yaml.FullLoader)
 
 main_i2c_bus = smbus.SMBus(1)
@@ -16,7 +16,7 @@ port = config["PORT"]
 
 running = True
 
-grav_sensor = sensors.LIS3DHAccelerometer(config["GRAV"],main_i2c_bus)
+grav_sensor = sensors.LIS3DHAccelerometer(config["GRAV"], main_i2c_bus)
 grav_sensor.enable()
 index = 0
 means = [0,0,0]
