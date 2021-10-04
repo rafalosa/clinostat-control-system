@@ -1,7 +1,6 @@
 import tkinter as tk
-from tkinter import Grid
 from modules import data_socket
-from modules.segments import SerialConfig, DataEmbed, PumpControl, ModeMenu
+from modules.segments import SerialConfig, DataEmbed, PumpControl, ModeMenu, LightControl
 import threading
 import yaml
 import queue
@@ -17,34 +16,28 @@ import math
 # todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
 
 
-class ClinostatControlSystem(tk.Frame):
+class ClinostatControlSystem(ttk.Notebook):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.serial_buttons = []
         self.saved_button_states = []
 
-        self.main_tabs = ttk.Notebook(self)
-
         self.motors_tab = tk.Frame(self)
 
         self.serial_config = SerialConfig(self.motors_tab, text="Controller connection")
         self.mode_options = ModeMenu(self.motors_tab, text="Motors control")
         self.pump_control = PumpControl(self.motors_tab, text="Pump control")
+        self.light_control = LightControl(self.motors_tab, text="Lighting control")
 
-        self.serial_config.grid(row=0, column=0, sticky="nswe", padx=10, pady=10)
-        self.mode_options.grid(row=1, column=0, sticky="nswe", padx=10, pady=10)
-        self.pump_control.grid(row=0, column=1, sticky="nswe", padx=10, pady=10)
-
+        self.serial_config.place(x=5, y=5)
+        self.mode_options.place(x=5, y=425)
+        self.pump_control.place(x=615, y=5)
+        self.light_control.place(x=615, y=305)
         self.data_embed = DataEmbed(self)
 
-        self.main_tabs.add(self.motors_tab, text="Clinostat control")
-        self.main_tabs.add(self.data_embed, text="Chamber computer")
-
-        Grid.rowconfigure(self, 0, weight=1)
-        Grid.columnconfigure(self, 0, weight=1)
-
-        self.main_tabs.grid(row=0, column=0, sticky="nswe")
+        self.add(self.motors_tab, text="Clinostat control")
+        self.add(self.data_embed, text="Chamber computer")
 
     def disableAllModes(self):
         self.mode_options.disableButtons()
@@ -58,7 +51,7 @@ class ClinostatControlSystem(tk.Frame):
             button.configure(state="disabled")
 
     def breakSuspendSerialUI(self):
-        for button,state_ in zip(self.serial_buttons,self.saved_button_states):
+        for button, state_ in zip(self.serial_buttons, self.saved_button_states):
             button.configure(state=state_)
 
     def blockIndicators(self):
@@ -95,12 +88,12 @@ class App(tk.Tk):
         self.lock = threading.Lock()
         self.data_queue = queue.Queue()
         self.kill_server = threading.Event()
-        self.server = data_socket.DataServer(parent=self, queue_=self.data_queue,
-                                             address=config["IP"], port=config["PORT"],
+        self.server = data_socket.DataServer(parent=self, address=config["IP"], port=config["PORT"],
                                              thread_lock=self.lock)
+        self.server.addQueue(self.data_queue)
         
         self.control_system = ClinostatControlSystem(self)
-        self.control_system.pack()
+        self.control_system.pack(expand=True)
 
         self.server.linkConsole(self.control_system.data_embed.console)
 
@@ -149,7 +142,8 @@ class App(tk.Tk):
 if __name__ == "__main__":
     root = App()
     root.resizable(False, False)
+    root.geometry("1100x800")
     root.title("Clinostat control system")
-    #root.iconbitmap("icon/favicon.ico")
+    # root.iconbitmap("icon/favicon.ico")
     root.after(1, root.programLoop)
     root.mainloop()

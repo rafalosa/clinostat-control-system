@@ -90,7 +90,7 @@ class EmbeddedFigure(tk.Frame):
 class SlidingIndicator(tk.Frame):
 
     def __init__(self,label="Speed",unit="RPM",orientation="vertical", from_=5,to=0.1,res=0.1,
-                 length=180, width=45, entry_pos = "bot", *args,**kwargs):
+                 length=180, width=45, entry_pos = "bot", opt=None, *args,**kwargs):
         super().__init__(*args, **kwargs)
         self.min = min((from_, to))
         self.var = tk.StringVar()
@@ -99,6 +99,7 @@ class SlidingIndicator(tk.Frame):
         self.slider = tk.Scale(self,from_=from_,to=to,orient=orientation,
                                resolution=res,length=length,command=self.updateEntry,showvalue=0,width=width)
         self.slider.configure(cursor="dot")
+        self.opt = opt
 
         self.entry_frame = tk.Frame(self)
         self.var = tk.DoubleVar()
@@ -110,7 +111,11 @@ class SlidingIndicator(tk.Frame):
         self.unit_var.set(unit)
         self.entry_label = tk.Label(self.entry_frame,textvariable=self.unit_var)
         self.entry.grid(row=0,column=0)
-        self.entry_label.grid(row=1, column=0)
+
+        if entry_pos == "bot":
+            self.entry_label.grid(row=1, column=0)
+        elif entry_pos == "right":
+            self.entry_label.grid(row=0, column=1)
 
         self.label.grid(row=0,column=0)
         self.slider.grid(row=1,column=0)
@@ -119,10 +124,13 @@ class SlidingIndicator(tk.Frame):
         elif entry_pos == "right":
             self.entry_frame.grid(row=1, column=1,sticky="E")
 
-    def updateEntry(self,*args):
+    def updateEntry(self, *args):
+        if self.opt:
+            self.opt()
         self.var.set(args[0])
 
     def getValue(self):
+
         return self.var.get()
 
     def configureState(self,state):

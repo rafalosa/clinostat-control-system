@@ -27,7 +27,7 @@ class SerialConfig(ttk.LabelFrame):
         self.port_option_var.set("Select serial port")
 
         self.port_description = tk.StringVar()
-        self.port_description.set("Select serial port:")
+        self.port_description.set("Serial port:")
 
         self.port_menu_frame = tk.Frame(self)
         self.port_label = tk.Label(self.port_menu_frame, textvariable=self.port_description)
@@ -67,12 +67,8 @@ class SerialConfig(ttk.LabelFrame):
         if not self.available_ports:
             self.available_ports = ["Empty"]
 
-        # self.port_menu['menu'].delete(0, "end")
-        # for port in self.available_ports:
-        #     self.port_menu['menu'].add_command(label=port, command=tk._setit(self.port_option_var, port))
         self.port_menu["values"] = self.available_ports
         self.port_option_var.set("Select serial port")
-        self.port_description.set("Select serial port:")
         self.console.println("Updated available serial ports.", headline="SERIAL: ", msg_type="MESSAGE")
 
     def connectToPort(self) -> None:
@@ -117,6 +113,7 @@ class SerialConfig(ttk.LabelFrame):
 
         self.console.println(f"Successfully disconnected from {port_name}.",
                              headline="STATUS: ")
+
 
 class ModeMenu(ttk.LabelFrame):
     def __init__(self, *args, **kwargs):
@@ -252,6 +249,7 @@ class ModeMenu(ttk.LabelFrame):
     def resetIndicators(self):
         for indicator in self.indicators:
             indicator.reset()
+
 
 class DataEmbed(tk.Frame):
 
@@ -405,7 +403,7 @@ class DataEmbed(tk.Frame):
         if all(self.data_buffers):  # If data buffers are not empty, plot.
 
             # Update plots only if data tab is active.
-            if self.master.main_tabs.index(self.master.main_tabs.select()) == 1:
+            if self.master.index(self.master.select()) == 1:
                 for plot_ind, plot in enumerate(self.grav_axes):
                     for line, buffer in zip(plot.lines, self.data_buffers[3 * plot_ind:3 * plot_ind + 3]):
                         plot.plot(line, np.arange(0, len(buffer)), buffer)
@@ -452,6 +450,7 @@ class DataEmbed(tk.Frame):
                 pass
         else:
             self.master.master.server.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+
 
 class PumpControl(ttk.LabelFrame):
 
@@ -514,7 +513,7 @@ class PumpControl(ttk.LabelFrame):
 
         else:
             self.master.master.serial_config.console.println("Time and volume values have to be greater than 0.",
-                                                      headline="CCS: ", msg_type="CCS")
+                                                             headline="ERROR: ", msg_type="ERROR")
 
     def stopWateringCycle(self):
         self.cycle_active = False
@@ -548,3 +547,43 @@ class PumpControl(ttk.LabelFrame):
         self.start_button.configure(state="active")
         self.water_slider.configureState(state="active")
         self.time_slider.configureState(state="active")
+
+
+class LightControl(ttk.LabelFrame):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.intensity_slider = cw.SlidingIndicator(master=self, label="Intensity", unit="%", orientation="horizontal",
+                                                    from_=0, to=100, res=1, length=300, width=30, entry_pos="right",
+                                                    opt = self.updateValueContainer)
+        self.intensity_slider.grid(row=0, column=0, sticky="ne", padx=10, pady=10)
+        self.intensity_slider.configureState(state="disabled")
+
+        self.intensity_queue = queue.Queue()
+        self.intensity_queue.put(50)
+        self.master.master.master.server.addQueue(self.intensity_queue)
+
+    def enableUI(self):
+        pass
+
+    def disableUI(self):
+        pass
+
+    def updateValueContainer(self):
+
+        self.intensity_queue.put(self.intensity_slider.getValue())
+
+
+if __name__ == "__main__":
+    app = tk.Tk()
+    app.title("widget test")
+    # serial = SerialConfig(app)
+    # light = LightControl(app)
+    # data = DataEmbed(app)
+    # modes = ModeMenu(app)
+    # pumps = PumpControl(app)
+
+    # term = TerminalEmulator(master=app)
+    # term.pack()
+    app.mainloop()

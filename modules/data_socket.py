@@ -4,7 +4,8 @@ import threading
 
 class DataServer:
 
-    def __init__(self,parent,thread_lock,queue_,address="127.0.0.1",port=8888):
+    def __init__(self,parent,thread_lock,address="127.0.0.1",port=8888):
+        self.queues = []
         self.parent = parent
         self.socket = None
         self.server_thread = None
@@ -14,7 +15,7 @@ class DataServer:
         self.port = port
         self.HEADER_SIZE = 10
         self.lock = thread_lock
-        self.data_queue = queue_
+
 
     def runServer(self):
         self.server_thread = threading.Thread(target=self._serverLoop)
@@ -36,35 +37,38 @@ class DataServer:
         self.lock.release()
         self.socket.listen()
 
-        while self.running:
+        if self.queues:
 
-            try:
-                client, address = self.socket.accept()
-            except(socket.timeout, OSError):
-                return
-            finally:
-                if not self.running:
+            while self.running:
+
+                try:
+                    client, address = self.socket.accept()
+                except(socket.timeout, OSError):
                     return
+                finally:
+                    if not self.running:
+                        return
 
-            with client:
-                fresh = True
-                message = ''
-                while True:
-                    data = client.recv(16)
-                    data = data.decode('utf-8')
+                with client:
+                    fresh = True
+                    message = ''
+                    while True:
+                        data = client.recv(16)
+                        data = data.decode('utf-8')
 
-                    if fresh:
-                        message_len = int(data[:self.HEADER_SIZE])
-                        fresh = False
-                        message += data[self.HEADER_SIZE:]
+                        if fresh:
+                            message_len = int(data[:self.HEADER_SIZE])
+                            fresh = False
+                            message += data[self.HEADER_SIZE:]
 
-                    else:
-                        message += data
+                        else:
+                            message += data
 
-                    if len(message) == message_len:
-                        break
+                        if len(message) == message_len:
+                            break
 
-            self.data_queue.put(message)
+                self.queues[0].put(message)
+                # respond with current lighting setting
 
     def closeServer(self):
         self.running = False
@@ -76,6 +80,9 @@ class DataServer:
             self.socket.close()
 
         self.socket = None
+
+    def addQueue(self, q):
+        self.queues.append(q)
 
     def linkConsole(self, link):
         self.console = link
