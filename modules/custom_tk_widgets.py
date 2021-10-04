@@ -152,8 +152,8 @@ class Console(tk.scrolledtext.ScrolledText):
         self.configure(state="disabled")
 
     def println(self,string,headline=None,msg_type="MESSAGE"):
-        self.configure(state="normal")
         time = datetime.now()
+        self.configure(state="normal")
         if headline is not None:
             headline = time.strftime("%Y/%m/%d %H:%M:%S ") + headline
         else:
@@ -163,7 +163,6 @@ class Console(tk.scrolledtext.ScrolledText):
         self.insert("end",string + '\n',"TEXT")
         self.configure(state="disabled")
         self.see("end")
-        # todo: Add logging to text file.
 
 # Should reconsider this or at least postpone it. This is not very trivial to implement nor is it necessary.
 # class TerminalEmulator(tk.scrolledtext.ScrolledText):

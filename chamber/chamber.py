@@ -1,4 +1,4 @@
-from chamber.modules import sensors
+from modules import sensors
 import socket
 import time
 import yaml

@@ -166,14 +166,12 @@ class Clinostat:
         # listen for response, return true if controller responded correctly
         message = Clinostat._WATERING
         message += bytes(bytearray(struct.pack("f", amount)))
-        print(message)
 
         for byte in message:
             try:
                 self._port.write(byte.to_bytes(1, 'little'))
             except serial.SerialException as err:
                 self.console.println(err.args[0], headline="SERIAL ERROR: ", msg_type="ERROR")
-
                 return
             sleep(0.1)
         try:
