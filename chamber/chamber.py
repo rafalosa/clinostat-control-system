@@ -48,4 +48,18 @@ while running:
             running = False
             break
         sc.sendall(msg.encode())
-    time.sleep(0.1)
+        response = ""
+        while True:
+            data = sc.recv(HEADER_SIZE)
+            data = data.decode('utf-8')
+
+            if fresh:
+                size = int(data[:HEADER_SIZE])
+                fresh = False
+                response += data[HEADER_SIZE:]
+            else:
+                response += data
+
+            if len(response) == size:
+                break
+    time.sleep(0.2)

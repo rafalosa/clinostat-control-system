@@ -16,7 +16,6 @@ class DataServer:
         self.HEADER_SIZE = 10
         self.lock = thread_lock
 
-
     def runServer(self):
         self.server_thread = threading.Thread(target=self._serverLoop)
         self.server_thread.setDaemon(True)
@@ -31,6 +30,7 @@ class DataServer:
             return
 
         self.lock.acquire()
+        # todo: If output is linked report.
         self.console.println(f"Successfully connected to: {self.address}", headline="TCP: ", msg_type="TCP")
         self.parent.control_system.data_embed.enableInterface()
         self.running = True
@@ -67,8 +67,14 @@ class DataServer:
                         if len(message) == message_len:
                             break
 
-                self.queues[0].put(message)
-                # respond with current lighting setting
+                    self.queues[0].put(message)
+
+                    if not self.queues[1].empty():
+                        response = str(self.queues[1].get())
+                    else:
+                        response = "default"
+                    response = f"{len(response):<{self.HEADER_SIZE}}" + response
+                    client.sendall(response.encode())
 
     def closeServer(self):
         self.running = False
@@ -78,11 +84,14 @@ class DataServer:
             pass
         finally:
             self.socket.close()
-
-        self.socket = None
+            self.socket = None
 
     def addQueue(self, q):
         self.queues.append(q)
+        # todo: Make 2 methods: attachReceiveQueue and attachResponseQueue, much clearer and universal.
 
-    def linkConsole(self, link):
+        # todo: Or just make two queues that are attached to the server object at all times and just access them
+        #  externally as app.data_server.containers["respond"] or app.data_server.containers["receive"]
+
+    def linkConsole(self, link):  # todo: Convert to linkOutput(self, output, printer), which would include any possible
         self.console = link

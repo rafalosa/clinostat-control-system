@@ -11,9 +11,10 @@ import math
 
 
 # todo: Rewrite most of the program to avoid re verse calls like self.master.master.master.device.pause.
-# The above is due to the change in the program architecture which wasn't planned in this form in the beginning.
+#  The above is due to the change in the program architecture which wasn't planned in this form in the beginning.
 
-# todo: Add chamber environment control and monitoring (scheduling water pumps, lighting settings, temperature monitor)
+# todo: Pass the App obj. as a parameter to each container to make access to things like device, serial port,
+#   data server easier. Store these properties and objects in a dictionary in the App obj.
 
 
 class ClinostatControlSystem(ttk.Notebook):
@@ -30,10 +31,10 @@ class ClinostatControlSystem(ttk.Notebook):
         self.pump_control = PumpControl(self.motors_tab, text="Pump control")
         self.light_control = LightControl(self.motors_tab, text="Lighting control")
 
-        self.serial_config.place(x=5, y=5)
-        self.mode_options.place(x=5, y=425)
-        self.pump_control.place(x=615, y=5)
-        self.light_control.place(x=615, y=305)
+        self.serial_config.grid(row=0,column=0,padx=10,pady=10,sticky="nw",rowspan=2)
+        self.mode_options.grid(row=2,column=0,padx=10,pady=10,sticky="sw")
+        self.pump_control.grid(row=0,column=1,padx=10,pady=10,sticky="ne")
+        self.light_control.grid(row=1,column=1,padx=10,pady=10,sticky="ne")
         self.data_embed = DataEmbed(self)
 
         self.add(self.motors_tab, text="Clinostat control")
@@ -70,6 +71,7 @@ class App(tk.Tk):
         self.seconds_tracker = time.time()
         self.pumps_tracker = time.time()
         self.pump_flag_previous_state = False
+        # self.properties = {}
 
         if "saved data" not in os.listdir("."):
             os.mkdir("saved data")

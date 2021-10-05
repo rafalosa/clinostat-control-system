@@ -75,9 +75,9 @@ class ADS1115ADC:
         # Read channel voltage in reference to ground. ADS1115 also has a differential measuring mode, which
         # has been omitted, but would be trivial to implement.
 
-        LSbyte = 0b11100011  # Comparators disabled, 860SPS data rate
-        MSbyte = 0b0011 + ((channel+4) << 4) + 128  # Amplifier gain set to 1, start single conversion, pick channel.
-        self.bus.write_i2c_block_data(self.address, ADS1115ADC.__CONFIG_REG,[MSbyte,LSbyte])
+        ls_byte = 0b11100011  # Comparators disabled, 860SPS data rate
+        ms_byte = 0b0011 + ((channel + 4) << 4) + 128  # Amplifier gain set to 1, start single conversion, pick channel.
+        self.bus.write_i2c_block_data(self.address, ADS1115ADC.__CONFIG_REG, [ms_byte, ls_byte])
         while self.convertingStatus():
             pass
         data = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONVERSION_REG,2)

@@ -123,12 +123,8 @@ class ModeMenu(ttk.LabelFrame):
         self.indicators_frame = tk.Frame(self)
         self.RPMindicator1 = cw.SlidingIndicator(master=self.indicators_frame, label="1st DOF\nspeed")
         self.RPMindicator2 = cw.SlidingIndicator(master=self.indicators_frame, label="2nd DOF\nspeed")
-        # self.ACCELindicator1 = cw.SlidingIndicator(self.indicators_frame, label="1st DOF\nacceleration", unit="RPM/s")
-        # self.ACCELindicator2 = cw.SlidingIndicator(self.indicators_frame, label="2nd DOF\nacceleration", unit="RPM/s")
         self.RPMindicator1.grid(row=0, column=0, padx=30)
         self.RPMindicator2.grid(row=0, column=1, padx=30)
-        # self.ACCELindicator1.grid(row=0, column=2, padx=15)
-        # self.ACCELindicator2.grid(row=0, column=3, padx=15)
         self.indicators = [self.RPMindicator1, self.RPMindicator2]  # ,self.ACCELindicator1,self.ACCELindicator2]
 
         self.abort_button = tk.Button(self.button_frame, command=self.handleAbort, text="Abort")
