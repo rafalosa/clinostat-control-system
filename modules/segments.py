@@ -55,8 +55,8 @@ class SerialConfig(ttk.LabelFrame):
         self.console.configure(width=65, height=30)
 
         self.port_menu_frame.grid(row=0, column=0, padx=10, sticky="n")
-        self.connections_frame.grid(row=1, column=0, padx=10, sticky="s")
-        self.console.grid(row=0, column=1, rowspan=2)
+        self.connections_frame.grid(row=1, column=0, padx=10, pady=10, sticky="s")
+        self.console.grid(row=0, column=1, rowspan=2,pady=10, padx=10)
 
         self.master.master.serial_buttons.append(self.connect_button)
         self.master.master.serial_buttons.append(self.disconnect_button)
@@ -267,12 +267,12 @@ class DataEmbed(tk.Frame):
 
         self.start_server_button = tk.Button(self.server_buttons_frame,
                                              text="Start server", command=self.handleRunServer)
-        self.start_server_button.grid(row=0, column=0, pady=2, padx=5)
+        self.start_server_button.grid(row=0, column=0, pady=2, padx=30,sticky="w")
         self.start_server_button.configure(width=20)
 
         self.close_server_button = tk.Button(self.server_buttons_frame,
                                              text="Close server", command=self.handleCloseServer)
-        self.close_server_button.grid(row=0, column=1, pady=2, padx=5)
+        self.close_server_button.grid(row=0, column=1, pady=2, padx=30, sticky="e")
         self.close_server_button.configure(width=20, state="disabled")
 
         self.address_frame = tk.Frame(self.server_buttons_frame)
@@ -281,13 +281,16 @@ class DataEmbed(tk.Frame):
         self.address_label_var.set("Current server address:")
         self.address_var = tk.StringVar()
         self.entry = tk.Entry(self.address_frame, textvariable=self.address_var)
+        self.server_buttons_frame.rowconfigure(0,weight=1)
+        self.server_buttons_frame.columnconfigure(1, weight=1)
+        self.server_buttons_frame.columnconfigure(0, weight=1)
         self.entry.config(width=20, state="disabled")
         self.entry.configure(disabledbackground="white", disabledforeground="black")
 
         self.address_label = tk.Label(self.address_frame, textvariable=self.address_label_var)
-        self.address_label.grid(row=1, column=0)
-        self.entry.grid(row=1, column=1)
-        self.address_frame.grid(row=1, column=0, columnspan=2)
+        self.address_label.grid(row=0, column=0)
+        self.entry.grid(row=0, column=1)
+        self.address_frame.grid(row=1, column=0, columnspan=2,pady=10)
 
         self.console = cw.Console(self, width=50, height=15, font=("normal", 8))
 
@@ -306,7 +309,7 @@ class DataEmbed(tk.Frame):
         plot_descriptions = ["Gravity vector", "Mean gravity"]
 
         for i in range(len(plot_descriptions)):
-            plot = cw.EmbeddedFigure(master=self.gravity_plots, figsize=(5, 2.5), maxrecords=600)
+            plot = cw.EmbeddedFigure(master=self.gravity_plots, figsize=(5, 2.75), maxrecords=600)
             plot.addLinesObject()
             plot.addLinesObject()
             self.grav_axes.append(plot)
@@ -319,9 +322,7 @@ class DataEmbed(tk.Frame):
             ax.xlabel("Time elapsed (s)")
             ax.ylabel("Gravitational acceleration (G)")
 
-        self.data_buttons_frame = tk.Frame(self)
-
-        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=(5, 2.5), maxrecords=600)
+        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=(5, 2.75), maxrecords=600)
         self.fourier_plot.addLinesObject()
         self.fourier_plot.addLinesObject()
         self.fourier_plot.xlabel("Frequency (Hz)")
@@ -329,7 +330,7 @@ class DataEmbed(tk.Frame):
         self.fourier.add(self.fourier_plot, text="FFT of gravity vector")
         self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
 
-        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift, figsize=(5, 2.5), maxrecords=600)
+        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift, figsize=(5, 2.75), maxrecords=600)
         self.time_shift.add(self.time_shift_plot, text="Time shift map of gravity vector")
 
         self.data_save_frame.rowconfigure(0, weight=1)
@@ -341,13 +342,12 @@ class DataEmbed(tk.Frame):
         self.save_button.grid(row=0, column=0, padx=10)
         self.clear_button.grid(row=0, column=1, padx=10)
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
-        self.data_save_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
+        self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nwe")
+        self.data_save_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nwse")
         self.console.grid(row=1, column=0, padx=10, pady=10, sticky="nswe")
-        self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="nswe")
-        self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="nswe")
-        self.time_shift.grid(row=2, column=1, padx=10, pady=10, sticky="nswe")
-        self.data_buttons_frame.grid(row=3, column=0, pady=10, padx=10, sticky="nswe")
+        self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="sw")
+        self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="ne")
+        self.time_shift.grid(row=2, column=1, padx=10, pady=10, sticky="se")
 
     def handleRunServer(self):
         server_object = self.master.master.server
@@ -486,10 +486,10 @@ class PumpControl(ttk.LabelFrame):
         self.buttons_frame = tk.Frame(self)
         self.start_button = tk.Button(self.buttons_frame, text="Start cycle", command=self.startWateringCycle)
         self.stop_button = tk.Button(self.buttons_frame, text="Stop cycle", command=self.stopWateringCycle)
-        self.force_cycle_button = tk.Button(self.buttons_frame, text="Force watering", command=self.forceWateringCycle)
-        self.start_button.configure(state="disabled", width=9)
-        self.stop_button.configure(state="disabled", width=9)
-        self.force_cycle_button.configure(state="disabled", width=9)
+        self.force_cycle_button = tk.Button(self.buttons_frame, text="Force cycle", command=self.forceWateringCycle)
+        self.start_button.configure(state="disabled", width=8)
+        self.stop_button.configure(state="disabled", width=8)
+        self.force_cycle_button.configure(state="disabled", width=8)
         self.start_button.grid(row=0, column=0, padx=10, pady=10)
         self.stop_button.grid(row=0, column=1, padx=10, pady=10)
         self.force_cycle_button.grid(row=0, column=2, padx=10, pady=10)
@@ -554,7 +554,7 @@ class LightControl(ttk.LabelFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.intensity_slider = cw.SlidingIndicator(master=self, label="Intensity", unit="%", orientation="horizontal",
+        self.intensity_slider = cw.SlidingIndicator(master=self, label="Intensity", unit="%  ", orientation="horizontal",
                                                     from_=0, to=100, res=1, length=300, width=30, entry_pos="right",
                                                     opt = self.updateValueContainer)
         self.intensity_slider.grid(row=0, column=0, sticky="ne", padx=10, pady=10)
