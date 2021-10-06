@@ -1,7 +1,6 @@
 import tkinter as tk
 from modules import data_socket, properties
 from modules.segments import SerialConfig, DataEmbed, PumpControl, ModeMenu, LightControl
-import threading
 import yaml
 import queue
 import os
@@ -9,10 +8,9 @@ import tkinter.ttk as ttk
 import time
 import math
 
-# todo: Separate functional and gui methods from each other.
 
+class InterfaceManager(ttk.Notebook):
 
-class ClinostatControlSystem(ttk.Notebook):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -25,28 +23,30 @@ class ClinostatControlSystem(ttk.Notebook):
         self.motors_tab = tk.Frame(self)
 
         self.serial_config = self.serial_access_modules["connection"] =\
-            SerialConfig(master=self.motors_tab, supervisor=self.master, text="Controller connection")
+            SerialConfig(master=self.motors_tab, supervisor=self.master, interface_manager=self, text="Controller connection")
         self.serial_sensitive_interface.update(self.serial_config.serial_sensitive_interface)
         self.interface.update(self.serial_config.interface)
 
         self.mode_options = self.serial_access_modules["modes"] =\
-            ModeMenu(master=self.motors_tab, supervisor=self.master, text="Motors control")
+            ModeMenu(master=self.motors_tab, supervisor=self.master, interface_manager=self, text="Motors control")
         self.serial_sensitive_interface.update(self.mode_options.serial_sensitive_interface)
         self.interface.update(self.mode_options.interface)
 
         self.pump_control = self.serial_access_modules["pump_control"] =\
-            PumpControl(master=self.motors_tab, supervisor=self.master, text="Pump control")
+            PumpControl(master=self.motors_tab, supervisor=self.master, interface_manager=self, text="Pump control")
         self.serial_sensitive_interface.update(self.pump_control.serial_sensitive_interface)
         self.interface.update(self.pump_control.interface)
 
-        self.light_control = LightControl(master=self.motors_tab, supervisor=self.master, text="Lighting control")
+        self.light_control = LightControl(master=self.motors_tab, supervisor=self.master, interface_manager=self,
+                                          text="Lighting control")
 
         self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=2)
         self.mode_options.grid(row=2, column=0, padx=10, pady=10, sticky="sw")
         self.pump_control.grid(row=0, column=1, padx=10, pady=10, sticky="ne")
         self.light_control.grid(row=1, column=1, padx=10, pady=10, sticky="ne")
 
-        self.data_embed = DataEmbed(master=self, supervisor=self.master)
+        self.data_embed = DataEmbed(master=self, supervisor=self.master, interface_manager=self)
+        self.interface.update(self.data_embed.interface)
 
         self.outputs["serial"] = self.serial_config.console
         self.outputs["server"] = self.data_embed.console
@@ -56,19 +56,19 @@ class ClinostatControlSystem(ttk.Notebook):
         self.add(self.motors_tab, text="Clinostat control")
         self.add(self.data_embed, text="Chamber computer")
 
-    def ui_suspendModes(self):
+    def ui_modesSuspend(self):
         self.ui_disableCommandButtons()
         self.ui_disableSpeedIndicators()
         self.mode_options.resetIndicators()
         self.ui_wateringReset()
 
-    def ui_suspendSerial(self):
+    def ui_serialSuspend(self):
         self.serial_interface_buffer = {button: self.serial_sensitive_interface[button]["state"]
                                         for button in self.serial_sensitive_interface}
         for button in self.serial_sensitive_interface:
             self.serial_sensitive_interface[button].configure(state="disabled")
 
-    def ui_breakSuspendSerial(self):
+    def ui_serialBreakSuspend(self):
         if self.serial_interface_buffer:
             for button in self.serial_sensitive_interface:
                 self.serial_sensitive_interface[button].configure(state=self.serial_interface_buffer[button])
@@ -91,14 +91,14 @@ class ClinostatControlSystem(ttk.Notebook):
     def ui_runHandler(self):
         self.ui_disableCommandButtons()
         self.ui_disableSpeedIndicators()
-        self.ui_suspendSerial()
+        self.ui_serialSuspend()
 
     def ui_abortHandler(self):
         self.ui_disableCommandButtons()
 
     def ui_pauseHandler(self):
         self.ui_disableCommandButtons()
-        self.ui_suspendSerial()
+        self.ui_serialSuspend()
 
     def ui_resumeHandler(self):
         self.serial_sensitive_interface["resume"].configure(state="disabled")
@@ -119,7 +119,7 @@ class ClinostatControlSystem(ttk.Notebook):
         self.serial_sensitive_interface["home"].config(state="disabled")
 
     def ui_enableStop(self):
-        self.ui_breakSuspendSerial()
+        self.ui_serialBreakSuspend()
         self.serial_sensitive_interface["disconnect"].configure(state="normal")
         self.serial_sensitive_interface["abort"].configure(state="normal")
         self.serial_sensitive_interface["pause"].configure(state="normal")
@@ -133,7 +133,7 @@ class ClinostatControlSystem(ttk.Notebook):
         self.ui_enableSpeedIndicators()
 
     def ui_enableResume(self):
-        self.ui_breakSuspendSerial()
+        self.ui_serialBreakSuspend()
         self.serial_sensitive_interface["disconnect"].configure(state="normal")
         self.serial_sensitive_interface["resume"].configure(state="normal")
         self.serial_sensitive_interface["pause"].configure(state="disabled")
@@ -182,14 +182,22 @@ class ClinostatControlSystem(ttk.Notebook):
         self.interface["water_slider1"].configureState(state="active")
         self.interface["time_slider1"].configureState(state="active")
 
+    def ui_serverEnable(self):
+        self.interface["start_server"].configure(state="disabled")
+        self.interface["close_server"].configure(state="normal")
+
+    def ui_serverDisable(self):
+        self.interface["start_server"].configure(state="normal")
+        self.interface["close_server"].configure(state="disabled")
+
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.running = True
         self.params = properties.AppProperties()
         self.variables = properties.AppVariables()
         self.trackers = properties.AppTrackers()
+        self.flags = properties.AppFlags()
 
         # todo: Data buffers as dict.
 
@@ -211,10 +219,10 @@ class App(tk.Tk):
         self.params["server"] = data_socket.DataServer(address=config["IP"], port=config["PORT"])
         self.params["server"].addQueue(self.data_queue)
         
-        self.control_system = ClinostatControlSystem(self)
-        self.control_system.pack(expand=True)
+        self.interface_manager = InterfaceManager(self)
+        self.interface_manager.pack(expand=True)
 
-        self.params["server"].linkConsole(self.control_system.data_embed.console)
+        self.params["server"].linkConsole(self.interface_manager.data_embed.console)
 
     def destroy(self):
 
@@ -224,20 +232,18 @@ class App(tk.Tk):
         if self.params["device"]:
             self.params["device"].close_serial()
 
-        self.running = False
-
         super().quit()
 
     def programLoop(self):
 
-        if self.control_system.data_embed.plotting_flag and not self.data_queue.empty():
+        if self.flags["plotting"] and not self.data_queue.empty():
             self.params["plotter"].updateData()
 
-        if self.params["device"] and self.variables["pumping"]:
+        if self.params["device"] and self.flags["pumping"]:
 
             now_time = time.time()
 
-            if self.trackers["prev_pumping_flag_state"] != self.variables["pumping"]:
+            if self.flags["prev_pumping_flag_state"] != self.flags["pumping"]:
                 self.trackers["seconds"] = now_time
                 self.trackers["pump_time"] = now_time
 
@@ -249,12 +255,12 @@ class App(tk.Tk):
                 self.trackers["seconds"] = now_time
 
             if (now_time - self.trackers["pump_time"])/60 >= self.variables["time1"].get():
-                self.control_system.pump_control.forceWateringCycle()
+                self.interface_manager.pump_control.forceWateringCycle()
                 self.trackers["pump_time"] = now_time
 
-        self.trackers["prev_pumping_flag_state"] = self.variables["pumping"]
-        if self.running:
-            self.after(100, self.programLoop)
+        self.flags["prev_pumping_flag_state"] = self.flags["pumping"]
+
+        self.after(100, self.programLoop)
 
 
 if __name__ == "__main__":
