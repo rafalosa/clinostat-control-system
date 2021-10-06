@@ -4,9 +4,8 @@ import threading
 
 class DataServer:
 
-    def __init__(self,parent,thread_lock,address="127.0.0.1",port=8888):
+    def __init__(self,address="127.0.0.1",port=8888):
         self.queues = []
-        self.parent = parent
         self.socket = None
         self.server_thread = None
         self.console = None
@@ -14,27 +13,20 @@ class DataServer:
         self.address = address
         self.port = port
         self.HEADER_SIZE = 10
-        self.lock = thread_lock
 
     def runServer(self):
+        try:
+            self.socket = socket.create_server((self.address,self.port), family=socket.AF_INET)
+        except OSError as err:
+            self.console.println(err.args[1],headline="TCP ERROR: ",msg_type="ERROR")
+            raise ServerStartupError(err.args[1])
+        self.running = True
         self.server_thread = threading.Thread(target=self._serverLoop)
         self.server_thread.setDaemon(True)
         self.server_thread.start()
 
     def _serverLoop(self):
 
-        try:
-            self.socket = socket.create_server((self.address,self.port), family=socket.AF_INET)
-        except OSError as err:
-            self.console.println(err.args[1],headline="TCP ERROR: ",msg_type="ERROR")
-            return
-
-        self.lock.acquire()
-        # todo: If output is linked report.
-        self.console.println(f"Successfully connected to: {self.address}", headline="TCP: ", msg_type="TCP")
-        self.parent.control_system.data_embed.enableInterface()
-        self.running = True
-        self.lock.release()
         self.socket.listen()
 
         if self.queues:
@@ -95,3 +87,9 @@ class DataServer:
 
     def linkConsole(self, link):  # todo: Convert to linkOutput(self, output, printer), which would include any possible
         self.console = link
+
+
+class ServerStartupError(Exception):
+    def __init__(self,msg):
+        super().__init__()
+        self.message = msg

@@ -64,9 +64,9 @@ class Clinostat:
         elif response == Clinostat._STOPPING_STATE:
             message += "stopping"
 
-        self.console.println(message,headline="DEVICE: ",msg_type="CONTROLLER")
+        self.console.println(message,headline="CONTROLLER: ", msg_type="CONTROLLER")
 
-    def run(self, rpm: tuple, enable_interface):
+    def run(self, rpm):
         # Sends mode ID and 8 more bytes containing 2 floats for the speed.
         # listen for response, return true if controller responded correctly
         self.res = False
@@ -83,8 +83,7 @@ class Clinostat:
                 self._port.write(byte.to_bytes(1, 'little'))
             except serial.SerialException as err:
                 self.console.println(err.args[0], headline="SERIAL ERROR: ", msg_type="ERROR")
-
-                return
+                raise ClinostatCommunicationError("Serial exception error.")
             sleep(0.1)
         try:
             response = self._port.read(1)
@@ -93,17 +92,18 @@ class Clinostat:
             raise ClinostatCommunicationError("Device didn't respond.")
         if response == Clinostat._STARTING:
             self.console.println("Starting motors.", headline="CONTROLLER: ", msg_type="CONTROLLER")
-            enable_interface()
+
         else:
             self.console.println("Received incorrect response, aborting.",
                                  headline="CONTROLLER ERROR: ", msg_type="CONTROLLER")
+            raise ClinostatCommunicationError("Incorrect response.")
 
     def home(self):  # Mode byte: b'\x02'.
         # Home clinostat, and set new 0 if necessary.
         # listen for response, return true if controller responded correctly
         pass
 
-    def abort(self, enable_interface):  # Mode byte: b'\x03'.
+    def abort(self):  # Mode byte: b'\x03'.
 
         self.handleCommand(Clinostat._ABORT, response=False)
         if not self.res:
@@ -112,17 +112,15 @@ class Clinostat:
                 rcv = self._port.read(1)
             self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
             self.res = False
-        enable_interface()
 
-    def pause(self,enable_interface):  # Mode byte: b'\x04'.
+    def pause(self):  # Mode byte: b'\x04'.
 
-        self.handleCommand(Clinostat._PAUSE)
+        self.handleCommand(Clinostat._PAUSE, response=False)
         rcv = b''
         while rcv != Clinostat._STOPPED:
             rcv = self._port.read(1)
         self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
         self.res = True
-        enable_interface()
 
     def resume(self):  # Mode byte: b'\x05'.
         # resume run with previously set speeds, check for flag if paused first.
@@ -153,15 +151,16 @@ class Clinostat:
             raise ClinostatCommunicationError("Device is already physically disconnected. Check USB cable.")
         sleep(0.1)
         if response:
+            print("próbuje szczytać")
             try:
                 response = self._port.read(1)
-                # print(response)
+                print(response)
             except serial.SerialTimeoutException:
                 raise ClinostatCommunicationError("Device didn't respond.")
             msg = self.generateMessage(response)
             self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
-    def dumpWater(self,amount, enable_interface):
+    def dumpWater(self,amount):
         # Sends mode ID and 8 more bytes containing 2 floats for the speed.
         # listen for response, return true if controller responded correctly
         message = Clinostat._WATERING
@@ -181,13 +180,12 @@ class Clinostat:
             raise ClinostatCommunicationError("Device didn't respond.")
         if response == Clinostat._PUMPING_STARTED:
             self.console.println("Watering starting.", headline="CONTROLLER: ", msg_type="CONTROLLER")
-            enable_interface()
         elif response == Clinostat._STILL_PUMPING:
             self.console.println("Previous watering process still running.", headline="CONTROLLER: ", msg_type="CONTROLLER")
-            enable_interface()
         else:
             self.console.println("Received incorrect response, aborting.",
                                  headline="CONTROLLER ERROR: ", msg_type="ERROR")
+            raise ClinostatCommunicationError("Incorrect response.")
             # todo: Actually add handling the mentioned abort.
 
     @staticmethod
