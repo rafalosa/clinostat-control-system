@@ -76,7 +76,6 @@ class Clinostat:
             message += bytes(bytearray(struct.pack("f", speed)))
 
         # message = message[0:1] + message[:0:-1]
-        print(message)
 
         for byte in message:
             try:
@@ -87,7 +86,6 @@ class Clinostat:
             sleep(0.1)
         try:
             response = self._port.read(1)
-            print(response)
         except serial.SerialTimeoutException:
             raise ClinostatCommunicationError("Device didn't respond.")
         if response == Clinostat._STARTING:
@@ -151,7 +149,6 @@ class Clinostat:
             raise ClinostatCommunicationError("Device is already physically disconnected. Check USB cable.")
         sleep(0.1)
         if response:
-            print("próbuje szczytać")
             try:
                 response = self._port.read(1)
                 print(response)

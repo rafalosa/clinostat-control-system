@@ -97,7 +97,6 @@ class SerialConfig(ttk.LabelFrame):
                 self.supervisor.params["device"].port_name = potential_port
                 self.console.println(f"Successfully connected to {potential_port}.", headline="STATUS: ")
                 self.supervisor.params["device"].linkConsole(self.console)
-                # todo: Come up with something to avoid passing console to the Clinostat object.
                 self.interface["disconnect"].configure(state="normal")
                 self.interface["connect"].configure(state="disabled")
                 self.interface_manager.ui_deviceConnected()
@@ -352,8 +351,6 @@ class DataEmbed(tk.Frame):
         self.supervisor.params["server"].closeServer()
         self.supervisor.variables["address"].set("")
         # todo: If output linked then notify.
-        self.supervisor.params["server"].console.println("Connection to server closed.", headline="TCP: ",
-                                                         msg_type="TCP")
 
     def resetDataBuffers(self):
         self.master.master.data_queue = queue.Queue()
@@ -365,7 +362,7 @@ class DataEmbed(tk.Frame):
 
     def updateData(self):
 
-        data_queue = self.master.master.data_queue
+        data_queue = self.supervisor.get_queue
 
         if not data_queue.empty():
             message_string = data_queue.get()
@@ -433,7 +430,7 @@ class DataEmbed(tk.Frame):
             except FileNotFoundError:
                 pass
         else:
-            self.master.master.server.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+            self.master.master.server.output.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
 
 
 class PumpControl(ttk.LabelFrame):
@@ -557,9 +554,8 @@ class LightControl(ttk.LabelFrame):
         self.intensity_slider.grid(row=0, column=0, sticky="ne", padx=10, pady=10)
         self.intensity_slider.configureState(state="disabled")
 
-        self.intensity_queue = queue.Queue()
+        self.intensity_queue = self.supervisor.put_queue
         self.intensity_queue.put(50)
-        self.supervisor.params["server"].addQueue(self.intensity_queue)
 
     def enableUI(self):
         pass

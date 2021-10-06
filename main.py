@@ -50,6 +50,7 @@ class InterfaceManager(ttk.Notebook):
 
         self.outputs["serial"] = self.serial_config.console
         self.outputs["server"] = self.data_embed.console
+        self.master.params["server"].linkOutput(self.outputs["server"].println)
 
         self.master.params["plotter"] = self.data_embed
 
@@ -215,14 +216,14 @@ class App(tk.Tk):
         with open("config/config.yaml", "r") as file:
             config = yaml.load(file, Loader=yaml.FullLoader)
 
-        self.data_queue = queue.Queue()
+        self.get_queue = queue.Queue()
+        self.put_queue = queue.Queue()
         self.params["server"] = data_socket.DataServer(address=config["IP"], port=config["PORT"])
-        self.params["server"].addQueue(self.data_queue)
-        
+        self.params["server"].attachReceiveQueue(self.get_queue)
+        self.params["server"].attachResponseQueue(self.put_queue)
+
         self.interface_manager = InterfaceManager(self)
         self.interface_manager.pack(expand=True)
-
-        self.params["server"].linkConsole(self.interface_manager.data_embed.console)
 
     def destroy(self):
 
@@ -236,7 +237,7 @@ class App(tk.Tk):
 
     def programLoop(self):
 
-        if self.flags["plotting"] and not self.data_queue.empty():
+        if self.flags["plotting"] and not self.get_queue.empty():
             self.params["plotter"].updateData()
 
         if self.params["device"] and self.flags["pumping"]:
