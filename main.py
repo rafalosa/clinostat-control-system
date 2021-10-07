@@ -6,7 +6,6 @@ import queue
 import os
 import tkinter.ttk as ttk
 import time
-import math
 
 
 class InterfaceManager(ttk.Notebook):
@@ -23,17 +22,26 @@ class InterfaceManager(ttk.Notebook):
         self.motors_tab = tk.Frame(self)
 
         self.serial_config = self.serial_access_modules["connection"] =\
-            SerialConfig(master=self.motors_tab, supervisor=self.master, interface_manager=self, text="Controller connection")
+            SerialConfig(master=self.motors_tab,
+                         supervisor=self.master,
+                         interface_manager=self,
+                         text="Controller connection")
         self.serial_sensitive_interface.update(self.serial_config.serial_sensitive_interface)
         self.interface.update(self.serial_config.interface)
 
         self.mode_options = self.serial_access_modules["modes"] =\
-            ModeMenu(master=self.motors_tab, supervisor=self.master, interface_manager=self, text="Motors control")
+            ModeMenu(master=self.motors_tab,
+                     supervisor=self.master,
+                     interface_manager=self,
+                     text="Motors control")
         self.serial_sensitive_interface.update(self.mode_options.serial_sensitive_interface)
         self.interface.update(self.mode_options.interface)
 
         self.pump_control = self.serial_access_modules["pump_control"] =\
-            PumpControl(master=self.motors_tab, supervisor=self.master, interface_manager=self, text="Pump control")
+            PumpControl(master=self.motors_tab,
+                        supervisor=self.master,
+                        interface_manager=self,
+                        text="Pump control")
         self.serial_sensitive_interface.update(self.pump_control.serial_sensitive_interface)
         self.interface.update(self.pump_control.interface)
 
@@ -259,8 +267,8 @@ class App(tk.Tk):
 
             if now_time - self.trackers["seconds"] >= 1:
                 time_left = self.variables["time1"].get()*60 - (now_time - self.trackers["pump_time"])
-                mins = math.floor(time_left/60)
-                secs = math.floor(time_left - mins*60)
+                mins = time_left//60
+                secs = time_left - mins*60
                 self.variables["time_left_str"].set(f"{mins:02d}:{secs:02d}")
                 self.trackers["seconds"] = now_time
 
@@ -270,7 +278,7 @@ class App(tk.Tk):
 
         self.flags["prev_pumping_flag_state"] = self.flags["pumping"]
 
-        self.after(100, self.programLoop)
+        self.after(1, self.programLoop)
 
 
 if __name__ == "__main__":

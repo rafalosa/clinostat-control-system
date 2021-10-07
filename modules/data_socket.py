@@ -66,6 +66,7 @@ class DataServer:
                     if self.containers["response"]:
                         if not self.containers["response"].empty():
                             response = str(self.containers["response"].get())
+                            self.containers["response"].task_done()
                         else:
                             response = "default"
                         response = f"{len(response):<{self.HEADER_SIZE}}" + response

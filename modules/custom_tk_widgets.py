@@ -48,14 +48,21 @@ class EmbeddedFigure(tk.Frame):
             self.ax.quiver(0,0,0,x_data/9.81,y_data/9.81,z_data/9.81,length=1,normalize=True)
 
         else:
-            if self.y_max < max(y_data):
-                self.y_max = max(y_data)
-
-            if self.y_min > min(y_data):
-                self.y_min = min(y_data)
 
             lines.set_xdata(x_data)
             lines.set_ydata(y_data)
+            self.y_max = 1
+            self.y_min = -1
+            for line in self.lines:
+                line_data = list(line.get_ydata())
+
+                if line_data:
+                    if self.y_max < max(line_data):
+                        self.y_max = max(line_data)
+
+                    if self.y_min > min(line_data):
+                        self.y_min = min(line_data)
+
             self.ax.set_ylim([self.y_min, self.y_max])
             locs = self.ax.get_xticks()
             if tracking:

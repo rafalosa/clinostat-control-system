@@ -500,9 +500,9 @@ class PumpControl(ttk.LabelFrame):
             self.interface_manager.ui_wateringStarted()
 
         else:
-            self.interface_manager.outputs["serial"].println("Time and volume values"
-                                                                     " have to be greater than 0.",
-                                                                     headline="ERROR: ", msg_type="ERROR")
+            self.interface_manager.outputs["serial"].println("Time and water volume values"
+                                                             " have to be greater than 0.",
+                                                             headline="ERROR: ", msg_type="ERROR")
 
     def stopWateringCycle(self):
         self.supervisor.flags["pumping"] = False
@@ -516,26 +516,6 @@ class PumpControl(ttk.LabelFrame):
                       at_success=self.interface_manager.ui_serialBreakSuspend,
                       exception_=clinostat_com.ClinostatCommunicationError,
                       args=(self.interface["water_slider1"].getValue(),)).start()
-
-    # def disableWateringUI(self):
-    #     self.interface["stop"].configure(state="disabled")
-    #     self.interface["start"].configure(state="disabled")
-    #     self.interface["water_slider1"].configureState(state="disabled")
-    #     self.interface["time_slider1"].configureState(state="disabled")
-    #     self.interface["force"].configure(state="disabled")
-    #     self.interface["time_slider1"].reset()
-    #     self.interface["water_slider1"].reset()
-
-    # def disableButtons(self):
-    #     self.interface["force"].configure(state="disabled")
-    #     self.interface["stop"].configure(state="disabled")
-    #     self.interface["start"].configure(state="disabled")
-
-    # def enableWateringUI(self):
-    #     self.interface["stop"].configure(state="disabled")
-    #     self.interface["start"].configure(state="active")
-    #     self.interface["water_slider1"].configureState(state="active")
-    #     self.interface["time_slider1"].configureState(state="active")
 
 
 class LightControl(ttk.LabelFrame):
@@ -556,14 +536,9 @@ class LightControl(ttk.LabelFrame):
         self.intensity_queue = self.supervisor.put_queue
         self.intensity_queue.put(50)
 
-    def enableUI(self):
-        pass
-
-    def disableUI(self):
-        pass
-
     def updateValueContainer(self):
         self.intensity_queue.put(self.intensity_slider.getValue())
+
 
 if __name__ == "__main__":
     app = tk.Tk()
