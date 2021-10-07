@@ -33,3 +33,13 @@ class AppFlags(dict):
         self.__setitem__("prev_pumping_flag_state", False)
         self.__setitem__("new_data_present", False)
 
+
+class DataBuffers(dict):
+    def __init__(self):
+        super().__init__()
+        self.__setitem__("grav_components", [[], [], []])
+        self.__setitem__("grav_means", [[], [], []])
+        # self.__setitem__("temps", [[], [], []])
+        # self.__setitem__("humidity", [[]])
+        # self.__setitem__("light", [[]])
+        # self.__setitem__("time_humidity", [[]])

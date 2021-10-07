@@ -286,20 +286,18 @@ class DataEmbed(tk.Frame):
 
         for i in range(len(plot_descriptions)):
             self.plots[plot_keys[i]] = cw.EmbeddedFigure(master=self.gravity_plots,
-                                                         figsize=DataEmbed.figsize_, maxrecords=600)
+                                                         figsize=DataEmbed.figsize_, maxrecords=300)
             self.plots[plot_keys[i]].addLinesObject()
             self.plots[plot_keys[i]].addLinesObject()
             self.grav_axes.append(self.plots[plot_keys[i]])
             self.gravity_plots.add(self.plots[plot_keys[i]], text=plot_descriptions[i])
-            for _ in range(3):
-                self.data_buffers.append([])  # Data buffers for each lines object in EmbeddedFigure.
 
         for ax in self.grav_axes:
             ax.legend(["X", "Y", "Z"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
             ax.xlabel("Time elapsed (s)")
             ax.ylabel("Gravitational acceleration (G)")
 
-        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=DataEmbed.figsize_, maxrecords=600)
+        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=DataEmbed.figsize_, maxrecords=300)
         self.fourier_plot.addLinesObject()
         self.fourier_plot.addLinesObject()
         self.fourier_plot.xlabel("Frequency (Hz)")
@@ -319,6 +317,8 @@ class DataEmbed(tk.Frame):
         self.interface["save"].grid(row=0, column=0, padx=10)
         self.interface["clear"].grid(row=0, column=1, padx=10)
 
+        # todo: Setup temperature and humidity plots.
+
         self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nwe")
         self.data_save_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nwse")
         self.console.grid(row=1, column=0, padx=10, pady=10, sticky="nswe")
@@ -327,77 +327,73 @@ class DataEmbed(tk.Frame):
         self.time_shift.grid(row=2, column=1, padx=10, pady=10, sticky="se")
 
     def handleRunServer(self):
-        server_object = self.supervisor.params["server"]
+        server = self.supervisor.params["server"]
         try:
-            server_object.runServer()
+            server.runServer()
         except ServerStartupError:
             return
-        # todo: If output linked then notify.
-        self.console.println(f"Successfully connected to: {server_object.address}", headline="TCP: ", msg_type="TCP")
-        self.interface_manager.ui_serverEnable()
-        server_object = self.supervisor.params["server"]
-        self.supervisor.variables["address"].set(server_object.address + ":" + str(server_object.port))
-        self.supervisor.flags["plotting"] = True
 
-    # def enableInterface(self):
-    #     self.interface_manager.ui_serverEnable()
-    #     server_object = self.supervisor.params["server"]
-    #     self.address_var.set(server_object.address + ":" + str(server_object.port))
-    #     self.plotting_flag = True
+        self.console.println(f"Successfully connected to: {server.address}", headline="TCP: ", msg_type="TCP")
+        self.interface_manager.ui_serverEnable()
+        self.supervisor.variables["address"].set(server.address + ":" + str(server.port))
+        self.supervisor.flags["plotting"] = True
 
     def handleCloseServer(self):
         self.interface_manager.ui_serverDisable()
         self.supervisor.flags["plotting"] = False
         self.supervisor.params["server"].closeServer()
         self.supervisor.variables["address"].set("")
-        # todo: If output linked then notify.
 
     def resetDataBuffers(self):
-        self.master.master.data_queue = queue.Queue()
-        self.supervisor.params["server"].server.data_queue = self.master.master.data_queue
-        size_ = len(self.data_buffers)
-        self.data_buffers = []
-        for i in range(size_):
-            self.data_buffers.append([])
+        self.supervisor.clearQueues()
+        self.supervisor.resetDataBuffers()
 
     def updateData(self):
 
         data_queue = self.supervisor.get_queue
 
         if not data_queue.empty():
+            self.supervisor.flags["new_data_present"] = True
             message_string = data_queue.get()
             values = [float(val) for val in message_string.split(";")]
+            index = 0
+            for key in self.supervisor.data_buffers:
 
-            for index, buffer in enumerate(self.data_buffers):
+                for i, buffer in enumerate(self.supervisor.data_buffers[key]):
 
-                if len(buffer) >= self.data_records_amount:
-                    temp = list(np.roll(buffer, -1))
-                    temp[-1] = values[index]
-                    self.data_buffers[index] = temp
+                    if len(buffer) >= self.data_records_amount:
+                        temp = list(np.roll(buffer, -1))
+                        temp[-1] = values[index]
+                        self.supervisor.data_buffers[key][i] = temp
 
-                else:
-                    buffer.append(values[index])
+                    else:
+                        buffer.append(values[index])
+                    index += 1
+
             with open("temp/data.temp", "a") as file:
                 file.write(message_string)
             data_queue.task_done()
+        else:
+            self.supervisor.flags["new_data_present"] = False
 
-        if all(self.data_buffers):  # If data buffers are not empty, plot.
+        if self.supervisor.flags["new_data_present"]:  # If data buffers are not empty, plot.
 
             # Update plots only if data tab is active.
-            if self.master.index(self.master.select()) == 1:
+            if self.interface_manager.index(self.interface_manager.select()) == 1:
+                keys = ["grav_components", "grav_means"]
                 for plot_ind, plot in enumerate(self.grav_axes):
-                    for line, buffer in zip(plot.lines, self.data_buffers[3 * plot_ind:3 * plot_ind + 3]):
+                    for line, buffer in zip(plot.lines, self.supervisor.data_buffers[keys[plot_ind]]):
                         plot.plot(line, np.arange(0, len(buffer)), buffer)
 
-                if len(self.data_buffers[0]) >= self.data_records_amount:
+                if len(self.supervisor.data_buffers["grav_components"][0]) >= self.data_records_amount:
                     pool = Pool(processes=3)
-                    result = pool.imap(fft.fft, self.data_buffers[:3])
+                    result = pool.imap(fft.fft, self.supervisor.data_buffers["grav_components"])
                     pool.close()
                     pool.join()
                     calculated_ffts = [fft_ for fft_ in result]
                     for index, buffer in enumerate(calculated_ffts):
-                        N = len(self.data_buffers[index])
-                        frt = fft.fft(self.data_buffers[index])
+                        N = len(self.supervisor.data_buffers["grav_components"][index])
+                        frt = fft.fft(self.supervisor.data_buffers["grav_components"][index])
                         fr_domain = fft.fftfreq(N, 10)[:N // 2]
                         self.fourier_plot.plot(self.fourier_plot.lines[index], fr_domain,
                                                np.abs(frt[:N // 2]), tracking=False)
@@ -419,18 +415,21 @@ class DataEmbed(tk.Frame):
             pass
 
     def saveFile(self):
-        if all(self.data_buffers):
+        if self.supervisor.data_buffers["grav_components"][0]:
             date = datetime.now()
             date = str(date).replace(".", "-").replace(" ", "-").replace(":", "-")
-            filename = filedialog.asksaveasfilename(initialdir="/", title="Save file", defaultextension='.csv',
-                                                    initialfile=f"{date}",
-                                                    filetypes=(("csv files", "*.csv"), ("all files", "*.*")))
+            try:
+                filename = filedialog.asksaveasfilename(initialdir="/", title="Save file", defaultextension='.csv',
+                                                        initialfile=f"{date}",
+                                                        filetypes=(("csv files", "*.csv"), ("all files", "*.*")))
+            except TypeError:
+                return
             try:
                 copyfile("temp/data.temp", filename)
             except FileNotFoundError:
                 pass
         else:
-            self.master.master.server.output.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+            self.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
 
 
 class PumpControl(ttk.LabelFrame):

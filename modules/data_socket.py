@@ -76,14 +76,18 @@ class DataServer:
     def closeServer(self):
         self.running = False
         close_failed = False
+
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
+
         except OSError:
             close_failed = True
-            pass
+
         finally:
-            if not close_failed:
+
+            if not close_failed and self.notify:
                 self.notify("Connection to server closed.", headline="TCP: ", msg_type="TCP")
+
             self.socket.close()
             self.socket = None
 

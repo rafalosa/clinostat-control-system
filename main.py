@@ -199,8 +199,7 @@ class App(tk.Tk):
         self.variables = properties.AppVariables()
         self.trackers = properties.AppTrackers()
         self.flags = properties.AppFlags()
-
-        # todo: Data buffers as dict.
+        self.data_buffers = properties.DataBuffers()
 
         if "saved data" not in os.listdir("."):
             os.mkdir("saved data")
@@ -234,6 +233,16 @@ class App(tk.Tk):
             self.params["device"].close_serial()
 
         super().quit()
+
+    def clearQueues(self):
+        with self.get_queue.mutex:
+            self.get_queue.queue.clear()
+
+        with self.put_queue.mutex:
+            self.put_queue.queue.clear()
+
+    def resetDataBuffers(self):
+        self.data_buffers = properties.DataBuffers()
 
     def programLoop(self):
 
