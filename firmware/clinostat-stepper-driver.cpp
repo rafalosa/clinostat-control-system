@@ -8,7 +8,7 @@
 void handleSerial();
 void checkMotorStatus();
 uint16_t rpmToTimerInterval(const float&);
-uint16_t volumeToPumpTime(const uint16_t&);
+uint32_t volumeToPumpTime(const float&);
 void handleSerial();
 void updateProgramStatus(const uint8_t&);
 
@@ -27,19 +27,15 @@ volatile uint8_t frame_stepper_status = 0;
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
 volatile unsigned long frame_interval = STOP_INTERVAL_FRAME;
 
-union {
+using buffer = union {
 
     float float_value;
     uint8_t byte_value[4];
 
-}speed_buffer[2];
+};
 
-union{
-
-    uint32_t uint_value;
-    uint8_t byte_value[4];
-
-}watering_volume;
+buffer speed_buffer[2];
+buffer watering_volume;
 
 uint32_t watering_time;
 
@@ -164,7 +160,7 @@ uint16_t rpmToTimerInterval(const float& speed){ // speed [RPM]
 
 }
 
-uint32_t volumeToPumpTime(const uint32_t& volume){
+uint32_t volumeToPumpTime(const float& volume){
 
     return volume/PUMPING_CONSTANT*60*1000;
 
@@ -354,7 +350,7 @@ void handleSerial(){
                     watering_volume.byte_value[j] = temp;
 
                     }
-                watering_time = volumeToPumpTime(watering_volume.uint_value);
+                watering_time = volumeToPumpTime(watering_volume.float_value);
 
             }
 
