@@ -1,45 +1,94 @@
 import time
+from collections.abc import Mapping
 
 
-class AppProperties(dict):
+class ProgramProperties(Mapping):
+
+    def __setitem__(self, key, value):
+        if key in self.__slots__:
+            setattr(self, key, value)
+        else:
+            raise KeyError
+
+    def __delitem__(self, key):
+        pass
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __len__(self):
+        return len(self.__slots__)
+
+    def __iter__(self):
+        return iter(self.__slots__)
+
+
+class AppProperties(ProgramProperties):
+
+    __slots__ = (
+        "device",
+        "plotter",
+        "server"
+    )
+
     def __init__(self):
-        super().__init__()
-        self.__setitem__("device", None)
-        self.__setitem__("plotter", None)
-        self.__setitem__("server", None)
+        for atr in self.__slots__:
+            setattr(self, atr, None)
 
 
-class AppVariables(dict):
+class AppVariables(ProgramProperties):
+
+    __slots__ = (
+        "time1",
+        "time_left_str",
+        "water1",
+        "address",
+        "speed1",
+        "speed2"
+    )
+
     def __init__(self):
-        super().__init__()
-        self.__setitem__("time1", None)
-        self.__setitem__("time_left_str", None)
-        self.__setitem__("water1", None)
-        self.__setitem__("address", None)
+        for atr in self.__slots__:
+            setattr(self, atr, None)
 
 
-class AppTrackers(dict):
+class AppTrackers(ProgramProperties):
+
+    __slots__ = (
+        "seconds",
+        "pump_time"
+    )
+
     def __init__(self):
-        super().__init__()
-        self.__setitem__("seconds", time.time())
-        self.__setitem__("pump_time", time.time())
+        for atr in self.__slots__:
+            setattr(self, atr, time.time())
 
 
-class AppFlags(dict):
+class AppFlags(ProgramProperties):
+
+    __slots__ = (
+        "pumping",
+        "plotting",
+        "prev_pumping_flag_state",
+        "new_data_present"
+    )
+
     def __init__(self):
-        super().__init__()
-        self.__setitem__("pumping", False)
-        self.__setitem__("plotting", False)
-        self.__setitem__("prev_pumping_flag_state", False)
-        self.__setitem__("new_data_present", False)
+        for atr in self.__slots__:
+            setattr(self, atr, False)
 
 
-class DataBuffers(dict):
+class DataBuffers(ProgramProperties):
+
+    __slots__ = (
+        "grav_components",
+        "grav_means"
+    )
+
     def __init__(self):
-        super().__init__()
-        self.__setitem__("grav_components", [[], [], []])
-        self.__setitem__("grav_means", [[], [], []])
-        # self.__setitem__("temps", [[], [], []])
-        # self.__setitem__("humidity", [[]])
-        # self.__setitem__("light", [[]])
-        # self.__setitem__("time_humidity", [[]])
+        setattr(self, "grav_components", [[], [], []])
+        setattr(self, "grav_means", [[], [], []])
+        # setattr(self, "temps", [[], [], []])
+        # setattr(self, "humidity", [[]])
+        # setattr(self, "light", [[]])
+        # setattr(self, "time_humidity", [[]])

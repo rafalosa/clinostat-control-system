@@ -66,6 +66,8 @@ class InterfaceManager(ttk.Notebook):
         self.add(self.data_embed, text="Chamber computer")
 
     def ui_modesSuspend(self):
+        self.serial_sensitive_interface["connect"].configure(state="normal")
+        self.serial_sensitive_interface["disconnect"].configure(state="disabled")
         self.ui_disableCommandButtons()
         self.ui_disableSpeedIndicators()
         self.mode_options.resetIndicators()
@@ -94,6 +96,8 @@ class InterfaceManager(ttk.Notebook):
         self.interface["speed_slider2"].configureState(state="normal")
 
     def ui_deviceConnected(self):
+        self.serial_sensitive_interface["disconnect"].configure(state="normal")
+        self.serial_sensitive_interface["connect"].configure(state="disabled")
         self.ui_enableRun()
         self.ui_wateringEnable()
 
@@ -267,8 +271,8 @@ class App(tk.Tk):
 
             if now_time - self.trackers["seconds"] >= 1:
                 time_left = self.variables["time1"].get()*60 - (now_time - self.trackers["pump_time"])
-                mins = time_left//60
-                secs = time_left - mins*60
+                mins = int(time_left//60)
+                secs = int(time_left - mins*60)
                 self.variables["time_left_str"].set(f"{mins:02d}:{secs:02d}")
                 self.trackers["seconds"] = now_time
 

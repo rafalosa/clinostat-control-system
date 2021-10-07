@@ -63,7 +63,7 @@ class SerialConfig(ttk.LabelFrame):
         self.interface["connect"].grid(row=0, column=0, pady=2)
         self.interface["disconnect"].grid(row=1, column=0, pady=2)
 
-        self.console = self.supervisor.params["serial_console"] = cw.Console(self, font=("normal", 8))
+        self.console = self.interface_manager.outputs["serial_console"] = cw.Console(self, font=("normal", 8))
         self.console.configure(width=65, height=30)
 
         self.port_menu_frame.grid(row=0, column=0, padx=10, sticky="n")
@@ -97,8 +97,6 @@ class SerialConfig(ttk.LabelFrame):
                 self.supervisor.params["device"].port_name = potential_port
                 self.console.println(f"Successfully connected to {potential_port}.", headline="STATUS: ")
                 self.supervisor.params["device"].linkConsole(self.console)
-                self.interface["disconnect"].configure(state="normal")
-                self.interface["connect"].configure(state="disabled")
                 self.interface_manager.ui_deviceConnected()
 
             else:
@@ -115,10 +113,8 @@ class SerialConfig(ttk.LabelFrame):
         finally:
             port_name = self.supervisor.params["device"].port_name
             self.supervisor.params["device"] = None
-            self.interface["connect"].configure(state="normal")
-            self.interface["disconnect"].configure(state="disabled")
             self.interface_manager.ui_modesSuspend()
-            self.supervisor.variables["pumping"] = False
+            self.supervisor.flags["pumping"] = False
 
         self.console.println(f"Successfully disconnected from {port_name}.", headline="STATUS: ")
 
