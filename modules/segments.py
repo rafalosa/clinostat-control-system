@@ -220,7 +220,7 @@ class ModeMenu(ttk.LabelFrame):
 
 class DataEmbed(tk.Frame):
 
-    figsize_ = (5,2.75)
+    figsize_ = (5, 2.75)
 
     def __init__(self, supervisor, interface_manager, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -274,7 +274,8 @@ class DataEmbed(tk.Frame):
 
         self.gravity_plots = ttk.Notebook(self)
         self.fourier = ttk.Notebook(self)
-        self.time_shift = ttk.Notebook(self)
+        self.temperatures = ttk.Notebook(self)
+        self.humidity = ttk.Notebook(self)
 
         self.grav_axes = []
         plot_descriptions = ["Gravity vector", "Mean gravity"]
@@ -282,7 +283,7 @@ class DataEmbed(tk.Frame):
 
         for i in range(len(plot_descriptions)):
             self.plots[plot_keys[i]] = cw.EmbeddedFigure(master=self.gravity_plots,
-                                                         figsize=DataEmbed.figsize_, maxrecords=300)
+                                                         figsize=DataEmbed.figsize_)
             self.plots[plot_keys[i]].addLinesObject()
             self.plots[plot_keys[i]].addLinesObject()
             self.grav_axes.append(self.plots[plot_keys[i]])
@@ -293,16 +294,28 @@ class DataEmbed(tk.Frame):
             ax.xlabel("Time elapsed (s)")
             ax.ylabel("Gravitational acceleration (G)")
 
-        self.fourier_plot = cw.EmbeddedFigure(master=self.fourier, figsize=DataEmbed.figsize_, maxrecords=300)
-        self.fourier_plot.addLinesObject()
-        self.fourier_plot.addLinesObject()
-        self.fourier_plot.xlabel("Frequency (Hz)")
-        self.fourier_plot.ylabel("Intensity")
-        self.fourier.add(self.fourier_plot, text="FFT of gravity vector")
-        self.fourier_plot.legend(["FFT(X)", "FFT(Y)", "FFT(Z)"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
+        self.plots["fourier"] = cw.EmbeddedFigure(master=self.fourier, figsize=DataEmbed.figsize_)
+        for i in range(2):
+            self.plots["fourier"].addLinesObject()
+        self.plots["fourier"].xlabel("Frequency (Hz)")
+        self.plots["fourier"].ylabel("Intensity")
+        self.fourier.add(self.plots["fourier"], text="FFT of gravity vector")
+        self.plots["fourier"].legend(["FFT(X)", "FFT(Y)", "FFT(Z)"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
 
-        self.time_shift_plot = cw.EmbeddedFigure(master=self.time_shift, figsize=DataEmbed.figsize_, maxrecords=600)
-        self.time_shift.add(self.time_shift_plot, text="Time shift map of gravity vector")
+        self.plots["temperatures"] = cw.EmbeddedFigure(master=self.temperatures, figsize=DataEmbed.figsize_)
+        for i in range(2):
+            self.plots["temperatures"].addLinesObject()
+
+        self.plots["temperatures"].xlabel("Elapsed time (s)")
+        self.plots["temperatures"].ylabel("Temperature °C")
+        self.plots["temperatures"].legend(["Temp1", "Temp2", "Temp3"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
+        self.temperatures.add(self.plots["temperatures"], text="Temperatures")
+
+        self.plots["humidity"] = cw.EmbeddedFigure(master=self.humidity, figsize=DataEmbed.figsize_)
+        self.plots["humidity"].xlabel("Elapsed time (min)")
+        self.plots["humidity"].ylabel("Humidity %")
+        self.plots["humidity"].legend(["Sensor1"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
+        self.humidity.add(self.plots["humidity"], text="Humidity")
 
         self.data_save_frame.rowconfigure(0, weight=1)
         self.data_save_frame.columnconfigure(0, weight=1)
@@ -320,7 +333,8 @@ class DataEmbed(tk.Frame):
         self.console.grid(row=1, column=0, padx=10, pady=10, sticky="nswe")
         self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="sw")
         self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="ne")
-        self.time_shift.grid(row=2, column=1, padx=10, pady=10, sticky="se")
+        self.temperatures.grid(row=2, column=1, padx=10, pady=10, sticky="se")
+        self.humidity.grid(row=3, column=0, padx=10, pady=10, sticky="sw")
 
     def handleRunServer(self):
         server = self.supervisor.params["server"]
@@ -393,11 +407,11 @@ class DataEmbed(tk.Frame):
                         N = len(self.supervisor.data_buffers["grav_components"][index])
                         frt = fft.fft(self.supervisor.data_buffers["grav_components"][index])
                         fr_domain = fft.fftfreq(N, 10)[:N // 2]
-                        self.fourier_plot.plot(self.fourier_plot.lines[index], fr_domain,
+                        self.plots["fourier"].plot(self.plots["fourier"].lines[index], fr_domain,
                                                np.abs(frt[:N // 2]), tracking=False)
 
         else:
-            self.fourier_plot.resetPlot()
+            self.plots["fourier"].resetPlot()
             for plot in self.grav_axes:
                 plot.resetPlot()
 

@@ -295,7 +295,7 @@ class App(tk.Tk):
 if __name__ == "__main__":
     root = App()
     root.resizable(False, False)
-    root.geometry("1100x800")
+    #root.geometry("1100x800")
     root.title("Clinostat control system")
     # root.iconbitmap("icon/favicon.ico")
     root.after(1, root.programLoop)

@@ -9,9 +9,9 @@ from mpl_toolkits.mplot3d import Axes3D
 matplotlib.use('TkAgg')
 
 
-class EmbeddedFigure(tk.Frame):
+class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
 
-    def __init__(self, figsize=(1,1), maxrecords=100, spatial = False,*args,**kwargs):
+    def __init__(self, figsize=(1,1), spatial = False,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fig = plt.figure(figsize=figsize)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)

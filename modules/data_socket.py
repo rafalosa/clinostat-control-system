@@ -14,7 +14,7 @@ class DataServer:
         self.address = address
         self.port = port
         self.HEADER_SIZE = 10
-        self.containers = {}
+        self._containers = {}
 
     def runServer(self):
         try:
@@ -31,7 +31,7 @@ class DataServer:
 
         self.socket.listen()
 
-        if self.containers["response"]:
+        if self._containers["response"]:
 
             while self.running:
 
@@ -61,12 +61,12 @@ class DataServer:
                         if len(message) == message_len:
                             break
 
-                    self.containers["receive"].put(message)
+                    self._containers["receive"].put(message)
 
-                    if self.containers["response"]:
-                        if not self.containers["response"].empty():
-                            response = str(self.containers["response"].get())
-                            self.containers["response"].task_done()
+                    if self._containers["response"]:
+                        if not self._containers["response"].empty():
+                            response = str(self._containers["response"].get())
+                            self._containers["response"].task_done()
                         else:
                             response = "default"
                         response = f"{len(response):<{self.HEADER_SIZE}}" + response
@@ -96,10 +96,10 @@ class DataServer:
         self.notify = link
 
     def attachReceiveQueue(self, queue_: queue.Queue):
-        self.containers["receive"] = queue_
+        self._containers["receive"] = queue_
 
     def attachResponseQueue(self, queue_: queue.Queue):
-        self.containers["response"] = queue_
+        self._containers["response"] = queue_
 
 
 class ServerStartupError(Exception):
