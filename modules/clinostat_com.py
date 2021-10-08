@@ -154,10 +154,10 @@ class Clinostat:
                 print(response)
             except serial.SerialTimeoutException:
                 raise ClinostatCommunicationError("Device didn't respond.")
-            msg = self.generateMessage(response)
+            msg = self._generateMessage(response)
             self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
-    def dumpWater(self,amount):
+    def dumpWater(self, amount):
         # Sends mode ID and 8 more bytes containing 2 floats for the speed.
         # listen for response, return true if controller responded correctly
         message = Clinostat._WATERING
@@ -186,7 +186,7 @@ class Clinostat:
             # todo: Actually add handling the mentioned abort.
 
     @staticmethod
-    def generateMessage(response):
+    def _generateMessage(response):
 
         if response == Clinostat._STOPPING:
             message = "Stopping motors."

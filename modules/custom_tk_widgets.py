@@ -106,7 +106,8 @@ class SlidingIndicator(tk.Frame):
         self.slider = tk.Scale(self,from_=from_,to=to,orient=orientation,
                                resolution=res,length=length,command=self.updateEntry,showvalue=0,width=width)
         self.slider.configure(cursor="dot")
-        self.opt = opt
+        if opt:
+            self.slider.bind("<ButtonRelease-1>", opt)
 
         self.entry_frame = tk.Frame(self)
         self.var = tk.DoubleVar()
@@ -132,8 +133,7 @@ class SlidingIndicator(tk.Frame):
             self.entry_frame.grid(row=1, column=1,sticky="E")
 
     def updateEntry(self, *args):
-        if self.opt:
-            self.opt()
+
         self.var.set(args[0])
 
     def getValue(self):

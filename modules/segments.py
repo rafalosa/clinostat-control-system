@@ -333,8 +333,10 @@ class DataEmbed(tk.Frame):
         self.interface_manager.ui_serverEnable()
         self.supervisor.variables["address"].set(server.address + ":" + str(server.port))
         self.supervisor.flags["plotting"] = True
+        self.interface_manager.ui_lightingEnable()
 
     def handleCloseServer(self):
+        self.interface_manager.ui_lightingDisable()
         self.interface_manager.ui_serverDisable()
         self.supervisor.flags["plotting"] = False
         self.supervisor.params["server"].closeServer()
@@ -528,11 +530,12 @@ class LightControl(ttk.LabelFrame):
                                                     opt=self.updateValueContainer)
         self.intensity_slider.grid(row=0, column=0, sticky="ne", padx=10, pady=10)
         self.intensity_slider.configureState(state="disabled")
+        self.interface["light_slider1"] = self.intensity_slider
 
         self.intensity_queue = self.supervisor.put_queue
         self.intensity_queue.put(50)
 
-    def updateValueContainer(self):
+    def updateValueContainer(self, arg):
         self.intensity_queue.put(self.intensity_slider.getValue())
 
 

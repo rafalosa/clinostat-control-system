@@ -47,6 +47,7 @@ class InterfaceManager(ttk.Notebook):
 
         self.light_control = LightControl(master=self.motors_tab, supervisor=self.master, interface_manager=self,
                                           text="Lighting control")
+        self.interface.update(self.light_control.interface)
 
         self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=2)
         self.mode_options.grid(row=2, column=0, padx=10, pady=10, sticky="sw")
@@ -192,8 +193,8 @@ class InterfaceManager(ttk.Notebook):
     def ui_wateringEnable(self):
         self.serial_sensitive_interface["stop"].configure(state="disabled")
         self.serial_sensitive_interface["start"].configure(state="active")
-        self.interface["water_slider1"].configureState(state="active")
-        self.interface["time_slider1"].configureState(state="active")
+        self.interface["water_slider1"].configureState(state="normal")
+        self.interface["time_slider1"].configureState(state="normal")
 
     def ui_serverEnable(self):
         self.interface["start_server"].configure(state="disabled")
@@ -202,6 +203,12 @@ class InterfaceManager(ttk.Notebook):
     def ui_serverDisable(self):
         self.interface["start_server"].configure(state="normal")
         self.interface["close_server"].configure(state="disabled")
+
+    def ui_lightingEnable(self):
+        self.interface["light_slider1"].configureState(state="normal")
+
+    def ui_lightingDisable(self):
+        self.interface["light_slider1"].configureState(state="disabled")
 
 
 class App(tk.Tk):
