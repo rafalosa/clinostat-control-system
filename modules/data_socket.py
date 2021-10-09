@@ -24,6 +24,7 @@ class DataServer:
                 self.notify(err.args[1], headline="TCP ERROR: ", msg_type="ERROR")
             raise ServerStartupError(err.args[1])
         self.running = True
+        self.notify(f"Successfully connected to: {self.address}", headline="TCP: ", msg_type="TCP")
         self.server_thread = threading.Thread(target=self._serverLoop)
         self.server_thread.start()
 

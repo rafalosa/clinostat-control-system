@@ -1,6 +1,6 @@
 import tkinter as tk
 from modules import data_socket, properties
-from modules.segments import SerialConfig, DataEmbed, PumpControl, ModeMenu, LightControl
+from modules.segments import SerialConfig, DataEmbed, PumpControl, ModeMenu, LightControl, ServerStarter
 import yaml
 import queue
 import os
@@ -49,17 +49,22 @@ class InterfaceManager(ttk.Notebook):
                                           text="Lighting control")
         self.interface.update(self.light_control.interface)
 
+        self.server_starter = ServerStarter(master=self.motors_tab, supervisor=self.master, interface_manager=self,
+                                            text="TCP client control")
+        self.interface.update(self.server_starter.interface)
+
         self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=2)
         self.mode_options.grid(row=2, column=0, padx=10, pady=10, sticky="sw")
         self.pump_control.grid(row=0, column=1, padx=10, pady=10, sticky="ne")
         self.light_control.grid(row=1, column=1, padx=10, pady=10, sticky="ne")
+        self.server_starter.grid(row=2, column=1, padx=10, pady=10, sticky="nw")
 
         self.data_embed = DataEmbed(master=self, supervisor=self.master, interface_manager=self)
         self.interface.update(self.data_embed.interface)
 
         self.outputs["serial"] = self.serial_config.console
-        self.outputs["server"] = self.data_embed.console
-        self.master.params["server"].linkOutput(self.outputs["server"].println)
+        # self.outputs["server"] = self.data_embed.console
+        self.master.params["server"].linkOutput(self.outputs["serial"].println)
 
         self.master.params["plotter"] = self.data_embed
 

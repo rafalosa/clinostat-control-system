@@ -9,7 +9,6 @@ from tkinter import filedialog, messagebox
 import tkinter.ttk as ttk
 import tkinter as tk
 import threading
-import queue
 import os
 from modules.data_socket import ServerStartupError
 from modules.custom_thread import SuccessThread
@@ -20,7 +19,7 @@ class SerialConfig(ttk.LabelFrame):
     def __init__(self, supervisor, interface_manager, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.supervisor = supervisor
-        self.interface = {}  # todo: Maybe add a differentiation of passive and active interface.
+        self.interface = {}
         self.interface_manager = interface_manager
         self.serial_sensitive_interface = {}
         self.variables = {}
@@ -233,37 +232,37 @@ class DataEmbed(tk.Frame):
 
         self.data_buffers = []
 
-        self.server_buttons_frame = ttk.LabelFrame(self, text="Data server connection")
+        # self.server_buttons_frame = ttk.LabelFrame(self, text="Data server connection")
         self.data_save_frame = ttk.LabelFrame(self, text="Save or discard data")
+        #
+        # self.interface["start_server"] = tk.Button(self.server_buttons_frame,
+        #                                            text="Start server", command=self.handleRunServer)
+        # self.interface["start_server"].configure(width=20)
+        # self.interface["start_server"].grid(row=0, column=0, pady=2, padx=30, sticky="w")
+        #
+        # self.interface["close_server"] = tk.Button(self.server_buttons_frame,
+        #                                            text="Close server", command=self.handleCloseServer)
+        # self.interface["close_server"].configure(width=20, state="disabled")
+        # self.interface["close_server"].grid(row=0, column=1, pady=2, padx=30, sticky="e")
+        #
+        # self.address_frame = tk.Frame(self.server_buttons_frame)
+        #
+        # self.variables["address"] = self.supervisor.variables["address"] = tk.StringVar()
+        # self.interface["address_entry"] = tk.Entry(self.address_frame,
+        #                                            textvariable=self.supervisor.variables["address"])
+        # self.server_buttons_frame.rowconfigure(0, weight=1)
+        # self.server_buttons_frame.columnconfigure(1, weight=1)
+        # self.server_buttons_frame.columnconfigure(0, weight=1)
+        # self.interface["address_entry"].config(width=20, state="disabled")
+        # self.interface["address_entry"].configure(disabledbackground="white", disabledforeground="black")
+        #
+        # self.address_label = tk.Label(self.address_frame, text="Current server address:")
+        # self.address_label.grid(row=0, column=0)
+        # self.interface["address_entry"].grid(row=0, column=1)
+        # self.address_frame.grid(row=1, column=0, columnspan=2, pady=10)
 
-        self.interface["start_server"] = tk.Button(self.server_buttons_frame,
-                                                   text="Start server", command=self.handleRunServer)
-        self.interface["start_server"].configure(width=20)
-        self.interface["start_server"].grid(row=0, column=0, pady=2, padx=30, sticky="w")
-
-        self.interface["close_server"] = tk.Button(self.server_buttons_frame,
-                                                   text="Close server", command=self.handleCloseServer)
-        self.interface["close_server"].configure(width=20, state="disabled")
-        self.interface["close_server"].grid(row=0, column=1, pady=2, padx=30, sticky="e")
-
-        self.address_frame = tk.Frame(self.server_buttons_frame)
-
-        self.variables["address"] = self.supervisor.variables["address"] = tk.StringVar()
-        self.interface["address_entry"] = tk.Entry(self.address_frame,
-                                                   textvariable=self.supervisor.variables["address"])
-        self.server_buttons_frame.rowconfigure(0, weight=1)
-        self.server_buttons_frame.columnconfigure(1, weight=1)
-        self.server_buttons_frame.columnconfigure(0, weight=1)
-        self.interface["address_entry"].config(width=20, state="disabled")
-        self.interface["address_entry"].configure(disabledbackground="white", disabledforeground="black")
-
-        self.address_label = tk.Label(self.address_frame, text="Current server address:")
-        self.address_label.grid(row=0, column=0)
-        self.interface["address_entry"].grid(row=0, column=1)
-        self.address_frame.grid(row=1, column=0, columnspan=2, pady=10)
-
-        self.console = self.interface_manager.outputs["server"] = cw.Console(self,
-                                                                             width=50, height=15, font=("normal", 8))
+        # self.console = self.interface_manager.outputs["server"] = cw.Console(self,
+        #                                                                      width=50, height=15, font=("normal", 8))
 
         plt.rcParams['figure.facecolor'] = "#f0f0f0"
         plt.rcParams['font.size'] = 7
@@ -326,35 +325,33 @@ class DataEmbed(tk.Frame):
         self.interface["save"].grid(row=0, column=0, padx=10)
         self.interface["clear"].grid(row=0, column=1, padx=10)
 
-        # todo: Setup temperature and humidity plots.
+        # self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nwe")
+        self.data_save_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nwse",columnspan=2)
+        # self.console.grid(row=1, column=0, padx=10, pady=10, sticky="nswe")
+        self.gravity_plots.grid(row=0, column=0, padx=10, pady=10, sticky="sw")
+        self.fourier.grid(row=0, column=1, padx=10, pady=10, sticky="ne")
+        self.temperatures.grid(row=1, column=1, padx=10, pady=10, sticky="se")
+        self.humidity.grid(row=1, column=0, padx=10, pady=10, sticky="sw")
 
-        self.server_buttons_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nwe")
-        self.data_save_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nwse")
-        self.console.grid(row=1, column=0, padx=10, pady=10, sticky="nswe")
-        self.gravity_plots.grid(row=2, column=0, padx=10, pady=10, sticky="sw")
-        self.fourier.grid(row=1, column=1, padx=10, pady=10, sticky="ne")
-        self.temperatures.grid(row=2, column=1, padx=10, pady=10, sticky="se")
-        self.humidity.grid(row=3, column=0, padx=10, pady=10, sticky="sw")
-
-    def handleRunServer(self):
-        server = self.supervisor.params["server"]
-        try:
-            server.runServer()
-        except ServerStartupError:
-            return
-
-        self.console.println(f"Successfully connected to: {server.address}", headline="TCP: ", msg_type="TCP")
-        self.interface_manager.ui_serverEnable()
-        self.supervisor.variables["address"].set(server.address + ":" + str(server.port))
-        self.supervisor.flags["plotting"] = True
-        self.interface_manager.ui_lightingEnable()
-
-    def handleCloseServer(self):
-        self.interface_manager.ui_lightingDisable()
-        self.interface_manager.ui_serverDisable()
-        self.supervisor.flags["plotting"] = False
-        self.supervisor.params["server"].closeServer()
-        self.supervisor.variables["address"].set("")
+    # def handleRunServer(self):
+    #     server = self.supervisor.params["server"]
+    #     try:
+    #         server.runServer()
+    #     except ServerStartupError:
+    #         return
+    #
+    #     self.console.println(f"Successfully connected to: {server.address}", headline="TCP: ", msg_type="TCP")
+    #     self.interface_manager.ui_serverEnable()
+    #     self.supervisor.variables["address"].set(server.address + ":" + str(server.port))
+    #     self.supervisor.flags["plotting"] = True
+    #     self.interface_manager.ui_lightingEnable()
+    #
+    # def handleCloseServer(self):
+    #     self.interface_manager.ui_lightingDisable()
+    #     self.interface_manager.ui_serverDisable()
+    #     self.supervisor.flags["plotting"] = False
+    #     self.supervisor.params["server"].closeServer()
+    #     self.supervisor.variables["address"].set("")
 
     def resetDataBuffers(self):
         self.supervisor.clearQueues()
@@ -441,7 +438,8 @@ class DataEmbed(tk.Frame):
             except FileNotFoundError:
                 pass
         else:
-            self.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+            # self.console.println("No data to save.", headline="ERROR: ", msg_type="ERROR")
+            messagebox.showinfo(title="Save or discard data", message="No data to save.")
 
 
 class PumpControl(ttk.LabelFrame):
@@ -551,6 +549,63 @@ class LightControl(ttk.LabelFrame):
 
     def updateValueContainer(self, arg):
         self.intensity_queue.put(self.intensity_slider.getValue())
+
+
+class ServerStarter(ttk.LabelFrame):
+
+    def __init__(self, supervisor, interface_manager, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.supervisor = supervisor
+        self.variables = {}
+        self.interface = {}
+        self.interface_manager = interface_manager
+        # self.server_buttons_frame = ttk.LabelFrame(self, text="Data server connection")
+        # self.data_save_frame = ttk.LabelFrame(self, text="Save or discard data")
+
+        self.interface["start_server"] = tk.Button(self,
+                                                   text="Start server", command=self.handleRunServer)
+        self.interface["start_server"].configure(width=20)
+        self.interface["start_server"].grid(row=0, column=0, pady=2, padx=30, sticky="w")
+
+        self.interface["close_server"] = tk.Button(self,
+                                                   text="Close server", command=self.handleCloseServer)
+        self.interface["close_server"].configure(width=20, state="disabled")
+        self.interface["close_server"].grid(row=0, column=1, pady=2, padx=30, sticky="e")
+
+        # self.address_frame = tk.Frame(self)
+
+        self.variables["address"] = self.supervisor.variables["address"] = tk.StringVar()
+        self.interface["address_entry"] = tk.Entry(self,
+                                                   textvariable=self.supervisor.variables["address"])
+
+        self.interface["address_entry"].config(width=20, state="disabled")
+        self.interface["address_entry"].configure(disabledbackground="white", disabledforeground="black")
+
+        self.address_label = tk.Label(self, text="Current server address:")
+
+        self.interface["start_server"].grid(row=0, column=0)
+        self.interface["close_server"].grid(row=1, column=0)
+        self.address_label.grid(row=2, column=0)
+        self.interface["address_entry"].grid(row=3, column=0)
+
+    def handleRunServer(self):
+        server = self.supervisor.params["server"]
+        try:
+            server.runServer()
+        except ServerStartupError:
+            return
+
+        self.interface_manager.ui_serverEnable()
+        self.supervisor.variables["address"].set(server.address + ":" + str(server.port))
+        self.supervisor.flags["plotting"] = True
+        self.interface_manager.ui_lightingEnable()
+
+    def handleCloseServer(self):
+        self.interface_manager.ui_lightingDisable()
+        self.interface_manager.ui_serverDisable()
+        self.supervisor.flags["plotting"] = False
+        self.supervisor.params["server"].closeServer()
+        self.supervisor.variables["address"].set("")
 
 
 if __name__ == "__main__":
