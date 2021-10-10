@@ -47,5 +47,6 @@ void SETUP_TIMER0_INTERRUPTS(){ // Configuration of 8-bit timer for time trackin
 ISR(TIMER0_COMPA_vect){ // Interrupt service routine for Timer 0. Used only for tracking the program time.
 
     program_time_milis += 1;
+    TCNT0 = 0;
 
 }

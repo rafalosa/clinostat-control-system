@@ -72,7 +72,7 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
                 self.ax.set_xlim([min(x_data),max(x_data)])
             self.canvas.draw()
 
-    def resetPlot(self):
+    def reset_plot(self):
         self.y_max = 1
         self.y_min = -1
         self.ax.set_ylim([self.y_min, self.y_max])
@@ -81,7 +81,7 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
             line.set_ydata([])
         self.canvas.draw()
 
-    def addLinesObject(self):
+    def add_lines_object(self):
         self.lines.append(self.ax.plot([], [])[0])
 
     def legend(self, labels,**kwargs):
@@ -103,8 +103,8 @@ class SlidingIndicator(tk.Frame):
         self.var = tk.StringVar()
         self.var.set(label)
         self.label = tk.Label(self,textvariable=self.var)
-        self.slider = tk.Scale(self,from_=from_,to=to,orient=orientation,
-                               resolution=res,length=length,command=self.updateEntry,showvalue=0,width=width)
+        self.slider = tk.Scale(self, from_=from_, to=to, orient=orientation,
+                               resolution=res, length=length, command=self.update_entry, showvalue=0, width=width)
         self.slider.configure(cursor="dot")
         if opt:
             self.slider.bind("<ButtonRelease-1>", opt)
@@ -132,15 +132,15 @@ class SlidingIndicator(tk.Frame):
         elif entry_pos == "right":
             self.entry_frame.grid(row=1, column=1,sticky="E")
 
-    def updateEntry(self, *args):
+    def update_entry(self, *args):
 
         self.var.set(args[0])
 
-    def getValue(self):
+    def get_value(self):
 
         return self.var.get()
 
-    def configureState(self,state):
+    def configure_state(self, state):
         if state == "disabled":
             self.slider.configure(troughcolor="#f3f3f3")
         else:
@@ -148,10 +148,10 @@ class SlidingIndicator(tk.Frame):
         self.slider.configure(state=state)
 
     def reset(self):
-        self.configureState(state="normal")
+        self.configure_state(state="normal")
         self.slider.set(self.min)
         self.var.set(self.min)
-        self.configureState(state="disabled")
+        self.configure_state(state="disabled")
 
 
 class Console(tk.scrolledtext.ScrolledText):

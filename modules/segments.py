@@ -24,7 +24,7 @@ class SerialConfig(ttk.LabelFrame):
         self.serial_sensitive_interface = {}
         self.variables = {}
 
-        self.available_ports = clinostat_com.getPorts()
+        self.available_ports = clinostat_com.get_ports()
 
         if not self.available_ports:
             self.available_ports = ["Empty"]
@@ -41,7 +41,7 @@ class SerialConfig(ttk.LabelFrame):
         self.port_menu["values"] = self.available_ports
         self.port_menu.bind("<<ComboboxSelected>>", lambda _: self.port_menu.selection_clear())
 
-        self.interface["refresh"] = tk.Button(self.port_menu_frame, command=self.refreshPorts, text="Refresh ports")
+        self.interface["refresh"] = tk.Button(self.port_menu_frame, command=self.refresh_ports, text="Refresh ports")
 
         self.interface["refresh"].config(width=17)
 
@@ -53,10 +53,10 @@ class SerialConfig(ttk.LabelFrame):
 
         self.serial_sensitive_interface["connect"] = self.interface["connect"] = \
             tk.Button(self.connections_frame, command=lambda: threading.Thread(
-                target=self.connectToPort).start(), text="Connect", width=17)
+                target=self.connect_to_port).start(), text="Connect", width=17)
 
         self.serial_sensitive_interface["disconnect"] = self.interface["disconnect"] = \
-            tk.Button(self.connections_frame, command=self.disconnectPort,
+            tk.Button(self.connections_frame, command=self.disconnect_port,
                       text="Disconnect", width=17, state="disabled")
 
         self.interface["connect"].grid(row=0, column=0, pady=2)
@@ -69,9 +69,9 @@ class SerialConfig(ttk.LabelFrame):
         self.connections_frame.grid(row=1, column=0, padx=10, pady=10, sticky="s")
         self.console.grid(row=0, column=1, rowspan=2, pady=10, padx=10)
 
-    def refreshPorts(self) -> None:
+    def refresh_ports(self) -> None:
 
-        self.available_ports = clinostat_com.getPorts()
+        self.available_ports = clinostat_com.get_ports()
         if not self.available_ports:
             self.available_ports = ["Empty"]
 
@@ -79,7 +79,7 @@ class SerialConfig(ttk.LabelFrame):
         self.variables["ports"].set("Select serial port")
         self.console.println("Updated available serial ports.", headline="SERIAL: ", msg_type="MESSAGE")
 
-    def connectToPort(self) -> None:
+    def connect_to_port(self) -> None:
 
         self.interface["connect"].configure(state="disabled")
         if self.supervisor.params["device"] is not None:
@@ -91,18 +91,18 @@ class SerialConfig(ttk.LabelFrame):
             self.console.println("No ports to connect to.", headline="ERROR: ", msg_type="ERROR")
             self.interface["connect"].configure(state="normal")
         else:
-            if clinostat_com.Clinostat.tryConnection(potential_port):
+            if clinostat_com.Clinostat.try_connection(potential_port):
                 self.supervisor.params["device"] = clinostat_com.Clinostat(potential_port)
                 self.supervisor.params["device"].port_name = potential_port
                 self.console.println(f"Successfully connected to {potential_port}.", headline="STATUS: ")
-                self.supervisor.params["device"].linkConsole(self.console)
-                self.interface_manager.ui_deviceConnected()
+                self.supervisor.params["device"].link_console(self.console)
+                self.interface_manager.ui_device_connected()
 
             else:
                 self.console.println("Connection to serial port failed.", headline="ERROR: ", msg_type="ERROR")
                 self.interface["connect"].configure(state="normal")
 
-    def disconnectPort(self) -> None:
+    def disconnect_port(self) -> None:
 
         try:
             self.supervisor.params["device"].close_serial()
@@ -112,7 +112,7 @@ class SerialConfig(ttk.LabelFrame):
         finally:
             port_name = self.supervisor.params["device"].port_name
             self.supervisor.params["device"] = None
-            self.interface_manager.ui_modesSuspend()
+            self.interface_manager.ui_modes_suspend()
             self.supervisor.flags["pumping"] = False
 
         self.console.println(f"Successfully disconnected from {port_name}.", headline="STATUS: ")
@@ -144,23 +144,23 @@ class ModeMenu(ttk.LabelFrame):
 
         self.linear_indicators = [self.interface["speed_slider1"], self.interface["speed_slider2"]]  # Easier access.
 
-        self.interface["abort"] = tk.Button(self.button_frame, command=self.handleAbort, text="Abort")
+        self.interface["abort"] = tk.Button(self.button_frame, command=self.handle_abort, text="Abort")
         self.interface["abort"].configure(width=ModeMenu.button_w, background="#bf4032", activebackground="#eb7063",
                                           foreground="white", disabledforeground="#d1d1d1", state="disabled")
 
-        self.interface["run"] = tk.Button(self.button_frame, command=self.handleRun, text="Run")
+        self.interface["run"] = tk.Button(self.button_frame, command=self.handle_run, text="Run")
         self.interface["run"].configure(width=ModeMenu.button_w, state="disabled")
 
-        self.interface["pause"] = tk.Button(self.button_frame, command=self.handlePause, text="Pause")
+        self.interface["pause"] = tk.Button(self.button_frame, command=self.handle_pause, text="Pause")
         self.interface["pause"].configure(width=ModeMenu.button_w, state="disabled")
 
-        self.interface["resume"] = tk.Button(self.button_frame, command=self.handleResume, text="Resume")
+        self.interface["resume"] = tk.Button(self.button_frame, command=self.handle_resume, text="Resume")
         self.interface["resume"].configure(width=ModeMenu.button_w, state="disabled")
 
-        self.interface["home"] = tk.Button(self.button_frame, command=self.handleHome, text="Home")
+        self.interface["home"] = tk.Button(self.button_frame, command=self.handle_home, text="Home")
         self.interface["home"].configure(width=ModeMenu.button_w, state="disabled")
 
-        self.interface["echo"] = tk.Button(self.button_frame, command=self.handleEcho, text="Echo")
+        self.interface["echo"] = tk.Button(self.button_frame, command=self.handle_echo, text="Echo")
         self.interface["echo"].configure(width=ModeMenu.button_w, state="disabled")
 
         self.interface["abort"].grid(row=0, column=0, pady=ModeMenu.button_pady)
@@ -174,45 +174,45 @@ class ModeMenu(ttk.LabelFrame):
         self.indicators_frame.grid(row=0, column=1, padx=30, rowspan=5, sticky="NE")
 
         for indicator in self.linear_indicators:
-            indicator.configureState(state="disabled")
+            indicator.configure_state(state="disabled")
 
         for widget in self.interface:
             if self.interface[widget] not in self.linear_indicators:
                 self.serial_sensitive_interface[widget] = self.interface[widget]
 
-    def readIndicatorValues(self):
-        return (indicator.getValue() for indicator in self.linear_indicators)
+    def read_indicator_values(self):
+        return (indicator.get_value() for indicator in self.linear_indicators)
 
-    def handleAbort(self):
-        self.interface_manager.ui_abortHandler()
+    def handle_abort(self):
+        self.interface_manager.ui_abort_handler()
         SuccessThread(target=self.supervisor.params["device"].abort,
-                      at_success=self.interface_manager.ui_enableRun,
+                      at_success=self.interface_manager.ui_enable_run,
                       exception_=clinostat_com.ClinostatCommunicationError).start()
 
-    def handleRun(self):
-        self.interface_manager.ui_runHandler()
-        SuccessThread(target=self.supervisor.params["device"].run, args=(tuple(self.readIndicatorValues()),),
-                      at_success=self.interface_manager.ui_enableStop,
+    def handle_run(self):
+        self.interface_manager.ui_run_handler()
+        SuccessThread(target=self.supervisor.params["device"].run, args=(tuple(self.read_indicator_values()),),
+                      at_success=self.interface_manager.ui_enable_stop,
                       exception_=clinostat_com.ClinostatCommunicationError).start()
 
-    def handleEcho(self):
+    def handle_echo(self):
         self.supervisor.params["device"].echo()
 
-    def handlePause(self):
-        self.interface_manager.ui_pauseHandler()
+    def handle_pause(self):
+        self.interface_manager.ui_pause_handler()
         SuccessThread(target=self.supervisor.params["device"].pause,
-                      at_success=self.interface_manager.ui_enableResume,
+                      at_success=self.interface_manager.ui_enable_resume,
                       exception_=clinostat_com.ClinostatCommunicationError).start()
 
-    def handleResume(self):
-        self.interface_manager.ui_resumeHandler()
-        self.interface_manager.ui_disableSpeedIndicators()
+    def handle_resume(self):
+        self.interface_manager.ui_resume_handler()
+        self.interface_manager.ui_disable_speed_Indicators()
         self.supervisor.params["device"].resume()
 
-    def handleHome(self):
+    def handle_home(self):
         self.supervisor.params["device"].home()
 
-    def resetIndicators(self):
+    def reset_indicators(self):
         for indicator in self.linear_indicators:
             indicator.reset()
 
@@ -283,8 +283,8 @@ class DataEmbed(tk.Frame):
         for i in range(len(plot_descriptions)):
             self.plots[plot_keys[i]] = cw.EmbeddedFigure(master=self.gravity_plots,
                                                          figsize=DataEmbed.figsize_)
-            self.plots[plot_keys[i]].addLinesObject()
-            self.plots[plot_keys[i]].addLinesObject()
+            self.plots[plot_keys[i]].add_lines_object()
+            self.plots[plot_keys[i]].add_lines_object()
             self.grav_axes.append(self.plots[plot_keys[i]])
             self.gravity_plots.add(self.plots[plot_keys[i]], text=plot_descriptions[i])
 
@@ -295,7 +295,7 @@ class DataEmbed(tk.Frame):
 
         self.plots["fourier"] = cw.EmbeddedFigure(master=self.fourier, figsize=DataEmbed.figsize_)
         for i in range(2):
-            self.plots["fourier"].addLinesObject()
+            self.plots["fourier"].add_lines_object()
         self.plots["fourier"].xlabel("Frequency (Hz)")
         self.plots["fourier"].ylabel("Intensity")
         self.fourier.add(self.plots["fourier"], text="FFT of gravity vector")
@@ -303,7 +303,7 @@ class DataEmbed(tk.Frame):
 
         self.plots["temperatures"] = cw.EmbeddedFigure(master=self.temperatures, figsize=DataEmbed.figsize_)
         for i in range(2):
-            self.plots["temperatures"].addLinesObject()
+            self.plots["temperatures"].add_lines_object()
 
         self.plots["temperatures"].xlabel("Elapsed time (s)")
         self.plots["temperatures"].ylabel("Temperature °C")
@@ -320,8 +320,8 @@ class DataEmbed(tk.Frame):
         self.data_save_frame.columnconfigure(0, weight=1)
         self.data_save_frame.columnconfigure(1, weight=1)
 
-        self.interface["save"] = tk.Button(self.data_save_frame, text="Save to CSV", command=self.saveFile, width=17)
-        self.interface["clear"] = tk.Button(self.data_save_frame, text="Clear data", command=self.clearData, width=17)
+        self.interface["save"] = tk.Button(self.data_save_frame, text="Save to CSV", command=self.save_file, width=17)
+        self.interface["clear"] = tk.Button(self.data_save_frame, text="Clear data", command=self.clear_data, width=17)
         self.interface["save"].grid(row=0, column=0, padx=10)
         self.interface["clear"].grid(row=0, column=1, padx=10)
 
@@ -353,11 +353,11 @@ class DataEmbed(tk.Frame):
     #     self.supervisor.params["server"].closeServer()
     #     self.supervisor.variables["address"].set("")
 
-    def resetDataBuffers(self):
-        self.supervisor.clearQueues()
-        self.supervisor.resetDataBuffers()
+    def reset_data_buffers(self):
+        self.supervisor.clear_queues()
+        self.supervisor.reset_data_buffers()
 
-    def updateData(self):
+    def update_data(self):
 
         data_queue = self.supervisor.get_queue
 
@@ -408,22 +408,22 @@ class DataEmbed(tk.Frame):
                                                np.abs(frt[:N // 2]), tracking=False)
 
         else:
-            self.plots["fourier"].resetPlot()
+            self.plots["fourier"].reset_plot()
             for plot in self.grav_axes:
-                plot.resetPlot()
+                plot.reset_plot()
 
-    def clearData(self):
+    def clear_data(self):
         if messagebox.askyesno(title="Clinostat control system", message="Are you sure you want to clear all data?"):
             if "data.temp" in os.listdir("temp"):
                 os.remove("temp/data.temp")
                 with open("temp/data.temp", "a"):
                     pass
-            self.resetDataBuffers()
-            self.updateData()
+            self.reset_data_buffers()
+            self.update_data()
         else:
             pass
 
-    def saveFile(self):
+    def save_file(self):
         if self.supervisor.data_buffers["grav_components"][0]:
             date = datetime.now()
             date = str(date).replace(".", "-").replace(" ", "-").replace(":", "-")
@@ -464,8 +464,8 @@ class PumpControl(ttk.LabelFrame):
         self.supervisor.variables["water1"] = self.interface["water_slider1"].var
         self.supervisor.variables["time1"] = self.interface["time_slider1"].var
 
-        self.interface["water_slider1"].configureState(state="disabled")
-        self.interface["time_slider1"].configureState(state="disabled")
+        self.interface["water_slider1"].configure_state(state="disabled")
+        self.interface["time_slider1"].configure_state(state="disabled")
 
         self.times_frame = tk.Frame(self)
 
@@ -483,15 +483,15 @@ class PumpControl(ttk.LabelFrame):
         self.buttons_frame = tk.Frame(self)
 
         self.interface["start"] = self.serial_sensitive_interface["start"] = \
-            tk.Button(self.buttons_frame, text="Start cycle", command=self.startWateringCycle)
+            tk.Button(self.buttons_frame, text="Start cycle", command=self.start_watering_cycle)
         self.interface["start"].configure(state="disabled", width=8)
 
         self.interface["stop"] = self.serial_sensitive_interface["stop"] =  \
-            tk.Button(self.buttons_frame, text="Stop cycle", command=self.stopWateringCycle)
+            tk.Button(self.buttons_frame, text="Stop cycle", command=self.stop_watering_cycle)
         self.interface["stop"].configure(state="disabled", width=8)
 
         self.interface["force"] = self.serial_sensitive_interface["force"] = \
-            tk.Button(self.buttons_frame, text="Force cycle", command=self.forceWateringCycle)
+            tk.Button(self.buttons_frame, text="Force cycle", command=self.force_watering_cycle)
         self.interface["force"].configure(state="disabled", width=8)
 
         self.interface["start"].grid(row=0, column=0, padx=10, pady=10)
@@ -504,28 +504,28 @@ class PumpControl(ttk.LabelFrame):
         self.times_frame.grid(row=2, column=0, padx=10, pady=10, sticky="W")
         self.buttons_frame.grid(row=3, column=0, padx=10, pady=10)
 
-    def startWateringCycle(self):
-        if self.interface["water_slider1"].getValue() > 0 and self.interface["time_slider1"].getValue() > 0:
+    def start_watering_cycle(self):
+        if self.interface["water_slider1"].get_value() > 0 and self.interface["time_slider1"].get_value() > 0:
             self.supervisor.flags["pumping"] = True
-            self.interface_manager.ui_wateringStarted()
+            self.interface_manager.ui_watering_started()
 
         else:
             self.interface_manager.outputs["serial"].println("Time and water volume values"
                                                              " have to be greater than 0.",
                                                              headline="ERROR: ", msg_type="ERROR")
 
-    def stopWateringCycle(self):
+    def stop_watering_cycle(self):
         self.supervisor.flags["pumping"] = False
         self.variables["time_left"].set("00:00")
-        self.interface_manager.ui_wateringStopped()
+        self.interface_manager.ui_watering_stopped()
 
-    def forceWateringCycle(self):
-        self.interface_manager.ui_serialSuspend()
+    def force_watering_cycle(self):
+        self.interface_manager.ui_serial_suspend()
 
-        SuccessThread(target=self.supervisor.params["device"].dumpWater,
-                      at_success=self.interface_manager.ui_serialBreakSuspend,
+        SuccessThread(target=self.supervisor.params["device"].dump_water,
+                      at_success=self.interface_manager.ui_serial_break_suspend,
                       exception_=clinostat_com.ClinostatCommunicationError,
-                      args=(self.interface["water_slider1"].getValue(),)).start()
+                      args=(self.interface["water_slider1"].get_value(),)).start()
 
 
 class LightControl(ttk.LabelFrame):
@@ -539,16 +539,16 @@ class LightControl(ttk.LabelFrame):
         self.intensity_slider = cw.SlidingIndicator(master=self, label="Intensity", unit="%  ",
                                                     orientation="horizontal",
                                                     from_=0, to=100, res=1, length=300, width=30, entry_pos="right",
-                                                    opt=self.updateValueContainer)
+                                                    opt=self.update_value_container)
         self.intensity_slider.grid(row=0, column=0, sticky="ne", padx=10, pady=10)
-        self.intensity_slider.configureState(state="disabled")
+        self.intensity_slider.configure_state(state="disabled")
         self.interface["light_slider1"] = self.intensity_slider
 
         self.intensity_queue = self.supervisor.put_queue
         self.intensity_queue.put(50)
 
-    def updateValueContainer(self, arg):
-        self.intensity_queue.put(self.intensity_slider.getValue())
+    def update_value_container(self, arg):
+        self.intensity_queue.put(self.intensity_slider.get_value())
 
 
 class ServerStarter(ttk.LabelFrame):
@@ -563,12 +563,12 @@ class ServerStarter(ttk.LabelFrame):
         # self.data_save_frame = ttk.LabelFrame(self, text="Save or discard data")
 
         self.interface["start_server"] = tk.Button(self,
-                                                   text="Start server", command=self.handleRunServer)
+                                                   text="Start server", command=self.handle_run_server)
         self.interface["start_server"].configure(width=20)
         self.interface["start_server"].grid(row=0, column=0, pady=2, padx=30, sticky="w")
 
         self.interface["close_server"] = tk.Button(self,
-                                                   text="Close server", command=self.handleCloseServer)
+                                                   text="Close server", command=self.handle_close_server)
         self.interface["close_server"].configure(width=20, state="disabled")
         self.interface["close_server"].grid(row=0, column=1, pady=2, padx=30, sticky="e")
 
@@ -588,23 +588,23 @@ class ServerStarter(ttk.LabelFrame):
         self.address_label.grid(row=2, column=0)
         self.interface["address_entry"].grid(row=3, column=0)
 
-    def handleRunServer(self):
+    def handle_run_server(self):
         server = self.supervisor.params["server"]
         try:
-            server.runServer()
+            server.run_server()
         except ServerStartupError:
             return
 
-        self.interface_manager.ui_serverEnable()
+        self.interface_manager.ui_server_enable()
         self.supervisor.variables["address"].set(server.address + ":" + str(server.port))
         self.supervisor.flags["plotting"] = True
-        self.interface_manager.ui_lightingEnable()
+        self.interface_manager.ui_lighting_enable()
 
-    def handleCloseServer(self):
-        self.interface_manager.ui_lightingDisable()
-        self.interface_manager.ui_serverDisable()
+    def handle_close_server(self):
+        self.interface_manager.ui_lighting_disable()
+        self.interface_manager.ui_server_disable()
         self.supervisor.flags["plotting"] = False
-        self.supervisor.params["server"].closeServer()
+        self.supervisor.params["server"].close_server()
         self.supervisor.variables["address"].set("")
 
 

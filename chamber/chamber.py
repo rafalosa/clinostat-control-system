@@ -29,7 +29,7 @@ while running:
     # grav_x;grav_y;grav_z;temp1;temp2;temp3;light1;light2;humidity;time since last humidity test
 
     # formulate message, ';' delimiter
-    accel_vals = grav_sensor.readAllAxes()
+    accel_vals = grav_sensor.read_all_axes()
     accel_vals = [val/(2**16/4) for val in accel_vals]
     temp = [means[ind] * index / (index + 1) + accel_vals[ind] / (index + 1) for ind in range(3)]
     index += 1

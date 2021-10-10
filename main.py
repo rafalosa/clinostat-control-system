@@ -64,28 +64,28 @@ class InterfaceManager(ttk.Notebook):
 
         self.outputs["serial"] = self.serial_config.console
         # self.outputs["server"] = self.data_embed.console
-        self.master.params["server"].linkOutput(self.outputs["serial"].println)
+        self.master.params["server"].link_output(self.outputs["serial"].println)
 
         self.master.params["plotter"] = self.data_embed
 
         self.add(self.motors_tab, text="Clinostat control")
         self.add(self.data_embed, text="Chamber computer")
 
-    def ui_modesSuspend(self):
+    def ui_modes_suspend(self):
         self.serial_sensitive_interface["connect"].configure(state="normal")
         self.serial_sensitive_interface["disconnect"].configure(state="disabled")
-        self.ui_disableCommandButtons()
-        self.ui_disableSpeedIndicators()
-        self.mode_options.resetIndicators()
-        self.ui_wateringReset()
+        self.ui_disable_command_buttons()
+        self.ui_disable_speed_Indicators()
+        self.mode_options.reset_indicators()
+        self.ui_watering_reset()
 
-    def ui_serialSuspend(self):
+    def ui_serial_suspend(self):
         self.serial_interface_buffer = {button: self.serial_sensitive_interface[button]["state"]
                                         for button in self.serial_sensitive_interface}
         for button in self.serial_sensitive_interface:
             self.serial_sensitive_interface[button].configure(state="disabled")
 
-    def ui_serialBreakSuspend(self):
+    def ui_serial_break_suspend(self):
         if self.serial_interface_buffer:
             for button in self.serial_sensitive_interface:
                 self.serial_sensitive_interface[button].configure(state=self.serial_interface_buffer[button])
@@ -93,42 +93,42 @@ class InterfaceManager(ttk.Notebook):
         else:
             raise RuntimeError("Button states not saved.")
 
-    def ui_disableSpeedIndicators(self):
-        self.interface["speed_slider1"].configureState(state="disabled")
-        self.interface["speed_slider2"].configureState(state="disabled")
+    def ui_disable_speed_Indicators(self):
+        self.interface["speed_slider1"].configure_state(state="disabled")
+        self.interface["speed_slider2"].configure_state(state="disabled")
 
-    def ui_enableSpeedIndicators(self):
-        self.interface["speed_slider1"].configureState(state="normal")
-        self.interface["speed_slider2"].configureState(state="normal")
+    def ui_enable_speed_indicators(self):
+        self.interface["speed_slider1"].configure_state(state="normal")
+        self.interface["speed_slider2"].configure_state(state="normal")
 
-    def ui_deviceConnected(self):
+    def ui_device_connected(self):
         self.serial_sensitive_interface["disconnect"].configure(state="normal")
         self.serial_sensitive_interface["connect"].configure(state="disabled")
-        self.ui_enableRun()
-        self.ui_wateringEnable()
+        self.ui_enable_run()
+        self.ui_watering_enable()
 
-    def ui_runHandler(self):
-        self.ui_disableCommandButtons()
-        self.ui_disableSpeedIndicators()
-        self.ui_serialSuspend()
+    def ui_run_handler(self):
+        self.ui_disable_command_buttons()
+        self.ui_disable_speed_Indicators()
+        self.ui_serial_suspend()
 
-    def ui_abortHandler(self):
-        self.ui_disableCommandButtons()
+    def ui_abort_handler(self):
+        self.ui_disable_command_buttons()
 
-    def ui_pauseHandler(self):
-        self.ui_disableCommandButtons()
-        self.ui_serialSuspend()
+    def ui_pause_handler(self):
+        self.ui_disable_command_buttons()
+        self.ui_serial_suspend()
 
-    def ui_resumeHandler(self):
+    def ui_resume_handler(self):
         self.serial_sensitive_interface["resume"].configure(state="disabled")
         self.serial_sensitive_interface["pause"].configure(state="normal")
         self.serial_sensitive_interface["abort"].configure(state="normal")
         self.serial_sensitive_interface["echo"].configure(state="normal")
 
-    def ui_homeHandler(self):
+    def ui_home_handler(self):
         pass
 
-    def ui_disableCommandButtons(self):
+    def ui_disable_command_buttons(self):
         self.serial_sensitive_interface["disconnect"].configure(state="disabled")
         self.serial_sensitive_interface["abort"].config(state="disabled")
         self.serial_sensitive_interface["run"].config(state="disabled")
@@ -137,83 +137,83 @@ class InterfaceManager(ttk.Notebook):
         self.serial_sensitive_interface["echo"].config(state="disabled")
         self.serial_sensitive_interface["home"].config(state="disabled")
 
-    def ui_enableStop(self):
-        self.ui_serialBreakSuspend()
+    def ui_enable_stop(self):
+        self.ui_serial_break_suspend()
         self.serial_sensitive_interface["disconnect"].configure(state="normal")
         self.serial_sensitive_interface["abort"].configure(state="normal")
         self.serial_sensitive_interface["pause"].configure(state="normal")
         self.serial_sensitive_interface["echo"].configure(state="normal")
 
-    def ui_enableRun(self):
+    def ui_enable_run(self):
         self.serial_sensitive_interface["run"].config(state="normal")
         self.serial_sensitive_interface["home"].config(state="normal")
         self.serial_sensitive_interface["echo"].config(state="normal")
         self.serial_sensitive_interface["disconnect"].configure(state="normal")
-        self.ui_enableSpeedIndicators()
+        self.ui_enable_speed_indicators()
 
-    def ui_enableResume(self):
-        self.ui_serialBreakSuspend()
+    def ui_enable_resume(self):
+        self.ui_serial_break_suspend()
         self.serial_sensitive_interface["disconnect"].configure(state="normal")
         self.serial_sensitive_interface["resume"].configure(state="normal")
         self.serial_sensitive_interface["pause"].configure(state="disabled")
         self.serial_sensitive_interface["abort"].configure(state="normal")
         self.serial_sensitive_interface["echo"].configure(state="normal")
 
-    def ui_disablePumpIndicators(self):
-        self.interface["water_slider1"].configureState(state="disabled")
-        self.interface["time_slider1"].configureState(state="disabled")
+    def ui_disable_pump_indicators(self):
+        self.interface["water_slider1"].configure_state(state="disabled")
+        self.interface["time_slider1"].configure_state(state="disabled")
 
-    def ui_enablePumpIndicators(self):
-        self.interface["water_slider1"].configureState(state="normal")
-        self.interface["time_slider1"].configureState(state="normal")
+    def ui_enable_pump_indicators(self):
+        self.interface["water_slider1"].configure_state(state="normal")
+        self.interface["time_slider1"].configure_state(state="normal")
 
-    def ui_wateringStarted(self):
+    def ui_watering_started(self):
         self.serial_sensitive_interface["force"].configure(state="normal")
         self.serial_sensitive_interface["stop"].configure(state="normal")
         self.serial_sensitive_interface["start"].configure(state="disabled")
-        self.interface["time_slider1"].configureState(state="disabled")
-        self.interface["water_slider1"].configureState(state="disabled")
+        self.interface["time_slider1"].configure_state(state="disabled")
+        self.interface["water_slider1"].configure_state(state="disabled")
 
-    def ui_wateringStopped(self):
+    def ui_watering_stopped(self):
         self.serial_sensitive_interface["force"].configure(state="disabled")
         self.serial_sensitive_interface["start"].configure(state="normal")
         self.serial_sensitive_interface["stop"].configure(state="disabled")
-        self.interface["time_slider1"].configureState(state="normal")
-        self.interface["water_slider1"].configureState(state="normal")
+        self.interface["time_slider1"].configure_state(state="normal")
+        self.interface["water_slider1"].configure_state(state="normal")
 
-    def ui_wateringReset(self):
+    def ui_watering_reset(self):
         self.serial_sensitive_interface["stop"].configure(state="disabled")
         self.serial_sensitive_interface["start"].configure(state="disabled")
         self.serial_sensitive_interface["force"].configure(state="disabled")
-        self.interface["water_slider1"].configureState(state="disabled")
-        self.interface["time_slider1"].configureState(state="disabled")
+        self.interface["water_slider1"].configure_state(state="disabled")
+        self.interface["time_slider1"].configure_state(state="disabled")
         self.interface["time_slider1"].reset()
         self.interface["water_slider1"].reset()
 
-    def ui_wateringButtonsDisable(self):
+    def ui_watering_buttons_disable(self):
         self.serial_sensitive_interface["force"].configure(state="disabled")
         self.serial_sensitive_interface["stop"].configure(state="disabled")
         self.serial_sensitive_interface["start"].configure(state="disabled")
 
-    def ui_wateringEnable(self):
+    def ui_watering_enable(self):
         self.serial_sensitive_interface["stop"].configure(state="disabled")
         self.serial_sensitive_interface["start"].configure(state="active")
-        self.interface["water_slider1"].configureState(state="normal")
-        self.interface["time_slider1"].configureState(state="normal")
+        self.interface["water_slider1"].configure_state(state="normal")
+        self.interface["time_slider1"].configure_state(state="normal")
 
-    def ui_serverEnable(self):
+    def ui_server_enable(self):
         self.interface["start_server"].configure(state="disabled")
         self.interface["close_server"].configure(state="normal")
 
-    def ui_serverDisable(self):
+    def ui_server_disable(self):
         self.interface["start_server"].configure(state="normal")
         self.interface["close_server"].configure(state="disabled")
 
-    def ui_lightingEnable(self):
-        self.interface["light_slider1"].configureState(state="normal")
+    def ui_lighting_enable(self):
+        self.interface["light_slider1"].configure_state(state="normal")
 
-    def ui_lightingDisable(self):
-        self.interface["light_slider1"].configureState(state="disabled")
+    def ui_lighting_disable(self):
+        self.interface["light_slider1"].configure_state(state="disabled")
 
 
 class App(tk.Tk):
@@ -242,8 +242,8 @@ class App(tk.Tk):
         self.get_queue = queue.Queue()
         self.put_queue = queue.Queue()
         self.params["server"] = data_socket.DataServer(address=config["IP"], port=config["PORT"])
-        self.params["server"].attachReceiveQueue(self.get_queue)
-        self.params["server"].attachResponseQueue(self.put_queue)
+        self.params["server"].attach_receive_queue(self.get_queue)
+        self.params["server"].attach_response_queue(self.put_queue)
 
         self.interface_manager = InterfaceManager(self)
         self.interface_manager.pack(expand=True)
@@ -251,24 +251,24 @@ class App(tk.Tk):
     def destroy(self):
 
         if self.params["server"].running:
-            self.params["server"].closeServer()
+            self.params["server"].close_server()
 
         if self.params["device"]:
             self.params["device"].close_serial()
 
         super().quit()
 
-    def clearQueues(self):
+    def clear_queues(self):
         with self.get_queue.mutex:
             self.get_queue.queue.clear()
 
         with self.put_queue.mutex:
             self.put_queue.queue.clear()
 
-    def resetDataBuffers(self):
+    def reset_data_buffers(self):
         self.data_buffers = properties.DataBuffers()
 
-    def programLoop(self):
+    def program_loop(self):
 
         if self.flags["plotting"] and not self.get_queue.empty():
             self.params["plotter"].updateData()
@@ -289,12 +289,12 @@ class App(tk.Tk):
                 self.trackers["seconds"] = now_time
 
             if (now_time - self.trackers["pump_time"])/60 >= self.variables["time1"].get():
-                self.interface_manager.pump_control.forceWateringCycle()
+                self.interface_manager.pump_control.force_watering_cycle()
                 self.trackers["pump_time"] = now_time
 
         self.flags["prev_pumping_flag_state"] = self.flags["pumping"]
 
-        self.after(1, self.programLoop)
+        self.after(1, self.program_loop)
 
 
 if __name__ == "__main__":
@@ -303,5 +303,5 @@ if __name__ == "__main__":
     #root.geometry("1100x800")
     root.title("Clinostat control system")
     # root.iconbitmap("icon/favicon.ico")
-    root.after(1, root.programLoop)
+    root.after(1, root.program_loop)
     root.mainloop()

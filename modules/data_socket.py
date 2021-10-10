@@ -16,7 +16,7 @@ class DataServer:
         self.HEADER_SIZE = 10
         self._containers = {}
 
-    def runServer(self):
+    def run_server(self):
         try:
             self.socket = socket.create_server((self.address,self.port), family=socket.AF_INET)
         except OSError as err:
@@ -25,10 +25,10 @@ class DataServer:
             raise ServerStartupError(err.args[1])
         self.running = True
         self.notify(f"Successfully connected to: {self.address}", headline="TCP: ", msg_type="TCP")
-        self.server_thread = threading.Thread(target=self._serverLoop)
+        self.server_thread = threading.Thread(target=self._server_loop)
         self.server_thread.start()
 
-    def _serverLoop(self):
+    def _server_loop(self):
 
         self.socket.listen()
 
@@ -75,7 +75,7 @@ class DataServer:
         else:
             raise RuntimeError("Receiving queue must be attached. Use the attachReceiveQueue method.")
 
-    def closeServer(self):
+    def close_server(self):
         self.running = False
         close_failed = False
 
@@ -93,13 +93,13 @@ class DataServer:
             self.socket.close()
             self.socket = None
 
-    def linkOutput(self, link):
+    def link_output(self, link):
         self.notify = link
 
-    def attachReceiveQueue(self, queue_: queue.Queue):
+    def attach_receive_queue(self, queue_: queue.Queue):
         self._containers["receive"] = queue_
 
-    def attachResponseQueue(self, queue_: queue.Queue):
+    def attach_response_queue(self, queue_: queue.Queue):
         self._containers["response"] = queue_
 
 

@@ -2,6 +2,7 @@ import subprocess
 import datetime
 import gpiozero
 
+
 class LIS3DHAccelerometer:
 
     __CTRL_REG1 = 0x20
@@ -32,7 +33,7 @@ class LIS3DHAccelerometer:
         self.bus.write_byte_data(self.address,LIS3DHAccelerometer.__CTRL_REG1,0x2F)
         self.bus.write_byte_data(self.address,LIS3DHAccelerometer.__CTRL_REG4, 0x00)
 
-    def readAllAxes(self) -> list:
+    def read_all_axes(self) -> list:
 
         axes = LIS3DHAccelerometer.__axes_reg
         results = []
@@ -71,14 +72,14 @@ class ADS1115ADC:
         self.address = address
         self.bus = bus
 
-    def readChannel(self,channel):
+    def read_channel(self, channel):
         # Read channel voltage in reference to ground. ADS1115 also has a differential measuring mode, which
         # has been omitted, but would be trivial to implement.
 
         ls_byte = 0b11100011  # Comparators disabled, 860SPS data rate
         ms_byte = 0b0011 + ((channel + 4) << 4) + 128  # Amplifier gain set to 1, start single conversion, pick channel.
         self.bus.write_i2c_block_data(self.address, ADS1115ADC.__CONFIG_REG, [ms_byte, ls_byte])
-        while self.convertingStatus():
+        while self.converting_status():
             pass
         data = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONVERSION_REG,2)
         reading = (data[0] << 8) + data[1]
@@ -86,7 +87,7 @@ class ADS1115ADC:
         # measurements in respect to GND.
         return reading
 
-    def convertingStatus(self):
+    def converting_status(self):
 
         config = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONFIG_REG,2)
         
@@ -110,7 +111,7 @@ class Camera:
         self.port = port
         self.resolution = res
 
-    def captureFrame(self,image_path):
+    def capture_frame(self, image_path):
         timestamp = str(datetime.datetime.now()).replace(" ","-").replace(":","-").replace(".","-")
         path = image_path + timestamp + ".jpg"
         subprocess.call(f"./take_pic.sh {self.port} {self.resolution} {path}",shell=True)
@@ -123,14 +124,18 @@ class LightPanel:
         # self._GREEN = gpiozero.PWMOutputDevice(green_pin, initial_value=0, frequency=300)
         self._BLUE = gpiozero.PWMOutputDevice(blue_pin, initial_value=0, frequency=300)
 
-    def powerOn(self):
+    def power_on(self):
         self._RED.on()
         self._BLUE.on()
 
-    def powerOff(self):
+    def power_off(self):
         self._RED.off()
         self._BLUE.off()
 
-    def setIntensity(self, red_pwm, blue_pwm):
+    def set_intensity(self, red_pwm, blue_pwm):
         self._RED.value = red_pwm
         self._BLUE.value = blue_pwm
+
+
+
+

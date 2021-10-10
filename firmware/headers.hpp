@@ -1,3 +1,5 @@
+#pragma once
+
 #define __AVR_ATmega32U4__
 #define F_CPU 16000000UL
 #define BAUD 57600

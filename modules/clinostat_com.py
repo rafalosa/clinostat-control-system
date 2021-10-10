@@ -103,7 +103,7 @@ class Clinostat:
 
     def abort(self):  # Mode byte: b'\x03'.
 
-        self.handleCommand(Clinostat._ABORT, response=False)
+        self.handle_command(Clinostat._ABORT, response=False)
         if not self.res:
             rcv = b''
             while rcv != Clinostat._STOPPED:
@@ -113,7 +113,7 @@ class Clinostat:
 
     def pause(self):  # Mode byte: b'\x04'.
 
-        self.handleCommand(Clinostat._PAUSE, response=False)
+        self.handle_command(Clinostat._PAUSE, response=False)
         rcv = b''
         while rcv != Clinostat._STOPPED:
             rcv = self._port.read(1)
@@ -123,7 +123,7 @@ class Clinostat:
     def resume(self):  # Mode byte: b'\x05'.
         # resume run with previously set speeds, check for flag if paused first.
         # listen for response, return true if controller responded correctly
-        self.handleCommand(Clinostat._RESUME)
+        self.handle_command(Clinostat._RESUME)
         self.res = False
 
     def disconnect(self):
@@ -137,10 +137,10 @@ class Clinostat:
             raise ClinostatCommunicationError("Device is already physically disconnected. Check USB cable.")
         self._port.close()
 
-    def linkConsole(self, console) -> None:
+    def link_console(self, console) -> None:
         self.console = console
 
-    def handleCommand(self, command,response=True):
+    def handle_command(self, command, response=True):
 
         try:
             self._port.write(command)
@@ -154,10 +154,10 @@ class Clinostat:
                 print(response)
             except serial.SerialTimeoutException:
                 raise ClinostatCommunicationError("Device didn't respond.")
-            msg = self._generateMessage(response)
+            msg = self._generate_message(response)
             self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
-    def dumpWater(self, amount):
+    def dump_water(self, amount):
         # Sends mode ID and 8 more bytes containing 2 floats for the speed.
         # listen for response, return true if controller responded correctly
         message = Clinostat._WATERING
@@ -186,7 +186,7 @@ class Clinostat:
             # todo: Actually add handling the mentioned abort.
 
     @staticmethod
-    def _generateMessage(response):
+    def _generate_message(response):
 
         if response == Clinostat._STOPPING:
             message = "Stopping motors."
@@ -206,7 +206,7 @@ class Clinostat:
         return message
 
     @staticmethod
-    def tryConnection(port):
+    def try_connection(port):
         try:
             test_serial = serial.Serial(port, baudrate=57600, timeout=2)
         except serial.serialutil.SerialException:
@@ -221,7 +221,7 @@ class Clinostat:
             return False
 
 
-def getPorts() -> list:
+def get_ports() -> list:
 
     return [str(port).split(" ")[0] for port in serial.tools.list_ports.comports()]
 
