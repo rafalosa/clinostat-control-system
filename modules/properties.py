@@ -1,8 +1,8 @@
 import time
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 
 
-class ProgramProperties(Mapping):
+class ProgramProperties(MutableMapping):
 
     def __setitem__(self, key, value):
         if key in self.__slots__:
