@@ -39,7 +39,7 @@ while running:
     msg = f'{len(msg):<{HEADER_SIZE}}' + msg
     print(msg)
 
-    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sc:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
         sc.settimeout(10)
         try:
             sc.connect((address, port))

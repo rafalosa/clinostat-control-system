@@ -1,12 +1,12 @@
 import queue
 import socket
 import threading
+from typing import Callable
 
 
 class DataServer:
 
-    def __init__(self,address="127.0.0.1",port=8888):
-        # self.queues = []
+    def __init__(self, address="127.0.0.1", port=8888):
         self.socket = None
         self.server_thread = None
         self.notify = None
@@ -16,19 +16,20 @@ class DataServer:
         self.HEADER_SIZE = 10
         self._containers = {}
 
-    def run_server(self):
+    def run_server(self) -> None:
         try:
-            self.socket = socket.create_server((self.address,self.port), family=socket.AF_INET)
+            self.socket = socket.create_server((self.address, self.port), family=socket.AF_INET)
         except OSError as err:
             if self.notify:
                 self.notify(err.args[1], headline="TCP ERROR: ", msg_type="ERROR")
             raise ServerStartupError(err.args[1])
         self.running = True
-        self.notify(f"Successfully connected to: {self.address}", headline="TCP: ", msg_type="TCP")
+        if self.notify:
+            self.notify(f"Successfully connected to: {self.address}", headline="TCP: ", msg_type="TCP")
         self.server_thread = threading.Thread(target=self._server_loop)
         self.server_thread.start()
 
-    def _server_loop(self):
+    def _server_loop(self) -> None:
 
         self.socket.listen()
 
@@ -75,7 +76,7 @@ class DataServer:
         else:
             raise RuntimeError("Receiving queue must be attached. Use the attachReceiveQueue method.")
 
-    def close_server(self):
+    def close_server(self) -> None:
         self.running = False
         close_failed = False
 
@@ -93,13 +94,13 @@ class DataServer:
             self.socket.close()
             self.socket = None
 
-    def link_output(self, link):
+    def link_output(self, link: Callable) -> None:
         self.notify = link
 
-    def attach_receive_queue(self, queue_: queue.Queue):
+    def attach_receive_queue(self, queue_: queue.Queue) -> None:
         self._containers["receive"] = queue_
 
-    def attach_response_queue(self, queue_: queue.Queue):
+    def attach_response_queue(self, queue_: queue.Queue) -> None:
         self._containers["response"] = queue_
 
 

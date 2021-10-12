@@ -196,7 +196,6 @@ class Console(tk.scrolledtext.ScrolledText):
 if __name__ == "__main__":
     app = tk.Tk()
     app.title("widget test")
-
     # term = TerminalEmulator(master=app)
     # term.pack()
     app.mainloop()

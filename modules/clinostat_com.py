@@ -4,6 +4,7 @@ import serial.serialutil
 from serial.tools import list_ports
 import struct
 from time import sleep
+from typing import Tuple
 
 
 class Clinostat:
@@ -64,15 +65,15 @@ class Clinostat:
         elif response == Clinostat._STOPPING_STATE:
             message += "stopping"
 
-        self.console.println(message,headline="CONTROLLER: ", msg_type="CONTROLLER")
+        self.console.println(message, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
-    def run(self, rpm):
+    def run(self, rpm: Tuple[float, ...]):
         # Sends mode ID and 8 more bytes containing 2 floats for the speed.
         # listen for response, return true if controller responded correctly
         self.res = False
-        vals = [r for r in rpm]
+        values = [r for r in rpm]
         message = Clinostat._RUN
-        for speed in vals[:2]:
+        for speed in values[:2]:
             message += bytes(bytearray(struct.pack("f", speed)))
 
         # message = message[0:1] + message[:0:-1]
@@ -116,7 +117,11 @@ class Clinostat:
         self.handle_command(Clinostat._PAUSE, response=False)
         rcv = b''
         while rcv != Clinostat._STOPPED:
-            rcv = self._port.read(1)
+            try:
+                rcv = self._port.read(1)
+            except serial.SerialException:
+                self.console.println("Device has been disconnected, please reset.", headline="CONTROLLER: ", msg_type="ERROR")
+                return
         self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
         self.res = True
 
@@ -134,7 +139,8 @@ class Clinostat:
         try:
             self.disconnect()
         except serial.serialutil.SerialException:
-            raise ClinostatCommunicationError("Device is already physically disconnected. Check USB cable.")
+            raise ClinostatCommunicationError("Device is already physically disconnected."
+                                              " Check USB cable and update USB ports.")
         self._port.close()
 
     def link_console(self, console) -> None:
@@ -145,8 +151,11 @@ class Clinostat:
         try:
             self._port.write(command)
         except serial.SerialException as err:
-            self.console.println(err, headline="SERIAL ERROR: ", msg_type="ERROR")
-            raise ClinostatCommunicationError("Device is already physically disconnected. Check USB cable.")
+            self.console.println("Device is already physically disconnected."
+                                 " Check USB cable and update USB ports.",
+                                 headline="SERIAL ERROR: ", msg_type="ERROR")
+            raise ClinostatCommunicationError("Device is already physically disconnected."
+                                              " Check USB cable and update USB ports.")
         sleep(0.1)
         if response:
             try:
@@ -178,7 +187,8 @@ class Clinostat:
         if response == Clinostat._PUMPING_STARTED:
             self.console.println("Watering starting.", headline="CONTROLLER: ", msg_type="CONTROLLER")
         elif response == Clinostat._STILL_PUMPING:
-            self.console.println("Previous watering process still running.", headline="CONTROLLER: ", msg_type="CONTROLLER")
+            self.console.println("Previous watering process still running.",
+                                 headline="CONTROLLER: ", msg_type="CONTROLLER")
         else:
             self.console.println("Received incorrect response, aborting.",
                                  headline="CONTROLLER ERROR: ", msg_type="ERROR")
