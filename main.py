@@ -274,11 +274,11 @@ class App(tk.Tk):
 
     def device_likely_unplugged(self) -> None:
 
-        self.params["device"] = None
         try:
             self.params["device"].close_serial()
         except clinostat_com.ClinostatCommunicationError:
             pass
+        self.params["device"] = None
         self.interface_manager.ui_modes_reset()
 
     def program_loop(self) -> None:

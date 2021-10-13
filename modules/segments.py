@@ -206,6 +206,7 @@ class ModeMenu(ttk.LabelFrame):
         self.interface_manager.ui_pause_handler()
         SuccessThread(target=self.supervisor.params["device"].pause,
                       at_success=self.interface_manager.ui_enable_resume,
+                      at_fail=self.supervisor.device_likely_unplugged,
                       exception_=clinostat_com.ClinostatCommunicationError).start()
 
     def handle_resume(self) -> None:
@@ -472,6 +473,7 @@ class PumpControl(ttk.LabelFrame):
         SuccessThread(target=self.supervisor.params["device"].dump_water,
                       at_success=self.interface_manager.ui_serial_break_suspend,
                       exception_=clinostat_com.ClinostatCommunicationError,
+                      at_fail=self.supervisor.device_likely_unplugged,
                       args=(self.interface["water_slider1"].get_value(),)).start()
 
 

@@ -89,6 +89,8 @@ class Clinostat:
             response = self._port.read(1)
         except serial.SerialTimeoutException:
             raise ClinostatCommunicationError("Device didn't respond.")
+        except serial.SerialException:
+            raise ClinostatCommunicationError("Device has been disconnected, please reset.")
         if response == Clinostat._STARTING:
             self.console.println("Starting motors.", headline="CONTROLLER: ", msg_type="CONTROLLER")
 
