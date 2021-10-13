@@ -43,18 +43,24 @@ class Clinostat:
         self.res = False
 
     def echo(self) -> None:
-        # Check if device is responding. Device should return its current mode.
         try:
             self._port.write(Clinostat._ECHO)
         except serial.SerialException as err:
-            self.console.println(err.args[1], headline="DEVICE ERROR: ", msg_type="ERROR")
+            self.console.println("Device cannot be reached. Check USB cable and update serial ports.",
+                                 headline="SERIAL ERROR: ", msg_type="ERROR")
+            raise ClinostatCommunicationError("Device disconnected.")
         sleep(0.1)
 
         try:
             response = self._port.read(1)
 
         except serial.SerialTimeoutException:
+            self.console.println("Device did not respond.", headline="SERIAL ERROR: ", msg_type="ERROR")
             raise ClinostatCommunicationError("Device didn't respond.")
+        except serial.SerialException:
+            self.console.println("Device cannot be reached. Check USB cable and update serial ports.",
+                                 headline="SERIAL ERROR: ", msg_type="ERROR")
+            raise ClinostatCommunicationError("Device has been disconnected.")
 
         message = "Device is currently "
 
@@ -81,8 +87,9 @@ class Clinostat:
         for byte in message:
             try:
                 self._port.write(byte.to_bytes(1, 'little'))
-            except serial.SerialException as err:
-                self.console.println(err.args[0], headline="SERIAL ERROR: ", msg_type="ERROR")
+            except serial.SerialException:
+                self.console.println("Device cannot be reached. Check USB cable and update serial ports.",
+                                     headline="SERIAL ERROR: ", msg_type="ERROR")
                 raise ClinostatCommunicationError("Serial exception error.")
             sleep(0.1)
         try:
@@ -90,7 +97,7 @@ class Clinostat:
         except serial.SerialTimeoutException:
             raise ClinostatCommunicationError("Device didn't respond.")
         except serial.SerialException:
-            raise ClinostatCommunicationError("Device has been disconnected, please reset.")
+            raise ClinostatCommunicationError("Device has been disconnected.")
         if response == Clinostat._STARTING:
             self.console.println("Starting motors.", headline="CONTROLLER: ", msg_type="CONTROLLER")
 
@@ -122,8 +129,9 @@ class Clinostat:
             try:
                 rcv = self._port.read(1)
             except serial.SerialException:
-                self.console.println("Device has been disconnected, please reset.", headline="CONTROLLER: ", msg_type="ERROR")
-                raise ClinostatCommunicationError
+                self.console.println("Device cannot be reached. Check USB cable and update serial ports.",
+                                     headline="CONTROLLER: ", msg_type="ERROR")
+                raise ClinostatCommunicationError("Device disconnected.")
 
         self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
         self.res = True
@@ -142,8 +150,7 @@ class Clinostat:
         try:
             self.disconnect()
         except serial.serialutil.SerialException:
-            raise ClinostatCommunicationError("Device is already physically disconnected."
-                                              " Check USB cable and update USB ports.")
+            raise ClinostatCommunicationError("Device cannot be reached. Check USB cable and update serial ports.")
         finally:
             try:
                 self._port.close()
@@ -158,11 +165,9 @@ class Clinostat:
         try:
             self._port.write(command)
         except serial.SerialException as err:
-            self.console.println("Device is already physically disconnected."
-                                 " Check USB cable and update USB ports.",
+            self.console.println("Device cannot be reached. Check USB cable and update serial ports.",
                                  headline="SERIAL ERROR: ", msg_type="ERROR")
-            raise ClinostatCommunicationError("Device is already physically disconnected."
-                                              " Check USB cable and update USB ports.")
+            raise ClinostatCommunicationError("Device out of reach.")
         sleep(0.1)
         if response:
             try:

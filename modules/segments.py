@@ -11,7 +11,7 @@ import tkinter as tk
 import threading
 import os
 from modules.data_socket import ServerStartupError
-from modules.custom_thread import SuccessThread
+from modules.custom_thread import ClinostatSerialThread
 from typing import List
 
 
@@ -158,8 +158,8 @@ class ModeMenu(ttk.LabelFrame):
         self.interface["resume"] = tk.Button(self.button_frame, command=self.handle_resume, text="Resume")
         self.interface["resume"].configure(width=ModeMenu.button_w, state="disabled")
 
-        self.interface["home"] = tk.Button(self.button_frame, command=self.handle_home, text="Home")
-        self.interface["home"].configure(width=ModeMenu.button_w, state="disabled")
+        # self.interface["home"] = tk.Button(self.button_frame, command=self.handle_home, text="Home")
+        # self.interface["home"].configure(width=ModeMenu.button_w, state="disabled")
 
         self.interface["echo"] = tk.Button(self.button_frame, command=self.handle_echo, text="Echo")
         self.interface["echo"].configure(width=ModeMenu.button_w, state="disabled")
@@ -168,8 +168,8 @@ class ModeMenu(ttk.LabelFrame):
         self.interface["run"].grid(row=1, column=0, pady=ModeMenu.button_pady)
         self.interface["pause"].grid(row=2, column=0, pady=ModeMenu.button_pady)
         self.interface["resume"].grid(row=3, column=0, pady=ModeMenu.button_pady)
-        self.interface["home"].grid(row=4, column=0, pady=ModeMenu.button_pady)
-        self.interface["echo"].grid(row=5, column=0, pady=ModeMenu.button_pady)
+        # self.interface["home"].grid(row=4, column=0, pady=ModeMenu.button_pady)
+        self.interface["echo"].grid(row=4, column=0, pady=ModeMenu.button_pady)
 
         self.button_frame.grid(row=0, column=0, padx=10)
         self.indicators_frame.grid(row=0, column=1, padx=30, rowspan=5, sticky="NE")
@@ -186,28 +186,28 @@ class ModeMenu(ttk.LabelFrame):
 
     def handle_abort(self) -> None:
         self.interface_manager.ui_abort_handler()
-        SuccessThread(target=self.supervisor.params["device"].abort,
-                      at_success=self.interface_manager.ui_enable_run,
-                      at_fail=self.supervisor.device_likely_unplugged,
-                      exception_=clinostat_com.ClinostatCommunicationError).start()
+        ClinostatSerialThread(target=self.supervisor.params["device"].abort,
+                              at_success=self.interface_manager.ui_enable_run,
+                              at_fail=self.supervisor.device_likely_unplugged).start()
 
     def handle_run(self) -> None:
         self.interface_manager.ui_run_handler()
         speed = self.read_indicator_values()
-        SuccessThread(target=self.supervisor.params["device"].run, args=(speed,),
-                      at_success=self.interface_manager.ui_enable_stop,
-                      at_fail=self.supervisor.device_likely_unplugged,
-                      exception_=clinostat_com.ClinostatCommunicationError).start()
+        ClinostatSerialThread(target=self.supervisor.params["device"].run, args=(speed,),
+                              at_success=self.interface_manager.ui_enable_stop,
+                              at_fail=self.supervisor.device_likely_unplugged).start()
 
     def handle_echo(self) -> None:
-        self.supervisor.params["device"].echo()
+        self.interface_manager.ui_serial_suspend()
+        ClinostatSerialThread(target=self.supervisor.params["device"].echo,
+                              at_success=self.interface_manager.ui_serial_break_suspend,
+                              at_fail=self.supervisor.device_likely_unplugged).start()
 
     def handle_pause(self) -> None:
         self.interface_manager.ui_pause_handler()
-        SuccessThread(target=self.supervisor.params["device"].pause,
-                      at_success=self.interface_manager.ui_enable_resume,
-                      at_fail=self.supervisor.device_likely_unplugged,
-                      exception_=clinostat_com.ClinostatCommunicationError).start()
+        ClinostatSerialThread(target=self.supervisor.params["device"].pause,
+                              at_success=self.interface_manager.ui_enable_resume,
+                              at_fail=self.supervisor.device_likely_unplugged).start()
 
     def handle_resume(self) -> None:
         self.interface_manager.ui_resume_handler()
@@ -470,11 +470,10 @@ class PumpControl(ttk.LabelFrame):
     def force_watering_cycle(self) -> None:
         self.interface_manager.ui_serial_suspend()
 
-        SuccessThread(target=self.supervisor.params["device"].dump_water,
-                      at_success=self.interface_manager.ui_serial_break_suspend,
-                      exception_=clinostat_com.ClinostatCommunicationError,
-                      at_fail=self.supervisor.device_likely_unplugged,
-                      args=(self.interface["water_slider1"].get_value(),)).start()
+        ClinostatSerialThread(target=self.supervisor.params["device"].dump_water,
+                              at_success=self.interface_manager.ui_serial_break_suspend,
+                              at_fail=self.supervisor.device_likely_unplugged,
+                              args=(self.interface["water_slider1"].get_value(),)).start()
 
 
 class LightControl(ttk.LabelFrame):

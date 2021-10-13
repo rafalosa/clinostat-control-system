@@ -7,6 +7,9 @@ import tkinter.ttk as ttk
 import time
 import ttkbootstrap
 
+# todo: There is a possibility that a watering command is executed during a rampdown of the motors which would cause a
+#   ClinostatCommunicationError exception to occur. Do something to prevent that.
+
 
 class InterfaceManager(ttk.Notebook):
 
@@ -134,7 +137,7 @@ class InterfaceManager(ttk.Notebook):
         self.serial_sensitive_interface["pause"].config(state="disabled")
         self.serial_sensitive_interface["resume"].config(state="disabled")
         self.serial_sensitive_interface["echo"].config(state="disabled")
-        self.serial_sensitive_interface["home"].config(state="disabled")
+        # self.serial_sensitive_interface["home"].config(state="disabled")
 
     def ui_enable_stop(self) -> None:
         self.ui_serial_break_suspend()
@@ -145,7 +148,7 @@ class InterfaceManager(ttk.Notebook):
 
     def ui_enable_run(self) -> None:
         self.serial_sensitive_interface["run"].config(state="normal")
-        self.serial_sensitive_interface["home"].config(state="normal")
+        # self.serial_sensitive_interface["home"].config(state="normal")
         self.serial_sensitive_interface["echo"].config(state="normal")
         self.serial_sensitive_interface["disconnect"].configure(state="normal")
         self.ui_enable_speed_indicators()
@@ -227,7 +230,7 @@ class App(tk.Tk):
         self.trackers = properties.AppTrackers()
         self.flags = properties.AppFlags()
         self.data_buffers = properties.DataBuffers()
-        # ttkbootstrap.Style(theme="flatly")
+        ttkbootstrap.Style(theme="flatly")
 
         if "saved data" not in os.listdir("."):
             os.mkdir("saved data")
