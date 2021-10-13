@@ -121,7 +121,8 @@ class Clinostat:
                 rcv = self._port.read(1)
             except serial.SerialException:
                 self.console.println("Device has been disconnected, please reset.", headline="CONTROLLER: ", msg_type="ERROR")
-                return
+                raise ClinostatCommunicationError
+
         self.console.println("Motors have stopped.", headline="CONTROLLER: ", msg_type="CONTROLLER")
         self.res = True
 
@@ -141,7 +142,11 @@ class Clinostat:
         except serial.serialutil.SerialException:
             raise ClinostatCommunicationError("Device is already physically disconnected."
                                               " Check USB cable and update USB ports.")
-        self._port.close()
+        finally:
+            try:
+                self._port.close()
+            except serial.SerialException:
+                pass
 
     def link_console(self, console) -> None:
         self.console = console

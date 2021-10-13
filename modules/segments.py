@@ -113,7 +113,7 @@ class SerialConfig(ttk.LabelFrame):
         finally:
             port_name = self.supervisor.params["device"].port_name
             self.supervisor.params["device"] = None
-            self.interface_manager.ui_modes_suspend()
+            self.interface_manager.ui_modes_reset()
             self.supervisor.flags["pumping"] = False
 
         self.console.println(f"Successfully disconnected from {port_name}.", headline="STATUS: ")
@@ -188,6 +188,7 @@ class ModeMenu(ttk.LabelFrame):
         self.interface_manager.ui_abort_handler()
         SuccessThread(target=self.supervisor.params["device"].abort,
                       at_success=self.interface_manager.ui_enable_run,
+                      at_fail=self.supervisor.device_likely_unplugged,
                       exception_=clinostat_com.ClinostatCommunicationError).start()
 
     def handle_run(self) -> None:
@@ -195,6 +196,7 @@ class ModeMenu(ttk.LabelFrame):
         speed = self.read_indicator_values()
         SuccessThread(target=self.supervisor.params["device"].run, args=(speed,),
                       at_success=self.interface_manager.ui_enable_stop,
+                      at_fail=self.supervisor.device_likely_unplugged,
                       exception_=clinostat_com.ClinostatCommunicationError).start()
 
     def handle_echo(self) -> None:
@@ -221,7 +223,7 @@ class ModeMenu(ttk.LabelFrame):
 
 class DataEmbed(tk.Frame):
 
-    figsize_ = (5, 2.75)
+    figsize_ = (6, 3.5)
 
     def __init__(self, supervisor, interface_manager, *args, **kwargs):
         super().__init__(*args, **kwargs)

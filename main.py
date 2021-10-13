@@ -5,6 +5,7 @@ import queue
 import os
 import tkinter.ttk as ttk
 import time
+import ttkbootstrap
 
 
 class InterfaceManager(ttk.Notebook):
@@ -69,7 +70,7 @@ class InterfaceManager(ttk.Notebook):
         self.add(self.motors_tab, text="Clinostat control")
         self.add(self.data_embed, text="Diagnostics")
 
-    def ui_modes_suspend(self) -> None:
+    def ui_modes_reset(self) -> None:
         self.serial_sensitive_interface["connect"].configure(state="normal")
         self.serial_sensitive_interface["disconnect"].configure(state="disabled")
         self.ui_disable_command_buttons()
@@ -212,6 +213,8 @@ class InterfaceManager(ttk.Notebook):
         self.interface["light_slider2"].configure_state(state="normal")
 
     def ui_lighting_disable(self) -> None:
+        self.interface["light_slider1"].reset()
+        self.interface["light_slider2"].reset()
         self.interface["light_slider1"].configure_state(state="disabled")
         self.interface["light_slider2"].configure_state(state="disabled")
 
@@ -224,6 +227,7 @@ class App(tk.Tk):
         self.trackers = properties.AppTrackers()
         self.flags = properties.AppFlags()
         self.data_buffers = properties.DataBuffers()
+        # ttkbootstrap.Style(theme="flatly")
 
         if "saved data" not in os.listdir("."):
             os.mkdir("saved data")
@@ -271,7 +275,11 @@ class App(tk.Tk):
     def device_likely_unplugged(self) -> None:
 
         self.params["device"] = None
-        # reset the serial interface to the default setting.
+        try:
+            self.params["device"].close_serial()
+        except clinostat_com.ClinostatCommunicationError:
+            pass
+        self.interface_manager.ui_modes_reset()
 
     def program_loop(self) -> None:
 
