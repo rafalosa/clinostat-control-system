@@ -5,36 +5,29 @@ import matplotlib
 import matplotlib.pyplot as plt
 from datetime import datetime
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 matplotlib.use('TkAgg')
 
 
 class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
 
-    def __init__(self, figsize=(1,1), spatial = False,*args,**kwargs):
+    def __init__(self, figsize=(1,1), tracking = False,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fig = plt.figure(figsize=figsize)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.spatial = spatial
-        if self.spatial:
-            self.ax = self.fig.add_subplot(projection="3d")
-            self.y_max = 1
-            self.y_min = -1
-            self.x_max = 1
-            self.x_min = -1
-            self.z_max = 1
-            self.z_min = -1
-            self.ax.set_ylim([self.y_min, self.y_max])
-            self.ax.set_xlim([self.x_min, self.x_max])
-            self.ax.set_zlim([self.z_min, self.z_max])
+        self.tracking = tracking
 
-        else:
-            self.ax = self.fig.add_subplot()
-            self.y_max = 1
-            self.y_min = -1
-            self.ax.set_ylim([self.y_min, self.y_max])
+        self.ax = self.fig.add_subplot()
+        self.y_max = 1
+        self.y_min = -1
+        self.ax.set_ylim([self.y_min, self.y_max])
 
         self.ax.grid("minor")
+
+        if tracking:
+            self.ax.set_xlim([0, 300])
+            locs = self.ax.get_xticks()
+            self.ax.set_xticklabels(np.array(np.flip(locs) / 5, dtype=float))
+
         self.lines = [self.ax.plot([], [])[0]]
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.canvas.draw()
@@ -42,35 +35,29 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
     def draw(self):
         self.canvas.draw()
 
-    def plot(self,lines, x_data, y_data,z_data = None,tracking=True):
+    def plot(self, lines, x_data, y_data):
 
-        if self.spatial:
-            self.ax.quiver(0,0,0,x_data/9.81,y_data/9.81,z_data/9.81,length=1,normalize=True)
+        lines.set_xdata(x_data)
+        lines.set_ydata(y_data)
+        self.y_max = 1
+        self.y_min = -1
+        for line in self.lines:
+            line_data = list(line.get_ydata())
 
+            if line_data:
+                if self.y_max < max(line_data):
+                    self.y_max = max(line_data)
+
+                if self.y_min > min(line_data):
+                    self.y_min = min(line_data)
+
+        self.ax.set_ylim([self.y_min, self.y_max])
+        locs = self.ax.get_xticks()
+        if self.tracking:
+            self.ax.set_xticklabels(np.array(np.flip(locs) / 5, dtype=float))
         else:
-
-            lines.set_xdata(x_data)
-            lines.set_ydata(y_data)
-            self.y_max = 1
-            self.y_min = -1
-            for line in self.lines:
-                line_data = list(line.get_ydata())
-
-                if line_data:
-                    if self.y_max < max(line_data):
-                        self.y_max = max(line_data)
-
-                    if self.y_min > min(line_data):
-                        self.y_min = min(line_data)
-
-            self.ax.set_ylim([self.y_min, self.y_max])
-            locs = self.ax.get_xticks()
-            if tracking:
-                self.ax.set_xlim([0,len(x_data)])
-                self.ax.set_xticklabels(np.array(np.flip(locs) / 5, dtype=float))
-            else:
-                self.ax.set_xlim([min(x_data),max(x_data)])
-            self.canvas.draw()
+            self.ax.set_xlim([min(x_data), max(x_data)])
+        self.canvas.draw()
 
     def reset_plot(self):
         self.y_max = 1

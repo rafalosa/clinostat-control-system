@@ -224,7 +224,7 @@ class ModeMenu(ttk.LabelFrame):
 
 class DataEmbed(tk.Frame):
 
-    figsize_ = (6, 3.5)
+    figsize_ = (5.7, 3.2)
 
     def __init__(self, supervisor, interface_manager, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -255,7 +255,8 @@ class DataEmbed(tk.Frame):
 
         for i in range(len(plot_descriptions)):
             self.plots[plot_keys[i]] = cw.EmbeddedFigure(master=self.gravity_plots,
-                                                         figsize=DataEmbed.figsize_)
+                                                         figsize=DataEmbed.figsize_,
+                                                         tracking=True)
             self.plots[plot_keys[i]].add_lines_object()
             self.plots[plot_keys[i]].add_lines_object()
             self.grav_axes.append(self.plots[plot_keys[i]])
@@ -274,7 +275,9 @@ class DataEmbed(tk.Frame):
         self.fourier.add(self.plots["fourier"], text="FFT of gravity vector")
         self.plots["fourier"].legend(["FFT(X)", "FFT(Y)", "FFT(Z)"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
 
-        self.plots["temperatures"] = cw.EmbeddedFigure(master=self.temperatures, figsize=DataEmbed.figsize_)
+        self.plots["temperatures"] = cw.EmbeddedFigure(master=self.temperatures,
+                                                       figsize=DataEmbed.figsize_,
+                                                       tracking=True)
         for i in range(2):
             self.plots["temperatures"].add_lines_object()
 
@@ -283,7 +286,9 @@ class DataEmbed(tk.Frame):
         self.plots["temperatures"].legend(["Temp1", "Temp2", "Temp3"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
         self.temperatures.add(self.plots["temperatures"], text="Temperatures")
 
-        self.plots["humidity"] = cw.EmbeddedFigure(master=self.humidity, figsize=DataEmbed.figsize_)
+        self.plots["humidity"] = cw.EmbeddedFigure(master=self.humidity,
+                                                   figsize=DataEmbed.figsize_,
+                                                   tracking=True)
         self.plots["humidity"].xlabel("Elapsed time (min)")
         self.plots["humidity"].ylabel("Humidity %")
         self.plots["humidity"].legend(["Sensor1"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
@@ -295,14 +300,14 @@ class DataEmbed(tk.Frame):
 
         self.interface["save"] = tk.Button(self.data_save_frame, text="Save to CSV", command=self.save_file, width=17)
         self.interface["clear"] = tk.Button(self.data_save_frame, text="Clear data", command=self.clear_data, width=17)
-        self.interface["save"].grid(row=0, column=0, padx=10)
-        self.interface["clear"].grid(row=0, column=1, padx=10)
+        self.interface["save"].grid(row=0, column=0, padx=10, pady=10)
+        self.interface["clear"].grid(row=0, column=1, padx=10, pady=10)
 
         self.data_save_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nwse", columnspan=2)
-        self.gravity_plots.grid(row=0, column=0, padx=10, pady=10, sticky="sw")
-        self.fourier.grid(row=0, column=1, padx=10, pady=10, sticky="ne")
-        self.temperatures.grid(row=1, column=1, padx=10, pady=10, sticky="se")
-        self.humidity.grid(row=1, column=0, padx=10, pady=10, sticky="sw")
+        self.gravity_plots.grid(row=0, column=0, padx=10, pady=10, sticky="sw", columnspan=2)
+        self.fourier.grid(row=0, column=2, padx=10, pady=10, sticky="ne", columnspan=2)
+        self.temperatures.grid(row=1, column=2, padx=10, pady=10, sticky="se", columnspan=2)
+        self.humidity.grid(row=1, column=0, padx=10, pady=10, sticky="sw", columnspan=2)
 
     def reset_data_buffers(self) -> None:
         self.supervisor.clear_queues()
@@ -356,7 +361,7 @@ class DataEmbed(tk.Frame):
                         frt = fft.fft(self.supervisor.data_buffers["grav_components"][index])
                         fr_domain = fft.fftfreq(N, 10)[:N // 2]
                         self.plots["fourier"].plot(self.plots["fourier"].lines[index], fr_domain,
-                                                   np.abs(frt[:N // 2]), tracking=False)
+                                                   np.abs(frt[:N // 2]))
 
         else:
             self.plots["fourier"].reset_plot()

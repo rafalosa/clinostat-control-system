@@ -46,6 +46,8 @@ class LIS3DHAccelerometer:
             results.append(accel)
         return results
 
+    def generate_fake_reading(self) -> list:
+        pass
 
 class MCP9808Thermometer:
 
