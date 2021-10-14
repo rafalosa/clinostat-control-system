@@ -155,29 +155,21 @@ class Console(tk.scrolledtext.ScrolledText):
 
     def println(self,string,headline=None,msg_type="MESSAGE"):
         time = datetime.now()
-        self.configure(state="normal")
         if headline is not None:
             headline = time.strftime("%Y/%m/%d %H:%M:%S ") + headline
         else:
             headline = time.strftime("%Y/%m/%d %H:%M:%S: ")
 
-        self.insert("end",headline,msg_type)
-        self.insert("end",string + '\n',"TEXT")
+        self.configure(state="normal")
+        self.insert("end", headline, msg_type)
+        self.insert("end", string + '\n', "TEXT")
         self.configure(state="disabled")
         self.see("end")
 
-# Should reconsider this or at least postpone it. This is not very trivial to implement nor is it necessary.
-# class TerminalEmulator(tk.scrolledtext.ScrolledText):
-#     def __init__(self,**kwargs):
-#         super().__init__(**kwargs)
-#         self.bind("<Return>",self.getInput)
-#
-#     def getInput(self,event):
-#         input = self.get("1.0","end-1c")
-#
-#         str_ = os.popen(input)
-#         out = str_.read()
-#         print(out)
+    def clear(self):
+        self.configure(state="normal")
+        self.delete("0.0", "end")
+        self.configure(state="disabled")
 
 
 if __name__ == "__main__":

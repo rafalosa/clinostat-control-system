@@ -56,8 +56,8 @@ class InterfaceManager(ttk.Notebook):
                                             text="TCP client control")
         self.interface.update(self.server_starter.interface)
 
-        self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=2)
-        self.mode_options.grid(row=2, column=0, padx=10, pady=10, sticky="sw")
+        self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=3)
+        self.mode_options.grid(row=3, column=0, padx=10, pady=10, sticky="sw")
         self.pump_control.grid(row=0, column=1, padx=10, pady=10, sticky="ne")
         self.light_control.grid(row=1, column=1, padx=10, pady=10, sticky="ne")
         self.server_starter.grid(row=2, column=1, padx=10, pady=10, sticky="nw")
@@ -230,7 +230,7 @@ class App(tk.Tk):
         self.trackers = properties.AppTrackers()
         self.flags = properties.AppFlags()
         self.data_buffers = properties.DataBuffers()
-        ttkbootstrap.Style(theme="flatly")
+        ttkbootstrap.Style(theme="cosmo")
 
         if "saved data" not in os.listdir("."):
             os.mkdir("saved data")
@@ -299,9 +299,9 @@ class App(tk.Tk):
 
             if now_time - self.trackers["seconds"] >= 1:
                 time_left = self.variables["time1"].get()*60 - (now_time - self.trackers["pump_time"])
-                mins = int(time_left//60)
-                secs = int(time_left - mins*60)
-                self.variables["time_left_str"].set(f"{mins:02d}:{secs:02d}")
+                minutes = int(time_left/60)
+                seconds = int(time_left - minutes*60)
+                self.variables["time_left_str"].set(f"{minutes:02d}:{seconds:02d}")
                 self.trackers["seconds"] = now_time
 
             if (now_time - self.trackers["pump_time"])/60 >= self.variables["time1"].get():

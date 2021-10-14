@@ -66,9 +66,13 @@ class SerialConfig(ttk.LabelFrame):
         self.console = cw.Console(self, font=("normal", 10))
         self.console.configure(width=65, height=30)
 
-        self.port_menu_frame.grid(row=0, column=0, padx=10, sticky="n")
-        self.connections_frame.grid(row=1, column=0, padx=10, pady=10, sticky="s")
-        self.console.grid(row=0, column=1, rowspan=2, pady=10, padx=10)
+        self.interface["clear_console"] = tk.Button(self, command=self.console.clear,
+                                                    text="Clear logs", width=17)
+
+        self.port_menu_frame.grid(row=1, column=0, padx=10, sticky="n")
+        self.connections_frame.grid(row=2, column=0, padx=10, pady=10, sticky="s")
+        self.console.grid(row=1, column=1, rowspan=2, pady=10, padx=10, columnspan=3)
+        self.interface["clear_console"].grid(row=0, column=3, pady=10, padx=10,sticky="e")
 
     def refresh_ports(self) -> None:
 
@@ -224,7 +228,7 @@ class ModeMenu(ttk.LabelFrame):
 
 class DataEmbed(tk.Frame):
 
-    figsize_ = (5.7, 3.2)
+    figsize_ = (5.7, 3.4)
 
     def __init__(self, supervisor, interface_manager, *args, **kwargs):
         super().__init__(*args, **kwargs)
