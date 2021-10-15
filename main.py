@@ -53,7 +53,7 @@ class InterfaceManager(ttk.Notebook):
         self.interface.update(self.light_control.interface)
 
         self.server_starter = ServerStarter(master=self.motors_tab, supervisor=self.master, interface_manager=self,
-                                            text="TCP client control")
+                                            text="TCP server control")
         self.interface.update(self.server_starter.interface)
 
         self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=3)

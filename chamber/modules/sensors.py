@@ -1,12 +1,31 @@
 import subprocess
 import datetime
 # import gpiozero
+from abc import ABC, abstractmethod
 import numpy as np
 
-# todo: Make abstract base class for sensors.
+
+class I2CSensor(ABC):
+
+    def __init__(self, address, bus):
+        self.address = address
+        self.bus = bus
+
+    @abstractmethod
+    def read(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def enable(self, *args, **kwargs):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def fake_read():
+        pass
 
 
-class LIS3DHAccelerometer:
+class LIS3DHAccelerometer(I2CSensor):
 
     __CTRL_REG1 = 0x20
     __CTRL_REG2 = 0x21
@@ -24,25 +43,20 @@ class LIS3DHAccelerometer:
     __OUT_Z_L = 0x2C
     __OUT_Z_H = 0x2D
 
-    __axes_reg = [__OUT_X_L,__OUT_X_H,__OUT_Y_L,__OUT_Y_H,__OUT_Z_L,__OUT_Z_H]
-
-    def __init__(self,address,bus):
-
-        self.address = address
-        self.bus = bus
+    __axes_reg = [__OUT_X_L, __OUT_X_H, __OUT_Y_L, __OUT_Y_H, __OUT_Z_L, __OUT_Z_H]
 
     def enable(self):
 
-        self.bus.write_byte_data(self.address,LIS3DHAccelerometer.__CTRL_REG1,0x2F)
-        self.bus.write_byte_data(self.address,LIS3DHAccelerometer.__CTRL_REG4, 0x00)
+        self.bus.write_byte_data(self.address, LIS3DHAccelerometer.__CTRL_REG1, 0x2F)
+        self.bus.write_byte_data(self.address, LIS3DHAccelerometer.__CTRL_REG4, 0x00)
 
-    def read_all_axes(self) -> list:
+    def read(self) -> list:
 
         axes = LIS3DHAccelerometer.__axes_reg
         results = []
         for axis in range(3):
-            dataL = self.bus.read_byte_data(self.address,axes[axis*2])
-            dataH = self.bus.read_byte_data(self.address,axes[axis*2+1])
+            dataL = self.bus.read_byte_data(self.address, axes[axis*2])
+            dataH = self.bus.read_byte_data(self.address, axes[axis*2+1])
             accel = 256 * dataH + dataL
             if accel > 2**15-1:  # Symmetric values range
                 accel -= 2**16-1
@@ -50,7 +64,7 @@ class LIS3DHAccelerometer:
         return results
 
     @staticmethod
-    def fake_reading() -> list:
+    def fake_read() -> list:
         z_base = -1
         x_base = 0
         y_base = 0
@@ -61,39 +75,35 @@ class LIS3DHAccelerometer:
         return [x_signal, y_signal, z_signal]
 
 
-class MCP9808Thermometer:
+class MCP9808Thermometer(I2CSensor):
 
     __AMBIENT_TEMP_REG = 0x05
 
-    def __init__(self,address,bus):
-        self.address = address
-        self.bus = bus
-
     def read(self):
 
-        data = self.bus.read_i2c_block_data(self.address,MCP9808Thermometer.__AMBIENT_TEMP_REG,2)
-        print((((data[0] << 8) + data[1]) & 0x0FFF)/16.0)
+        data = self.bus.read_i2c_block_data(self.address, MCP9808Thermometer.__AMBIENT_TEMP_REG, 2)
+        return (((data[0] << 8) + data[1]) & 0x0FFF)/16.0
+        # print((((data[0] << 8) + data[1]) & 0x0FFF)/16.0)
+
+    def enable(self):
+        pass
 
     @staticmethod
-    def fake_reading() -> float:
+    def fake_read() -> float:
 
         base_temp = 21
 
         return float(np.random.normal(base_temp, 0.1, 1))
 
 
-class ADS1115ADC:
+class ADS1115ADC(I2CSensor):
 
     __CONVERSION_REG = 0x00
     __CONFIG_REG = 0x01
     __LO_THRESH_REG = 0x02
     __HU_THRESH_REG = 0x03
 
-    def __init__(self,address,bus):
-        self.address = address
-        self.bus = bus
-
-    def read_channel(self, channel):
+    def read(self, channel):
         # Read channel voltage in reference to ground. ADS1115 also has a differential measuring mode, which
         # has been omitted, but would be trivial to implement.
 
@@ -108,8 +118,11 @@ class ADS1115ADC:
         # measurements in respect to GND.
         return reading
 
+    def enable(self):
+        pass
+
     @staticmethod
-    def fake_reading() -> float:
+    def fake_read() -> float:
 
         base_read = 128
 

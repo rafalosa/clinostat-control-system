@@ -538,12 +538,12 @@ class ServerStarter(ttk.LabelFrame):
         self.interface_manager = interface_manager
 
         self.interface["start_server"] = tk.Button(self,
-                                                   text="Run client", command=self.handle_run_server)
+                                                   text="Run server", command=self.handle_run_server)
         self.interface["start_server"].configure(width=20)
         self.interface["start_server"].grid(row=0, column=0, pady=2, padx=30, sticky="w")
 
         self.interface["close_server"] = tk.Button(self,
-                                                   text="Close client", command=self.handle_close_server)
+                                                   text="Close server", command=self.handle_close_server)
         self.interface["close_server"].configure(width=20, state="disabled")
         self.interface["close_server"].grid(row=0, column=1, pady=2, padx=30, sticky="e")
 
@@ -558,8 +558,8 @@ class ServerStarter(ttk.LabelFrame):
 
         self.interface["start_server"].grid(row=0, column=0)
         self.interface["close_server"].grid(row=1, column=0)
-        self.address_label.grid(row=2, column=0)
-        self.interface["address_entry"].grid(row=3, column=0)
+        self.address_label.grid(row=2, column=0, pady=5)
+        self.interface["address_entry"].grid(row=3, column=0, pady=10)
 
     def handle_run_server(self) -> None:
         server = self.supervisor.params["server"]
