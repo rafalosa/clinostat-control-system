@@ -6,6 +6,7 @@ import os
 import tkinter.ttk as ttk
 import time
 import ttkbootstrap
+from tkinter import PhotoImage
 
 # todo: There is a possibility that a watering command is executed during a rampdown of the motors which would cause a
 #   ClinostatCommunicationError exception to occur. Do something to prevent that.
@@ -56,11 +57,11 @@ class InterfaceManager(ttk.Notebook):
                                             text="TCP server control")
         self.interface.update(self.server_starter.interface)
 
-        self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=3)
-        self.mode_options.grid(row=3, column=0, padx=10, pady=10, sticky="sw")
-        self.pump_control.grid(row=0, column=1, padx=10, pady=10, sticky="ne")
-        self.light_control.grid(row=1, column=1, padx=10, pady=10, sticky="ne")
-        self.server_starter.grid(row=2, column=1, padx=10, pady=10, sticky="nw")
+        self.serial_config.grid(row=0, column=0, padx=10, pady=10, sticky="nw", rowspan=4)
+        self.mode_options.grid(row=0, column=1, padx=10, pady=10, sticky="nw")
+        self.pump_control.grid(row=1, column=1, padx=10, pady=10, sticky="nw")
+        self.light_control.grid(row=2, column=1, padx=10, pady=10, sticky="nw")
+        self.server_starter.grid(row=3, column=1, padx=10, pady=10, sticky="nw")
 
         self.data_embed = DataEmbed(master=self, supervisor=self.master, interface_manager=self)
         self.interface.update(self.data_embed.interface)
@@ -317,6 +318,6 @@ if __name__ == "__main__":
     root = App()
     root.resizable(False, False)
     root.title("Clinostat control system")
-    # root.iconbitmap("icon/favicon.ico")
+    root.iconphoto(True, PhotoImage(file="icon/favicon.gif"))
     root.after(1, root.program_loop)
     root.mainloop()

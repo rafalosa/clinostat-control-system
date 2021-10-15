@@ -64,7 +64,7 @@ class SerialConfig(ttk.LabelFrame):
         self.interface["disconnect"].grid(row=1, column=0, pady=2)
 
         self.console = cw.Console(self, font=("normal", 10))
-        self.console.configure(width=65, height=30)
+        self.console.configure(width=65, height=54)
 
         self.interface["clear_console"] = tk.Button(self, command=self.console.clear,
                                                     text="Clear logs", width=17)
@@ -141,8 +141,8 @@ class ModeMenu(ttk.LabelFrame):
 
         self.interface["speed_slider1"] = cw.SlidingIndicator(master=self.indicators_frame, label="1st DOF\nspeed")
         self.interface["speed_slider2"] = cw.SlidingIndicator(master=self.indicators_frame, label="2nd DOF\nspeed")
-        self.interface["speed_slider1"].grid(row=0, column=0, padx=30)
-        self.interface["speed_slider2"].grid(row=0, column=1, padx=30)
+        self.interface["speed_slider1"].grid(row=0, column=0, padx=15)
+        self.interface["speed_slider2"].grid(row=0, column=1, padx=15)
 
         self.supervisor.variables["speed1"] = self.interface["speed_slider1"].var
         self.supervisor.variables["speed2"] = self.interface["speed_slider2"].var
@@ -175,8 +175,8 @@ class ModeMenu(ttk.LabelFrame):
         # self.interface["home"].grid(row=4, column=0, pady=ModeMenu.button_pady)
         self.interface["echo"].grid(row=4, column=0, pady=ModeMenu.button_pady)
 
-        self.button_frame.grid(row=0, column=0, padx=10)
-        self.indicators_frame.grid(row=0, column=1, padx=30, rowspan=5, sticky="NE")
+        self.button_frame.grid(row=1, column=0, padx=10)
+        self.indicators_frame.grid(row=0, column=1, padx=30, rowspan=3, sticky="NE")
 
         for indicator in self.linear_indicators:
             indicator.configure_state(state="disabled")
