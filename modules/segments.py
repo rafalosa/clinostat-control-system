@@ -354,6 +354,9 @@ class DataEmbed(tk.Frame):
                     for line, buffer in zip(plot.lines, self.supervisor.data_buffers[keys[plot_ind]]):
                         plot.plot(line, np.arange(0, len(buffer)), buffer)
 
+                for line, buffer in zip(self.plots["temperatures"].lines, self.supervisor.data_buffers["temperatures"]):
+                    self.plots["temperatures"].plot(line, np.arange(0, len(buffer)), buffer)
+
                 if len(self.supervisor.data_buffers["grav_components"][0]) >= self.data_records_amount:
                     pool = Pool(processes=3)
                     result = pool.imap(fft.fft, self.supervisor.data_buffers["grav_components"])

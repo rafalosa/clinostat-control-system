@@ -47,6 +47,8 @@ while running:
             print("Connection timed out.")
             running = False
             break
+        except ConnectionRefusedError:
+            break
         sc.sendall(msg.encode())
         response = ""
         while True:

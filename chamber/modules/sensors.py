@@ -1,6 +1,9 @@
 import subprocess
 import datetime
-import gpiozero
+# import gpiozero
+import numpy as np
+
+# todo: Make abstract base class for sensors.
 
 
 class LIS3DHAccelerometer:
@@ -46,8 +49,17 @@ class LIS3DHAccelerometer:
             results.append(accel)
         return results
 
-    def generate_fake_reading(self) -> list:
-        pass
+    @staticmethod
+    def fake_reading() -> list:
+        z_base = -1
+        x_base = 0
+        y_base = 0
+
+        x_signal = float(np.random.normal(x_base, 0.05, 1))
+        y_signal = float(np.random.normal(y_base, 0.05, 1))
+        z_signal = float(np.random.normal(z_base, 0.05, 1))
+        return [x_signal, y_signal, z_signal]
+
 
 class MCP9808Thermometer:
 
@@ -61,6 +73,13 @@ class MCP9808Thermometer:
 
         data = self.bus.read_i2c_block_data(self.address,MCP9808Thermometer.__AMBIENT_TEMP_REG,2)
         print((((data[0] << 8) + data[1]) & 0x0FFF)/16.0)
+
+    @staticmethod
+    def fake_reading() -> float:
+
+        base_temp = 21
+
+        return float(np.random.normal(base_temp, 0.1, 1))
 
 
 class ADS1115ADC:
@@ -89,9 +108,16 @@ class ADS1115ADC:
         # measurements in respect to GND.
         return reading
 
+    @staticmethod
+    def fake_reading() -> float:
+
+        base_read = 128
+
+        return float(np.random.normal(base_read, 1, 1))
+
     def converting_status(self):
 
-        config = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONFIG_REG,2)
+        config = self.bus.read_i2c_block_data(self.address, ADS1115ADC.__CONFIG_REG, 2)
         
         if config[1] >= 128:
             return False
@@ -99,10 +125,10 @@ class ADS1115ADC:
             return True
 
 
-class GateDriverCircuit(gpiozero.LED):
-
-    def __init__(self, gate_pin):
-        super().__init__(gate_pin)
+# class GateDriverCircuit(gpiozero.LED):
+#
+#     def __init__(self, gate_pin):
+#         super().__init__(gate_pin)
 
 
 class Camera:

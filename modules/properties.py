@@ -82,13 +82,14 @@ class DataBuffers(ProgramProperties):
 
     __slots__ = (
         "grav_components",
-        "grav_means"
+        "grav_means",
+        "temperatures"
     )
 
     def __init__(self):
         setattr(self, "grav_components", [[], [], []])
         setattr(self, "grav_means", [[], [], []])
-        # setattr(self, "temps", [[], [], []])
+        setattr(self, "temperatures", [[], [], []])
         # setattr(self, "humidity", [[]])
         # setattr(self, "light", [[]])
         # setattr(self, "time_humidity", [[]])
