@@ -11,7 +11,7 @@ matplotlib.use('TkAgg')
 class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
 
     def __init__(self, figsize=(1,1), tracking = False,*args,**kwargs):
-        super().__init__(*args,**kwargs)
+        super().__init__(*args, **kwargs)
         self.fig = plt.figure(figsize=figsize)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.tracking = tracking
@@ -31,11 +31,15 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
         self.lines = [self.ax.plot([], [])[0]]
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.canvas.draw()
+        self.bg = self.canvas.copy_from_bbox(self.fig.bbox)
+        self.canvas.blit(self.fig.bbox)
 
     def draw(self):
         self.canvas.draw()
 
     def plot(self, lines, x_data, y_data):
+
+        self.canvas.restore_region(self.bg)
 
         lines.set_xdata(x_data)
         lines.set_ydata(y_data)
@@ -58,6 +62,8 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
         else:
             self.ax.set_xlim([min(x_data), max(x_data)])
         self.canvas.draw()
+        self.canvas.blit(self.fig.bbox)
+        self.canvas.flush_events()
 
     def reset_plot(self):
         self.y_max = 1
