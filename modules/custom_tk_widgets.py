@@ -106,12 +106,12 @@ class SlidingIndicator(tk.Frame):
         self.var = tk.DoubleVar()
         self.var.set(self.min)
         self.entry = tk.Entry(self.entry_frame,textvariable=self.var)
-        self.entry.configure(width=3,state="disabled",disabledbackground="white",
-                             disabledforeground="black",justify="center")
+        self.entry.configure(width=3, state="disabled", disabledbackground="white",
+                             disabledforeground="black", justify="center")
         self.unit_var = tk.StringVar()
         self.unit_var.set(unit)
         self.entry_label = tk.Label(self.entry_frame,textvariable=self.unit_var)
-        self.entry.grid(row=0,column=0, padx=10)
+        self.entry.grid(row=0, column=0, padx=10, pady=5)
 
         if entry_pos == "bot":
             self.entry_label.grid(row=1, column=0)

@@ -61,7 +61,7 @@ class InterfaceManager(ttk.Notebook):
         self.mode_options.grid(row=0, column=1, padx=10, pady=10, sticky="nw")
         self.pump_control.grid(row=1, column=1, padx=10, pady=10, sticky="nw")
         self.light_control.grid(row=2, column=1, padx=10, pady=10, sticky="nw")
-        self.server_starter.grid(row=3, column=1, padx=10, pady=10, sticky="nw")
+        self.server_starter.grid(row=3, column=1, padx=10, pady=10, sticky="sw")
 
         self.data_embed = DataEmbed(master=self, supervisor=self.master, interface_manager=self)
         self.interface.update(self.data_embed.interface)

@@ -371,9 +371,8 @@ class DataEmbed(tk.Frame):
                                                    np.abs(frt[:N // 2]))
 
         else:
-            self.plots["fourier"].reset_plot()
-            for plot in self.grav_axes:
-                plot.reset_plot()
+            for plot in self.plots:
+                self.plots[plot].reset_plot()
 
     def clear_data(self) -> None:
         if messagebox.askyesno(title="Clinostat control system", message="Are you sure you want to clear all data?"):
@@ -521,9 +520,8 @@ class LightControl(ttk.LabelFrame):
         self.interface["light_slider2"] = self.intensity_slider_blue
 
         self.intensity_queue = self.supervisor.put_queue
-        self.intensity_queue.put(50)
 
-    def update_value_container(self, arg) -> None:
+    def update_value_container(self, *args) -> None:
         msg = f'{self.intensity_slider_red.get_value()};{self.intensity_slider_blue.get_value()}'
         self.intensity_queue.put(msg)
 
@@ -538,7 +536,9 @@ class ServerStarter(ttk.LabelFrame):
         self.interface_manager = interface_manager
 
         self.interface["start_server"] = tk.Button(self,
-                                                   text="Run server", command=self.handle_run_server)
+                                                   text="Run server",
+                                                   command=self.handle_run_server)
+
         self.interface["start_server"].configure(width=20)
         self.interface["start_server"].grid(row=0, column=0, pady=2, padx=30, sticky="w")
 
@@ -549,7 +549,8 @@ class ServerStarter(ttk.LabelFrame):
 
         self.variables["address"] = self.supervisor.variables["address"] = tk.StringVar()
         self.interface["address_entry"] = tk.Entry(self,
-                                                   textvariable=self.supervisor.variables["address"])
+                                                   textvariable=self.supervisor.variables["address"],
+                                                   justify="center")
 
         self.interface["address_entry"].config(width=20, state="disabled")
         self.interface["address_entry"].configure(disabledbackground="white", disabledforeground="black")
