@@ -124,9 +124,9 @@ class ADS1115ADC(I2CSensor):
     @staticmethod
     def fake_read() -> float:
 
-        base_read = 128
+        base_read = 50
 
-        return float(np.random.normal(base_read, 1, 1))
+        return float(np.random.normal(base_read, 10, 1))
 
     def converting_status(self):
 

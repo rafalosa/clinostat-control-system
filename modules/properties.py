@@ -83,13 +83,21 @@ class DataBuffers(ProgramProperties):
     __slots__ = (
         "grav_components",
         "grav_means",
-        "temperatures"
+        "temperatures",
+        "humidity"
     )
 
     def __init__(self):
-        setattr(self, "grav_components", [[], [], []])
-        setattr(self, "grav_means", [[], [], []])
-        setattr(self, "temperatures", [[], [], []])
-        # setattr(self, "humidity", [[]])
+
+        self.MEASUREMENT_NUM_DEFAULT = 300
+        self._default_primer = [0 for _ in range(self.MEASUREMENT_NUM_DEFAULT)]
+
+        self.HUMID_MEASUREMENT_NUM = 10
+        self._humid_primer = [0 for _ in range(self.HUMID_MEASUREMENT_NUM)]
+
+        setattr(self, "grav_components", [self._default_primer, self._default_primer, self._default_primer])
+        setattr(self, "grav_means", [self._default_primer, self._default_primer, self._default_primer])
+        setattr(self, "temperatures", [self._default_primer, self._default_primer, self._default_primer])
+        setattr(self, "humidity", [self._humid_primer])
         # setattr(self, "light", [[]])
         # setattr(self, "time_humidity", [[]])

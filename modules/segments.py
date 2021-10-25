@@ -237,7 +237,7 @@ class DataEmbed(tk.Frame):
         self.variables = {}
         self.plots = {}
         self.interface_manager = interface_manager
-        self.data_records_amount = 300
+        self.data_records_amount_default = 300
 
         self.data_save_frame = ttk.LabelFrame(self, text="Save or discard data")
 
@@ -292,9 +292,12 @@ class DataEmbed(tk.Frame):
 
         self.plots["humidity"] = cw.EmbeddedFigure(master=self.humidity,
                                                    figsize=DataEmbed.figsize_,
-                                                   tracking=True)
+                                                   tracking=True,
+                                                   style=".",
+                                                   maxrecords=10)
         self.plots["humidity"].xlabel("Elapsed time (min)")
         self.plots["humidity"].ylabel("Humidity %")
+        self.plots["humidity"].set_hard_y_limits([0, 100])
         self.plots["humidity"].legend(["Sensor1"], bbox_to_anchor=(0, 1.02, 1, .102), loc=3, ncol=3)
         self.humidity.add(self.plots["humidity"], text="Humidity")
 
@@ -330,13 +333,14 @@ class DataEmbed(tk.Frame):
 
                 for i, buffer in enumerate(self.supervisor.data_buffers[key]):
 
-                    if len(buffer) >= self.data_records_amount:
+                    if key == "humidity" and values[index] == -100:
+                        pass
+
+                    else:
                         temp = list(np.roll(buffer, -1))
                         temp[-1] = values[index]
                         self.supervisor.data_buffers[key][i] = temp
 
-                    else:
-                        buffer.append(values[index])
                     index += 1
 
             with open("temp/data.temp", "a") as file:
@@ -357,7 +361,11 @@ class DataEmbed(tk.Frame):
                 for line, buffer in zip(self.plots["temperatures"].lines, self.supervisor.data_buffers["temperatures"]):
                     self.plots["temperatures"].plot(line, np.arange(0, len(buffer)), buffer)
 
-                if len(self.supervisor.data_buffers["grav_components"][0]) >= self.data_records_amount:
+                obj = self.plots["humidity"]
+                buffer = self.supervisor.data_buffers["humidity"][0]
+                obj.plot(obj.lines[0], np.arange(0, len(buffer)), buffer)
+
+                if len(self.supervisor.data_buffers["grav_components"][0]) >= self.data_records_amount_default:
                     pool = Pool(processes=3)
                     result = pool.imap(fft.fft, self.supervisor.data_buffers["grav_components"])
                     pool.close()

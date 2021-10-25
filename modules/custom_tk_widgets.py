@@ -10,11 +10,13 @@ matplotlib.use('TkAgg')
 
 class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
 
-    def __init__(self, figsize=(1,1), tracking = False,*args,**kwargs):
+    def __init__(self, figsize=(1,1), tracking=False, maxrecords=300, style="-", *args,**kwargs):
         super().__init__(*args, **kwargs)
         self.fig = plt.figure(figsize=figsize)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.tracking = tracking
+        self.maxrecords = maxrecords
+        self.hard_limits = False
 
         self.ax = self.fig.add_subplot()
         self.y_max = 1
@@ -24,11 +26,11 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
         self.ax.grid("minor")
 
         if tracking:
-            self.ax.set_xlim([0, 300])
+            self.ax.set_xlim([0, self.maxrecords])
             locs = self.ax.get_xticks()
-            self.ax.set_xticklabels(np.array(np.flip(locs) / 5, dtype=float))
+            self.ax.set_xticklabels(np.array(np.flip(locs) * 60/self.maxrecords, dtype=float))
 
-        self.lines = [self.ax.plot([], [])[0]]
+        self.lines = [self.ax.plot([], [], style)[0]]
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.canvas.draw()
         self.bg = self.canvas.copy_from_bbox(self.fig.bbox)
@@ -43,22 +45,26 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
 
         lines.set_xdata(x_data)
         lines.set_ydata(y_data)
-        self.y_max = 1
-        self.y_min = -1
-        for line in self.lines:
-            line_data = list(line.get_ydata())
 
-            if line_data:
-                if self.y_max < max(line_data):
-                    self.y_max = max(line_data)
+        if not self.hard_limits:
 
-                if self.y_min > min(line_data):
-                    self.y_min = min(line_data)
+            self.y_max = 1
+            self.y_min = -1
+            for line in self.lines:
+                line_data = list(line.get_ydata())
 
-        self.ax.set_ylim([self.y_min, self.y_max])
+                if line_data:
+                    if self.y_max < max(line_data):
+                        self.y_max = max(line_data)
+
+                    if self.y_min > min(line_data):
+                        self.y_min = min(line_data)
+
+            self.ax.set_ylim([self.y_min, self.y_max])
+
         locs = self.ax.get_xticks()
         if self.tracking:
-            self.ax.set_xticklabels(np.array(np.flip(locs) / 5, dtype=float))
+            self.ax.set_xticklabels(np.array(np.flip(locs) * 60/self.maxrecords, dtype=float))
         else:
             self.ax.set_xlim([min(x_data), max(x_data)])
         self.canvas.draw()
@@ -74,11 +80,11 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
             line.set_ydata([])
         self.canvas.draw()
 
-    def add_lines_object(self):
-        self.lines.append(self.ax.plot([], [])[0])
+    def add_lines_object(self, style="-"):
+        self.lines.append(self.ax.plot([], [], style)[0])
 
-    def legend(self, labels,**kwargs):
-        self.ax.legend(self.lines, labels,**kwargs)
+    def legend(self, labels, **kwargs):
+        self.ax.legend(self.lines, labels, **kwargs)
 
     def xlabel(self, label):
         self.ax.set_xlabel(label)
@@ -86,16 +92,22 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
     def ylabel(self, label):
         self.ax.set_ylabel(label)
 
+    def set_hard_y_limits(self, lims):
+        self.hard_limits = True
+        self.y_min = min(lims)
+        self.y_max = max(lims)
+        self.ax.set_ylim([self.y_min, self.y_max])
+
 
 class SlidingIndicator(tk.Frame):
 
-    def __init__(self,label="Speed",unit="RPM",orientation="vertical", from_=5,to=0.1,res=0.1,
-                 length=180, width=45, entry_pos = "bot", opt=None, *args,**kwargs):
+    def __init__(self, label="Speed", unit="RPM",orientation="vertical", from_=5, to=0.1, res=0.1,
+                 length=180, width=45, entry_pos="bot", opt=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.min = min((from_, to))
         self.var = tk.StringVar()
         self.var.set(label)
-        self.label = tk.Label(self,textvariable=self.var)
+        self.label = tk.Label(self, textvariable=self.var)
         self.slider = tk.Scale(self, from_=from_, to=to, orient=orientation,
                                resolution=res, length=length, command=self.update_entry, showvalue=0, width=width)
         self.slider.configure(cursor="dot")
@@ -105,7 +117,7 @@ class SlidingIndicator(tk.Frame):
         self.entry_frame = tk.Frame(self)
         self.var = tk.DoubleVar()
         self.var.set(self.min)
-        self.entry = tk.Entry(self.entry_frame,textvariable=self.var)
+        self.entry = tk.Entry(self.entry_frame, textvariable=self.var)
         self.entry.configure(width=3, state="disabled", disabledbackground="white",
                              disabledforeground="black", justify="center")
         self.unit_var = tk.StringVar()
@@ -159,7 +171,7 @@ class Console(tk.scrolledtext.ScrolledText):
         self.tag_config("TCP",foreground="magenta")
         self.configure(state="disabled")
 
-    def println(self,string,headline=None,msg_type="MESSAGE"):
+    def println(self, string, headline=None, msg_type="MESSAGE"):
         time = datetime.now()
         if headline is not None:
             headline = time.strftime("%Y/%m/%d %H:%M:%S ") + headline
