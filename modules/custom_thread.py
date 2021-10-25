@@ -4,13 +4,20 @@ from modules.clinostat_com import ClinostatCommunicationError
 
 
 class ClinostatSerialThread(threading.Thread):
-    def __init__(self, at_success: Optional[Callable] = None, at_fail: Optional[Callable] = None, **kwargs):
+    def __init__(self, serial_lock: threading.Lock,
+                 at_success: Optional[Callable] = None,
+                 at_fail: Optional[Callable] = None,
+                 **kwargs):
+
         super().__init__(**kwargs)
         self._at_success = at_success
         self._at_fail = at_fail
+        self.lock = serial_lock
 
     def run(self):
         failed = False
+        self.lock.acquire()
+
         try:
             if self._target:
                 self._target(*self._args, **self._kwargs)
@@ -23,4 +30,5 @@ class ClinostatSerialThread(threading.Thread):
         finally:
             if not failed and self._at_success:
                 self._at_success()
+            self.lock.release()
             del self._target, self._args, self._kwargs

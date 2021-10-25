@@ -191,6 +191,7 @@ class ModeMenu(ttk.LabelFrame):
     def handle_abort(self) -> None:
         self.interface_manager.ui_abort_handler()
         ClinostatSerialThread(target=self.supervisor.params["device"].abort,
+                              serial_lock=self.supervisor.serial_lock,
                               at_success=self.interface_manager.ui_enable_run,
                               at_fail=self.supervisor.device_likely_unplugged).start()
 
@@ -198,18 +199,21 @@ class ModeMenu(ttk.LabelFrame):
         self.interface_manager.ui_run_handler()
         speed = self.read_indicator_values()
         ClinostatSerialThread(target=self.supervisor.params["device"].run, args=(speed,),
+                              serial_lock=self.supervisor.serial_lock,
                               at_success=self.interface_manager.ui_enable_stop,
                               at_fail=self.supervisor.device_likely_unplugged).start()
 
     def handle_echo(self) -> None:
         self.interface_manager.ui_serial_suspend()
         ClinostatSerialThread(target=self.supervisor.params["device"].echo,
+                              serial_lock=self.supervisor.serial_lock,
                               at_success=self.interface_manager.ui_serial_break_suspend,
                               at_fail=self.supervisor.device_likely_unplugged).start()
 
     def handle_pause(self) -> None:
         self.interface_manager.ui_pause_handler()
         ClinostatSerialThread(target=self.supervisor.params["device"].pause,
+                              serial_lock=self.supervisor.serial_lock,
                               at_success=self.interface_manager.ui_enable_resume,
                               at_fail=self.supervisor.device_likely_unplugged).start()
 
@@ -492,6 +496,7 @@ class PumpControl(ttk.LabelFrame):
         self.interface_manager.ui_serial_suspend()
 
         ClinostatSerialThread(target=self.supervisor.params["device"].dump_water,
+                              serial_lock=self.supervisor.serial_lock,
                               at_success=self.interface_manager.ui_serial_break_suspend,
                               at_fail=self.supervisor.device_likely_unplugged,
                               args=(self.interface["water_slider1"].get_value(),)).start()

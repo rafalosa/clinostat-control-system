@@ -9,7 +9,8 @@ import ttkbootstrap
 from tkinter import PhotoImage
 
 # todo: There is a possibility that a watering command is executed during a rampdown of the motors which would cause a
-#   ClinostatCommunicationError exception to occur. Do something to prevent that.
+#  ClinostatCommunicationError exception to occur. Do something to prevent that. <- use a thread lock for each serial
+#  operation.
 
 
 class InterfaceManager(ttk.Notebook):
