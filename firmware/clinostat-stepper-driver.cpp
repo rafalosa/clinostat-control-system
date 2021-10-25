@@ -21,7 +21,7 @@ uint16_t top_speed_interval_frame = 10;
 volatile uint32_t steps_chamber_stepper = 1;
 volatile uint32_t steps_frame_stepper = 1;
 
-volatile uint8_t chamber_stepper_status = 0; //0 - rampup, 1 - speed reached, 3 - running at full speed, 2 - stopping.
+volatile uint8_t chamber_stepper_status = 0; //0 - rampup, 1 - speed reached, 2 - stopping, 3 - running at full speed, 4 - immediate stop.
 volatile uint8_t frame_stepper_status = 0;
 
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
@@ -316,7 +316,7 @@ void handleSerial(){
 
     else if(command == DISCONNECT_COMMAND){
 
-        updateProgramStatus(3);
+        updateProgramStatus(4);
         device_connected = false;
         if(pumping){
 
