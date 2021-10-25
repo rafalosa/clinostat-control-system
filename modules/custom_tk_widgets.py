@@ -72,9 +72,10 @@ class EmbeddedFigure(tk.Frame):  # todo: This is written kinda crappy - rebuild.
         self.canvas.flush_events()
 
     def reset_plot(self):
-        self.y_max = 1
-        self.y_min = -1
-        self.ax.set_ylim([self.y_min, self.y_max])
+        if not self.hard_limits:
+            self.y_max = 1
+            self.y_min = -1
+            self.ax.set_ylim([self.y_min, self.y_max])
         for line in self.lines:
             line.set_xdata([])
             line.set_ydata([])
@@ -161,14 +162,14 @@ class SlidingIndicator(tk.Frame):
 
 class Console(tk.scrolledtext.ScrolledText):
 
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
-        self.tag_config("MESSAGE",foreground="green")
-        self.tag_config("ERROR",foreground="red")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tag_config("MESSAGE", foreground="green")
+        self.tag_config("ERROR", foreground="red")
         self.tag_config("CCS", foreground="red")
         self.tag_config("DIRECTION", foreground="red")
         self.tag_config("CONTROLLER", foreground="magenta")
-        self.tag_config("TCP",foreground="magenta")
+        self.tag_config("TCP", foreground="magenta")
         self.configure(state="disabled")
 
     def println(self, string, headline=None, msg_type="MESSAGE"):

@@ -53,7 +53,7 @@ while True:
 
             current_timestamp = time.time()
 
-            if current_timestamp - last_measurement_timestamp >= 6*60:
+            if current_timestamp - last_measurement_timestamp >= 0.01*60:
 
                 Thread(target=measurement_dummy, args=(saturation_queue,)).start()
                 last_measurement_timestamp = current_timestamp

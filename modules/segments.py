@@ -392,7 +392,7 @@ class DataEmbed(tk.Frame):
             self.update_data()
 
     def save_file(self) -> None:
-        if self.supervisor.data_buffers["grav_components"][0]:
+        if self.supervisor.data_buffers["grav_components"][0] != self.supervisor.data_buffers.default_primer:
             date = datetime.now()
             date = str(date).replace(".", "-").replace(" ", "-").replace(":", "-")
             try:
@@ -404,6 +404,8 @@ class DataEmbed(tk.Frame):
             try:
                 copyfile("temp/data.temp", filename)
             except FileNotFoundError:
+                pass
+            except TypeError:
                 pass
         else:
             messagebox.showinfo(title="Save or discard data", message="No data to save.")

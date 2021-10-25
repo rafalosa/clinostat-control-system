@@ -90,14 +90,14 @@ class DataBuffers(ProgramProperties):
     def __init__(self):
 
         self.MEASUREMENT_NUM_DEFAULT = 300
-        self._default_primer = [0 for _ in range(self.MEASUREMENT_NUM_DEFAULT)]
+        self.default_primer = [0 for _ in range(self.MEASUREMENT_NUM_DEFAULT)]
 
         self.HUMID_MEASUREMENT_NUM = 10
-        self._humid_primer = [0 for _ in range(self.HUMID_MEASUREMENT_NUM)]
+        self.humid_primer = [0 for _ in range(self.HUMID_MEASUREMENT_NUM)]
 
-        setattr(self, "grav_components", [self._default_primer, self._default_primer, self._default_primer])
-        setattr(self, "grav_means", [self._default_primer, self._default_primer, self._default_primer])
-        setattr(self, "temperatures", [self._default_primer, self._default_primer, self._default_primer])
-        setattr(self, "humidity", [self._humid_primer])
+        setattr(self, "grav_components", [self.default_primer, self.default_primer, self.default_primer])
+        setattr(self, "grav_means", [self.default_primer, self.default_primer, self.default_primer])
+        setattr(self, "temperatures", [self.default_primer, self.default_primer, self.default_primer])
+        setattr(self, "humidity", [self.humid_primer])
         # setattr(self, "light", [[]])
         # setattr(self, "time_humidity", [[]])
