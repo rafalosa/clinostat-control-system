@@ -5,6 +5,8 @@ from queue import Queue
 from chamber.modules import sensors
 from threading import Thread
 
+# todo: Wrap this whole program into a class to avoid global variables.
+
 
 def measurement_dummy(q):
     num = 30
@@ -44,10 +46,18 @@ while True:
                 print("Connection timed out.")
                 break
             except ConnectionRefusedError:
+
+                print("Connection refused, reconnection attempt in 5s.")
                 index = 0
                 means = [0, 0, 0]
                 saturation_measurement_scheduled = False
-                print("Connection refused, reconnection attempt in 5s.")
+                time.sleep(5)
+                break
+            except OSError:
+                print("Network unreachable, reconnecting in 5s.")
+                index = 0
+                means = [0, 0, 0]
+                saturation_measurement_scheduled = False
                 time.sleep(5)
                 break
 
@@ -104,6 +114,7 @@ while True:
             response_components = response.split(";")
             if response_components[0] != "default":
                 # Adjust lighting
-                print("adjusting lighting", int(response_components[0]), int(response_components[1]))
+                # print("adjusting lighting", int(response_components[0]), int(response_components[1]))
+                pass
 
             time.sleep(0.2)

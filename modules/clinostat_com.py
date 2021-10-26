@@ -187,9 +187,11 @@ class Clinostat:
         for byte in message:
             try:
                 self._port.write(byte.to_bytes(1, 'little'))
+            except serial.serialutil.PortNotOpenError:
+                raise ClinostatCommunicationError("")
             except serial.SerialException as err:
                 self.console.println(err.args[0], headline="SERIAL ERROR: ", msg_type="ERROR")
-                return
+                raise ClinostatCommunicationError
             sleep(0.1)
         try:
             response = self._port.read(1)
@@ -249,6 +251,6 @@ def get_ports() -> list:
 
 
 class ClinostatCommunicationError(Exception):
-    def __init__(self, message):
+    def __init__(self, message="Clinostat communication error."):
         self.message = message
         super().__init__()
