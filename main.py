@@ -232,6 +232,7 @@ class App(tk.Tk):
         self.trackers = properties.AppTrackers()
         self.flags = properties.AppFlags()
         self.data_buffers = properties.DataBuffers()
+        self.serial_lock = threading.Lock()
         ttkbootstrap.Style(theme="cosmo")
 
         if "saved data" not in os.listdir("."):

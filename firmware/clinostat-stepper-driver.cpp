@@ -27,15 +27,12 @@ volatile uint8_t frame_stepper_status = 0;
 volatile unsigned long chamber_interval = STOP_INTERVAL_CHAMBER;
 volatile unsigned long frame_interval = STOP_INTERVAL_FRAME;
 
-using buffer = union {
+union {
 
     float float_value;
     uint8_t byte_value[4];
 
-};
-
-buffer speed_buffer[2];
-buffer watering_volume;
+} speed_buffer[2], watering_volume;
 
 uint32_t watering_time;
 

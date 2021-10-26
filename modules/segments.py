@@ -204,8 +204,9 @@ class ModeMenu(ttk.LabelFrame):
                               at_fail=self.supervisor.device_likely_unplugged).start()
 
     def handle_echo(self) -> None:
-        self.interface_manager.ui_serial_suspend()
+
         ClinostatSerialThread(target=self.supervisor.params["device"].echo,
+                              at_start=self.interface_manager.ui_serial_suspend,
                               serial_lock=self.supervisor.serial_lock,
                               at_success=self.interface_manager.ui_serial_break_suspend,
                               at_fail=self.supervisor.device_likely_unplugged).start()
@@ -493,9 +494,9 @@ class PumpControl(ttk.LabelFrame):
         self.interface_manager.ui_watering_stopped()
 
     def force_watering_cycle(self) -> None:
-        self.interface_manager.ui_serial_suspend()
 
         ClinostatSerialThread(target=self.supervisor.params["device"].dump_water,
+                              at_start=self.interface_manager.ui_serial_suspend,
                               serial_lock=self.supervisor.serial_lock,
                               at_success=self.interface_manager.ui_serial_break_suspend,
                               at_fail=self.supervisor.device_likely_unplugged,

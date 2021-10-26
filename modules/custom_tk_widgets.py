@@ -106,9 +106,7 @@ class SlidingIndicator(tk.Frame):
                  length=180, width=45, entry_pos="bot", opt=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.min = min((from_, to))
-        self.var = tk.StringVar()
-        self.var.set(label)
-        self.label = tk.Label(self, textvariable=self.var)
+        self.label = tk.Label(self, text=label)
         self.slider = tk.Scale(self, from_=from_, to=to, orient=orientation,
                                resolution=res, length=length, command=self.update_entry, showvalue=0, width=width)
         self.slider.configure(cursor="dot")

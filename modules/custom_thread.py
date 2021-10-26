@@ -5,6 +5,7 @@ from modules.clinostat_com import ClinostatCommunicationError
 
 class ClinostatSerialThread(threading.Thread):
     def __init__(self, serial_lock: threading.Lock,
+                 at_start: Optional[Callable] = None,
                  at_success: Optional[Callable] = None,
                  at_fail: Optional[Callable] = None,
                  **kwargs):
@@ -12,11 +13,15 @@ class ClinostatSerialThread(threading.Thread):
         super().__init__(**kwargs)
         self._at_success = at_success
         self._at_fail = at_fail
+        self._at_start = at_start
         self.lock = serial_lock
 
     def run(self):
-        failed = False
+
         self.lock.acquire()
+        failed = False
+        if self._at_start:
+            self._at_start()
 
         try:
             if self._target:
