@@ -64,7 +64,7 @@ class SerialConfig(ttk.LabelFrame):
         self.interface["disconnect"].grid(row=1, column=0, pady=2)
 
         self.console = cw.Console(self, font=("normal", 10))
-        self.console.configure(width=65, height=54)
+        self.console.configure(width=65, height=50)
 
         self.interface["clear_console"] = tk.Button(self, command=self.console.clear,
                                                     text="Clear logs", width=17)
