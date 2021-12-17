@@ -179,8 +179,7 @@ class Clinostat:
             self.console.println(msg, headline="CONTROLLER: ", msg_type="CONTROLLER")
 
     def dump_water(self, amount):
-        # Sends mode ID and 8 more bytes containing 2 floats for the speed.
-        # listen for response, return true if controller responded correctly
+
         message = Clinostat._WATERING
         message += bytes(bytearray(struct.pack("f", amount)))
 
@@ -251,6 +250,6 @@ def get_ports() -> list:
 
 
 class ClinostatCommunicationError(Exception):
-    def __init__(self, message="Clinostat communication error."):
+    def __init__(self, message="Clinostat backend error."):
         self.message = message
         super().__init__()

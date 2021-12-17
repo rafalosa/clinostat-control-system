@@ -1,6 +1,6 @@
 import threading
 from typing import Optional, Callable
-from modules.clinostat_com import ClinostatCommunicationError
+from modules.backend.clinostat_com import ClinostatCommunicationError
 
 
 class ClinostatSerialThread(threading.Thread):

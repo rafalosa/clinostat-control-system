@@ -1,5 +1,6 @@
-from modules import data_socket, properties
-from modules.segments import *
+from modules.properties import properties
+from modules.backend import data_socket
+from modules.gui.segments import *
 import yaml
 import queue
 import os
@@ -7,10 +8,6 @@ import tkinter.ttk as ttk
 import time
 import ttkbootstrap
 from tkinter import PhotoImage
-
-# todo: There is a possibility that a watering command is executed during a rampdown of the motors which would cause a
-#  ClinostatCommunicationError exception to occur. Do something to prevent that. <- use a thread lock for each serial
-#  operation.
 
 
 class InterfaceManager(ttk.Notebook):

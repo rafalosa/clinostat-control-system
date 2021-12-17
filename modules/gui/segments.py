@@ -1,7 +1,8 @@
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import numpy as np
-from modules import clinostat_com, custom_tk_widgets as cw
+from modules.gui import custom_tk_widgets as cw
+from modules.backend import clinostat_com
 from datetime import datetime
 from shutil import copyfile
 from scipy import fft
@@ -10,8 +11,8 @@ import tkinter.ttk as ttk
 import tkinter as tk
 import threading
 import os
-from modules.data_socket import ServerStartupError
-from modules.custom_thread import ClinostatSerialThread
+from modules.backend.data_socket import ServerStartupError
+from modules.backend.custom_thread import ClinostatSerialThread
 from typing import List
 
 
@@ -64,7 +65,7 @@ class SerialConfig(ttk.LabelFrame):
         self.interface["disconnect"].grid(row=1, column=0, pady=2)
 
         self.console = cw.Console(self, font=("normal", 10))
-        self.console.configure(width=65, height=50)
+        self.console.configure(width=65, height=54)
 
         self.interface["clear_console"] = tk.Button(self, command=self.console.clear,
                                                     text="Clear logs", width=17)
