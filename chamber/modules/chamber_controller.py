@@ -164,8 +164,13 @@ class ChamberController:
         if not ip_address or not port:
             with open("../config/chamber_config.yaml", "r") as fl:
                 temp_config = yaml.load(fl, Loader=yaml.FullLoader)
+
             self._server_config["IP"] = temp_config["IP"]
             self._server_config["PORT"] = temp_config["PORT"]
+
+        else:
+            self._server_config["IP"] = ip_address
+            self._server_config["PORT"] = port
 
     def add_worker_pin(self, pin: int) -> None:
         self._sensors_driver_pin = gpiozero.Pin(pin)
