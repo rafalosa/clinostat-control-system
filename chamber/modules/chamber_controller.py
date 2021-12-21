@@ -30,6 +30,7 @@ class ChamberController:
     PACKET_HEADER_SIZE = 10
     DEFAULT_SERVER_RESPONSE = "default"
     MOISTURE_LEVEL_MEASUREMENT_INTERVAL_MINS = 3
+    IMAGE_CAPTURE_INTERVAL_MINS = 60
     MOISTURE_LEVEL_MEASUREMENT_SAMPLES = 100
     DATA_EXCHANGE_FREQUENCY_HZ = 5
 
@@ -43,7 +44,8 @@ class ChamberController:
         self._server_config: dict = {}
         self._data_queue = queue.Queue()
         self._flags = {"moisture_measurement_scheduled": False, "running": True}
-        self._trackers: dict = {"last_measurement_timestamp": time.time(), "current_timestamp": time.time()}
+        self._trackers: dict = {"last_measurement_timestamp": time.time(), "last_picture_timestamp": time.time(),
+                                "current_timestamp": time.time()}
         self._current_run_images_dir: Optional[str] = None
 
     def attach_camera(self, camera: sensors.Camera):
@@ -103,11 +105,17 @@ class ChamberController:
                         break  # Here interrupt the forever loop and continue to watch for the connection.
 
                     self._trackers["current_timestamp"] = time.time()
-                    if self._trackers["current_timestamp"] - self._trackers["last_measurement_timestamp"] >= 0.5 * 60\
+                    if self._trackers["current_timestamp"] - self._trackers["last_measurement_timestamp"] >=\
+                            ChamberController.MOISTURE_LEVEL_MEASUREMENT_INTERVAL_MINS * 60\
                             and self._sensors_driver_pin:
                         print("Scheduling saturation measurement.")
                         Thread(target=self._moisture_measurement, args=(self._data_queue,))
                         self._trackers["last_measurement_timestamp"] = self._trackers["current_timestamp"]
+
+                    if self._trackers["current_timestamp"] - self._trackers["last_picture_timestamp"] >=\
+                            ChamberController.IMAGE_CAPTURE_INTERVAL_MINS * 60 and self._current_run_images_dir:
+                        self._trackers["last_picture_timestamp"] = self._trackers["current_timestamp"]
+                        Thread(target=self.take_pictures).start()
 
                     sensor_values = []
                     for (key, sensor) in self._sensors_short_read:
