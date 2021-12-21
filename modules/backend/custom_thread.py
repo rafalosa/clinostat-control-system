@@ -2,6 +2,8 @@ import threading
 from typing import Optional, Callable
 from modules.backend.clinostat_com import ClinostatCommunicationError
 
+#  todo: Probably should have used the excepthook.
+
 
 class ClinostatSerialThread(threading.Thread):
     def __init__(self, serial_lock: threading.Lock,

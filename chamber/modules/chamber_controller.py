@@ -60,6 +60,9 @@ class ChamberController:
         self._sensors_short_read["TEMP2"] = sensors.MCP9808Thermometer(temp_config["TEMP2"], self._i2c_bus)
         self._sensors_short_read["TEMP3"] = sensors.MCP9808Thermometer(temp_config["TEMP3"], self._i2c_bus)
 
+        for (key, sensor) in self._sensors_short_read:
+            sensor.enable()
+
     def start(self):
 
         if "images" not in os.listdir():
