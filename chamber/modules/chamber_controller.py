@@ -64,11 +64,13 @@ class ChamberController:
             sensor.enable()
 
     def start(self):
-
-        if "images" not in os.listdir():
-            os.mkdir("images")
-        self._flags["running"] = True
-        self._control_loop()
+        if self._server_config:
+            if "images" not in os.listdir():
+                os.mkdir("images")
+            self._flags["running"] = True
+            self._control_loop()
+        else:
+            raise RuntimeError("Add server connection using the add_server_connection method.")
 
     def _control_loop(self):
 
@@ -141,15 +143,15 @@ class ChamberController:
                     server_response = ""
 
                     while True:
-                        raw_data_recieved = sc.recv(ChamberController.PACKET_HEADER_SIZE)
-                        raw_data_recieved = raw_data_recieved.decode('utf-8')
+                        raw_data_received = sc.recv(ChamberController.PACKET_HEADER_SIZE)
+                        raw_data_received = raw_data_received.decode('utf-8')
 
                         if fresh:
-                            packet_size = int(raw_data_recieved[:ChamberController.PACKET_HEADER_SIZE])
+                            packet_size = int(raw_data_received[:ChamberController.PACKET_HEADER_SIZE])
                             fresh = False
-                            server_response += raw_data_recieved[ChamberController.PACKET_HEADER_SIZE:]
+                            server_response += raw_data_received[ChamberController.PACKET_HEADER_SIZE:]
                         else:
-                            server_response += raw_data_recieved
+                            server_response += raw_data_received
 
                         if len(server_response) == packet_size:
                             break
