@@ -282,10 +282,6 @@ class App(tk.Tk):
         except clinostat_com.ClinostatCommunicationError:
             pass
         self.params["device"] = None
-        # try:
-        #     self.serial_lock.release()
-        # except RuntimeError:
-        #     pass
         self.interface_manager.ui_modes_reset()
         self.flags["pumping"] = False
         self.trackers = properties.AppTrackers()

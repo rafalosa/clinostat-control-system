@@ -61,7 +61,8 @@ class LIS3DHAccelerometer(I2CSensor):
             if accel > 2**15-1:  # Symmetric values range
                 accel -= 2**16-1
             results.append(accel)
-        return results
+        ret = [val / (2 ** 16 / 4) for val in results]
+        return ret
 
     @staticmethod
     def fake_read() -> list:
@@ -114,8 +115,7 @@ class ADS1115ADC(I2CSensor):
             pass
         data = self.bus.read_i2c_block_data(self.address,ADS1115ADC.__CONVERSION_REG,2)
         reading = (data[0] << 8) + data[1]
-        # res = vals.to_bytes(2,byteorder="big",signed=False) Two's complement conversion not needed because of
-        # measurements in respect to GND.
+
         return reading
 
     def enable(self):
@@ -138,24 +138,22 @@ class ADS1115ADC(I2CSensor):
             return True
 
 
-# class GateDriverCircuit(gpiozero.LED):
-#
-#     def __init__(self, gate_pin):
-#         super().__init__(gate_pin)
-
-
 class Camera:
 
     # Cameras are accessible via /dev/videoCam1 and /dev/videoCam2
 
-    def __init__(self,port,res):
+    def __init__(self, port: str, res: str):
         self.port = port
         self.resolution = res
 
     def capture_frame(self, image_path):
-        timestamp = str(datetime.datetime.now()).replace(" ","-").replace(":","-").replace(".","-")
-        path = image_path + timestamp + ".jpg"
+        timestamp = str(datetime.datetime.now()).replace(" ", "-").replace(":", "-").replace(".", "-")
+        path = image_path + timestamp + self.name + ".jpg"
         subprocess.call(f"./take_pic.sh {self.port} {self.resolution} {path}",shell=True)
+
+    @property
+    def name(self):
+        return self.port
 
 
 class LightPanel:
