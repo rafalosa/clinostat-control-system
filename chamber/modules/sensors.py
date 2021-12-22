@@ -149,7 +149,7 @@ class Camera:
     def capture_frame(self, image_path):
         timestamp = str(datetime.datetime.now()).replace(" ", "-").replace(":", "-").replace(".", "-")
         path = image_path + timestamp + self.name + ".jpg"
-        subprocess.call(f"./take_pic.sh {self.port} {self.resolution} {path}",shell=True)
+        subprocess.call(f"./take_pic.sh {self.port} {self.resolution} {path}", shell=True)
 
     @property
     def name(self):

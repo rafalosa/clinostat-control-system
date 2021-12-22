@@ -48,10 +48,10 @@ class ChamberController:
                                 "current_timestamp": time.time()}
         self._current_run_images_dir: Optional[str] = None
 
-    def attach_camera(self, camera: sensors.Camera):
+    def attach_camera(self, camera: sensors.Camera) -> None:
         self._cameras[camera.name()] = camera
 
-    def load_sensors(self):
+    def load_sensors(self) -> None:
 
         with open("../config/chamber_config.yaml", "r") as fl:
             temp_config = yaml.load(fl, Loader=yaml.FullLoader)
@@ -62,10 +62,10 @@ class ChamberController:
         self._sensors_short_read["TEMP2"] = sensors.MCP9808Thermometer(temp_config["TEMP2"], self._i2c_bus)
         self._sensors_short_read["TEMP3"] = sensors.MCP9808Thermometer(temp_config["TEMP3"], self._i2c_bus)
 
-        for (key, sensor) in self._sensors_short_read:
+        for _, sensor in self._sensors_short_read.items():
             sensor.enable()
 
-    def start(self):
+    def start(self) -> None:
         if self._server_config:
             if "images" not in os.listdir():
                 os.mkdir("images")
@@ -74,7 +74,7 @@ class ChamberController:
         else:
             raise RuntimeError("Add server connection using the add_server_connection method.")
 
-    def _control_loop(self):
+    def _control_loop(self) -> None:
 
         measurement_index = 0
         gravity_avg = [0, 0, 0]
@@ -118,7 +118,7 @@ class ChamberController:
                         Thread(target=self.take_pictures).start()
 
                     sensor_values = []
-                    for (key, sensor) in self._sensors_short_read:
+                    for _, sensor in self._sensors_short_read.items():
                         sensor_values += sensor.read()
 
                     if not self._data_queue.empty():
@@ -190,7 +190,7 @@ class ChamberController:
         self._sensors_driver_pin.off()
 
     def take_pictures(self) -> None:
-        for (key, camera) in self._cameras:
+        for _, camera in self._cameras.items():
             camera.capture_frame(self._current_run_images_dir)
 
     def _moisture_measurement(self, fake: bool = False) -> None:
