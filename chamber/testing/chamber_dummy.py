@@ -27,7 +27,7 @@ with open("../config/chamber_config.yaml", "r") as file:
 address = config["IP"]
 port = config["PORT"]
 
-index = 0
+measurement_index = 0
 means = [0, 0, 0]
 saturation_measurement_scheduled = False
 last_measurement_timestamp = time.time()
@@ -48,14 +48,14 @@ while True:
             except ConnectionRefusedError:
 
                 print("Connection refused, reconnection attempt in 5s.")
-                index = 0
+                measurement_index = 0
                 means = [0, 0, 0]
                 saturation_measurement_scheduled = False
                 time.sleep(5)
                 break
             except OSError:
                 print("Network unreachable, reconnecting in 5s.")
-                index = 0
+                measurement_index = 0
                 means = [0, 0, 0]
                 saturation_measurement_scheduled = False
                 time.sleep(5)
@@ -69,8 +69,8 @@ while True:
                 last_measurement_timestamp = current_timestamp
 
             accel_values = sensors.LIS3DHAccelerometer.fake_read()
-            temp = [means[ind] * index / (index + 1) + accel_values[ind] / (index + 1) for ind in range(3)]
-            index += 1
+            temp = [means[ind] * measurement_index / (measurement_index + 1) + accel_values[ind] / (measurement_index + 1) for ind in range(3)]
+            measurement_index += 1
             means = temp
             sensor_values = accel_values + means
             temperatures = [sensors.MCP9808Thermometer.fake_read() for _ in range(3)]
@@ -91,7 +91,7 @@ while True:
             try:
                 sc.sendall(msg.encode())
             except BrokenPipeError:
-                index = 0
+                measurement_index = 0
                 means = [0, 0, 0]
                 saturation_measurement_scheduled = False
                 break
@@ -103,13 +103,13 @@ while True:
                 data = data.decode('utf-8')
 
                 if fresh:
-                    size = int(data[:HEADER_SIZE])
+                    expected_response_size = int(data[:HEADER_SIZE])
                     fresh = False
                     response += data[HEADER_SIZE:]
                 else:
                     response += data
 
-                if len(response) == size:
+                if len(response) == expected_response_size:
                     break
             response_components = response.split(";")
             if response_components[0] != "default":
