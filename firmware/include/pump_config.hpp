@@ -1,5 +1,4 @@
-#ifndef PUMP_CONF_H
-#define PUMP_CONF_H
+#pragma once
 
 #define ML_PER_MIN 200
 #define PRIMING_CONSTANT 1
@@ -8,5 +7,3 @@
 #define TURN_ON_PUMP PORTD |= (1 << PUMP_PIN)
 #define TURN_OFF_PUMP PORTD &= ~(1 << PUMP_PIN)
 #define TOGGLE_PUMP PORTD ^= (1 << PUMP_PIN)
-
-#endif

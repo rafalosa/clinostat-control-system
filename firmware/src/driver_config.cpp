@@ -1,7 +1,7 @@
 #include "headers.hpp"
 #include "driver_config.hpp"
 
-uint64_t program_time_milis = 0;
+volatile uint64_t program_time_milis = 0;
 
 void SETUP_TIMER1_INTERRUPTS(){
 

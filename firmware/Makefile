@@ -1,10 +1,10 @@
-CC=avr-gcc
+CC= avr-g++
 CFLAGS= -Os -DF_CPU=16000000UL -mmcu=atmega32u4
 INCLUDE_DIR:= include
 SOURCE_DIR:= src
 
-SRC := $(wildcard $(SOURCE_DIR)/*.cpp)
-DEPD := $(wildcard $(INCLUDE_DIR)/*.hpp)
+SRC:= $(wildcard $(SOURCE_DIR)/*.cpp)
+DEPD:= $(wildcard $(INCLUDE_DIR)/*.hpp)
 
 all: clinostat-stepper-driver.out
 
@@ -13,9 +13,6 @@ all: clinostat-stepper-driver.out
 
 %.hex: %.out
 	avr-objcopy -O ihex -R .eeprom $< $@
-
-#USBPORT:=$(shell ls /dev/ttyACM*)
-#avrdude -F -V -c arduino -P $(USBPORT) -p m32u4 -b 115200 -U flash:w:$<
 
 install.%: %.hex
 	avrdude -F -V -c usbasp -p m32u4 -b 115200 -U flash:w:$<

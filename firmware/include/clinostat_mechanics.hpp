@@ -1,5 +1,4 @@
-#ifndef CLINOSTAT_MECH_H
-#define CLINOSTAT_MECH_H
+#pragma once
 
 #define GEARBOX_REDUCTION 4 // Reduction of the gearbox mounted underneath the clinostat.
 #define STEPPER_BELT_WHEEL_TEETH 28 // Number of teeth on the wheels mounted on stepper motors.
@@ -8,5 +7,3 @@
 #define MICROSTEP_DIVISION 16 // Chosen mode of microstepping.
 
 #define STEPS_PER_REVOLUTION (STEPPER_STEPS_PER_REVOLUTION*MICROSTEP_DIVISION) // Number of steps per revolution considering the microstepping.
-
-#endif

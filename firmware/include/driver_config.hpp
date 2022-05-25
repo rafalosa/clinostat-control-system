@@ -1,5 +1,4 @@
-#ifndef DRIVER_CONF_H
-#define DRIVER_CONF_H
+#pragma once
 
 #define CHAMBER_STEP 0 // PD0 for chamber step pin.
 #define FRAME_STEP 1 // PD1 for frame step pin.
@@ -33,5 +32,3 @@
 void SETUP_TIMER1_INTERRUPTS();
 void SETUP_TIMER3_INTERRUPTS();
 void SETUP_TIMER0_INTERRUPTS();
-
-#endif
